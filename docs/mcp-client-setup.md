@@ -1,8 +1,14 @@
 # Swarm MCP Client Setup
 
-_Table of contents:_
+This document provides comprehensive guidance on setting up and configuring MCP (Model Context Protocol) clients to
+interact with the Swarm MCP server. It covers the configuration structure and setup instructions for various MCP client
+applications.
+
+## Table of Contents
 
 - [Understanding the Configuration](#understanding-the-configuration)
+    - [Configuration Structure](#configuration-structure)
+    - [Configuration Fields](#configuration-fields)
 - [Setting up MCP Clients](#setting-up-mcp-clients)
     - [Claude Desktop](#claude-desktop)
     - [Windsurf](#windsurf)
