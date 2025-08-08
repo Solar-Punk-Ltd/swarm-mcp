@@ -6,12 +6,48 @@ applications.
 
 ## Table of Contents
 
+- [Building the Project](#building-the-project)
 - [Understanding the Configuration](#understanding-the-configuration)
     - [Configuration Structure](#configuration-structure)
     - [Configuration Fields](#configuration-fields)
 - [Setting up MCP Clients](#setting-up-mcp-clients)
     - [Claude Desktop](#claude-desktop)
     - [Windsurf](#windsurf)
+
+## Building the Project
+
+Before you can use the Swarm MCP client, you'll need to build the project to generate the `dist` folder. Follow these
+steps:
+
+1. **Prerequisites**:
+    - Node.js (v16 or later recommended)
+    - npm (comes with Node.js)
+    - Git (for cloning the repository)
+
+2. **Clone the repository** (if you haven't already):
+   ```bash
+   git clone <repository-url>
+   cd swarm-mcp
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+4. **Build the project**:
+   ```bash
+   npm run build
+   ```
+   This will create a `dist` folder in your project root containing the compiled JavaScript files.
+
+5. **Verify the build**:
+   The main entry point should be available at:
+   ```
+   /path/to/your/swarm-mcp/dist/index.js
+   ```
+
+_Note_: See the [README](../README.md) for more information.
 
 ## Understanding the Configuration
 
@@ -95,7 +131,7 @@ Claude Desktop is a desktop application that can be used to interact with Claude
     "Swarm": {
       "command": "npx",
       "args": [
-        "/location/to/your/swarm-mcp/dist/index.js"
+        "/path/to/your/swarm-mcp/dist/index.js"
       ],
       "env": {
       }
@@ -155,7 +191,7 @@ Windsurf is a code editor that can be used to edit code with real-time AI assist
     "Swarm": {
       "command": "npx",
       "args": [
-        "/location/to/your/swarm-mcp/dist/index.js"
+        "/path/to/your/swarm-mcp/dist/index.js"
       ],
       "env": {
       }
