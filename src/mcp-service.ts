@@ -12,6 +12,7 @@ import { downloadText, DownloadTextArgs } from './tools/download-text';
 import { uploadFile, UploadFileArgs } from './tools/upload-file';
 import { uploadFolder, UploadFolderArgs } from './tools/upload-folder';
 import { downloadFolder, DownloadFolderArgs } from './tools/download-folder';
+import { nodeStatus, NodeStatusArgs } from './tools/node-status';
 
 /**
  * Swarm MCP Server class
@@ -169,6 +170,15 @@ class SwarmMCPServer {
             required: ['reference'],
           },
         },
+        {
+          name: 'node_status',
+          description: 'Check the health and readiness status of the Bee node',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
+        },
       ],
     }));
 
@@ -192,6 +202,9 @@ class SwarmMCPServer {
           
         case 'download_folder':
           return downloadFolder(args as unknown as DownloadFolderArgs, this.bee, this.server.server.transport);
+          
+        case 'node_status':
+          return nodeStatus(args as unknown as NodeStatusArgs, this.bee);
       }
 
       throw new McpError(
