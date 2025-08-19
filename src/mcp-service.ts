@@ -16,7 +16,7 @@ import { downloadFolder, DownloadFolderArgs } from './tools/download-folder';
  * Swarm MCP Server class
  */
 export class SwarmMCPServer {
-  public server: McpServer;
+  public readonly server: McpServer;
   private readonly bee: Bee;
 
   constructor() {
