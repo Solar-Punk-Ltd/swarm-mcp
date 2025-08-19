@@ -14,40 +14,38 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Handle all MCP requests on the /mcp endpoint
-app.all('/mcp', async (req: Request, res: Response) => {
-  console.error(`[${req.method}] Handling request for ${req.path}`);
-  try {
-    // In stateless mode, create a new server and transport for each request
-    const swarmMCPServer = new SwarmMCPServer();
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined, // Enforce stateless behavior
-    });
+async function main() {
+  const swarmMCPServer = new SwarmMCPServer();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined, // Enforce stateless behavior
+  });
 
-    // Clean up when the request is closed
-    res.on('close', () => {
-      transport.close();
-      swarmMCPServer.server.close();
-      console.error('Request closed, resources released.');
-    });
+  await swarmMCPServer.server.connect(transport);
 
-    // Connect the server and transport, then handle the request
-    await swarmMCPServer.server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-
-  } catch (error) {
-    console.error('Error handling MCP request:', error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal server error' },
-        id: null,
-      });
+  // Handle all MCP requests on the /mcp endpoint
+  app.all('/mcp', async (req: Request, res: Response) => {
+    console.error(`[${req.method}] Handling request for ${req.path}`);
+    try {
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      console.error('Error handling MCP request:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: { code: -32603, message: 'Internal server error' },
+          id: req.body?.id,
+        });
+      }
     }
-  }
-});
+  });
 
-// Start the server
-app.listen(port, host, () => {
-  console.error(`Swarm MCP Server running on http://${host}:${port}`);
+  // Start the server
+  app.listen(port, host, () => {
+    console.error(`Swarm MCP Server running on http://${host}:${port}`);
+  });
+}
+
+main().catch(error => {
+  console.error('Failed to start Swarm MCP Server:', error);
+  process.exit(1);
 });

@@ -207,6 +207,8 @@ When running the server in Docker, it operates as an HTTP service. To connect yo
 
 In your client's settings, add a new remote/custom connector and provide this URL.
 
+_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in HTTP mode. This includes using local paths for uploads (e.g., `upload_folder` or `upload_file` with `isPath: true`) and downloading directly to a file (e.g., `download_folder` with `filePath`). These features are only supported when running the server in `stdio` mode.
+
 ### 2. Stdio Connection (Local)
 
 For local development or with clients that manage their own server subprocesses, you can run the server directly. In this mode, the client communicates over `stdio`.
