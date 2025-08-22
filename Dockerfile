@@ -12,4 +12,4 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["node", "dist/http.js"]
+CMD ["node", "dist/web.js"]
