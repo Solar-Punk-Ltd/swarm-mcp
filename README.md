@@ -121,7 +121,7 @@ Modify these values as needed for your environment.
 
 ## Running the Server Locally
 
-You can run the server locally in three different modes: `stdio`, `http`, or `sse`.
+You can run the server locally in two different modes: `stdio` or `web`.
 
 ### Stdio (Default)
 
@@ -149,13 +149,13 @@ npm start
 npm run start:stdio
 ```
 
-### HTTP Server
+### Web Server (HTTP + SSE)
 
-This runs the server as an HTTP service on port 3000.
+This runs the server as a web service on port 3000, with endpoints for both HTTP and SSE.
 
 **Development (without building):**
 ```bash
-npm run serve:http
+npm run serve:web
 ```
 
 **Production:**
@@ -165,63 +165,29 @@ npm run build
 ```
 Then, run the server:
 ```bash
-npm run start:http
-```
-
-### SSE Server
-
-This runs the server as a Server-Sent Events (SSE) service on port 3001.
-
-**Development (without building):**
-```bash
-npm run serve:sse
-```
-
-**Production:**
-First, build the project:
-```bash
-npm run build
-```
-Then, run the server:
-```bash
-npm run start:sse
+npm run start:web
 ```
 
 ## Docker
 
-This project includes two Dockerfiles to run the Swarm MCP server as a containerized service, either via HTTP or Server-Sent Events (SSE).
+This project includes a Dockerfile to run the Swarm MCP server as a containerized service, with both HTTP and SSE transports.
 
-- `Dockerfile`: The default Dockerfile for the HTTP server (port 3000).
-- `Dockerfile.sse`: Builds an image for the SSE server (port 3001).
+- `Dockerfile`: Builds a single image for the server, which runs on port 3000.
 
-### Building the Docker Images
+### Building the Docker Image
 
-To build the Docker images, run the following commands from the project root:
+To build the Docker image, run the following command from the project root:
 
-**HTTP Server:**
 ```bash
-docker build -t swarm-mcp-http .
+docker build -t swarm-mcp .
 ```
 
-**SSE Server:**
-```bash
-docker build -t swarm-mcp-sse -f Dockerfile.sse .
-```
+### Running the Docker Container
 
-### Running the Docker Containers
-
-**HTTP Server:**
-To run the HTTP server, use the `docker run` command. The server is exposed on port `3000`.
+To run the server, use the `docker run` command. The container exposes port `3000` for both HTTP and SSE.
 
 ```bash
-docker run --name swarm-mcp-http -p 3000:3000 swarm-mcp-http
-```
-
-**SSE Server:**
-To run the SSE server, use the `docker run` command. The server is exposed on port `3001`.
-
-```bash
-docker run --name swarm-mcp-sse -p 3001:3001 swarm-mcp-sse
+docker run --name swarm-mcp -p 3000:3000 swarm-mcp
 ```
 
 #### Configuration with Environment Variables
@@ -233,7 +199,7 @@ docker run -p 3000:3000 \
   -e BEE_API_URL="http://localhost:1633" \
   -e BEE_BATCH_ID="your_batch_id_here" \
   -e BEE_FEED_PK="your_private_key_here" \
-  swarm-mcp-http
+  swarm-mcp
 ```
 
 ### Testing with cURL
@@ -269,7 +235,7 @@ Run the following command in a terminal. It will connect to the server and wait 
 
 ```bash
 # In Terminal 1
-curl -N -H "Accept:text/event-stream" http://localhost:3001/sse
+curl -N -H "Accept:text/event-stream" http://localhost:3000/sse
 ```
 
 The output will contain the session ID, for example:
@@ -283,7 +249,7 @@ In a second terminal, use the `sessionId` from Step 1 to send a request. Replace
 # In Terminal 2
 curl -X POST -H "Content-Type: application/json" \
 -d '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":2}' \
-"http://localhost:3001/message?sessionId=<your-session-id>"
+"http://localhost:3000/message?sessionId=<your-session-id>"
 ```
 
 The response will appear in Terminal 1.
@@ -292,16 +258,16 @@ The response will appear in Terminal 1.
 
 The server supports two connection methods:
 
-### 1. HTTP/SSE Connection (Docker)
+### 1. Web Connection (Docker)
 
-When running the server in Docker, it operates as an HTTP or SSE service. To connect your MCP client, you must use one that supports connecting to a remote server via URL.
+When running the server in Docker, it operates as a web service with both HTTP and SSE endpoints. To connect your MCP client, you must use one that supports connecting to a remote server via URL.
 
 - **HTTP Server URL**: `http://localhost:3000/mcp`
-- **SSE Server URL**: `http://localhost:3001/sse`
+- **SSE Server URL**: `http://localhost:3000/sse`
 
 In your client's settings, add a new remote/custom connector and provide the appropriate URL.
 
-_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in HTTP mode. This includes using local paths for uploads (e.g., `upload_folder` or `upload_file` with `isPath: true`) and downloading directly to a file (e.g., `download_folder` with `filePath`). These features are only supported when running the server in `stdio` mode.
+_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in web mode. This includes using local paths for uploads (e.g., `upload_folder` or `upload_file` with `isPath: true`) and downloading directly to a file (e.g., `download_folder` with `filePath`). These features are only supported when running the server in `stdio` mode.
 
 ### 2. Stdio Connection (Local)
 
