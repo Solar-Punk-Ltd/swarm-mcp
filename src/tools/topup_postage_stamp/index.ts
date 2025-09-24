@@ -5,11 +5,13 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
+  errorHasStatus,
   getResponseWithStructuredContent,
   makeDate,
   ToolResponse,
 } from "../../utils";
 import { TopupPostageStampArgs } from "./models";
+import { GATEWAY_STAMP_ERROR_MESSAGE, NOT_FOUND_STATUS } from "../../constants";
 
 export async function topupPostageStamp(
   args: TopupPostageStampArgs,
@@ -40,11 +42,21 @@ export async function topupPostageStamp(
     throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");
   }
 
-  const extendStorageResponse = await bee.extendStorage(
-    postageBatchId,
-    extendSize,
-    extendDuration
-  );
+  let extendStorageResponse;
+
+  try {
+    extendStorageResponse = await bee.extendStorage(
+      postageBatchId,
+      extendSize,
+      extendDuration
+    );
+  } catch (error) {
+    if (errorHasStatus(error, NOT_FOUND_STATUS)) {
+      throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
+    } else {
+      throw new McpError(ErrorCode.InvalidParams, "Topup failed.");
+    }
+  }
 
   return getResponseWithStructuredContent({
     batchId: extendStorageResponse.toHex(),

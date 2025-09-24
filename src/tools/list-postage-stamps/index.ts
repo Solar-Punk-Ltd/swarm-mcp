@@ -4,6 +4,7 @@
  */
 import { Bee } from "@ethersphere/bee-js";
 import {
+  errorHasStatus,
   getBatchSummary,
   getResponseWithStructuredContent,
   ToolResponse,
@@ -15,22 +16,26 @@ import {
 } from "../../models";
 import { ListPostageStampsArgs } from "./models";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import { GATEWAY_STAMP_ERROR_MESSAGE, NOT_FOUND_STATUS } from "../../constants";
 
 export async function listPostageStamps(
   args: ListPostageStampsArgs,
   bee: Bee
 ): Promise<ToolResponse> {
   const { leastUsed, limit, minUsage, maxUsage } = args;
-
   let rawPostageBatches;
 
   try {
     rawPostageBatches = await bee.getPostageBatches();
-  } catch (buyError) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Retrieval of postage batches failed."
-    );
+  } catch (error) {
+    if (errorHasStatus(error, NOT_FOUND_STATUS)) {
+      throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
+    } else {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Retrieval of postage batches failed."
+      );
+    }
   }
 
   const batches: PostageBatchCurated[] = rawPostageBatches.map((batch) => ({

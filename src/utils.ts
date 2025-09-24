@@ -1,9 +1,5 @@
 import { PostageBatch } from "@ethersphere/bee-js";
-import {
-  PostageBatchCurated,
-  PostageBatchSummary,
-  ResponseWithStructuredContent,
-} from "./models";
+import { PostageBatchCurated, PostageBatchSummary } from "./models";
 
 export function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
@@ -40,6 +36,14 @@ export const getResponseWithStructuredContent = <T>(data: T): ToolResponse => ({
   ],
   structuredContent: data,
 });
+
+export const errorHasStatus = (error: unknown, status: number) => {
+  if (typeof error === "object" && error !== null && "status" in error) {
+    return error.status === status;
+  }
+
+  return false;
+};
 
 // From bee.js
 const dateUnits: Record<string, number | undefined> = {
