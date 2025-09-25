@@ -59,6 +59,6 @@ export async function topupPostageStamp(
   }
 
   return getResponseWithStructuredContent({
-    batchId: extendStorageResponse.toHex(),
+    postageBatchId: extendStorageResponse.toHex(),
   });
 }

@@ -22,6 +22,7 @@ export const getBatchSummary = (
     typeof batch.batchID === "string" ? batch.batchID : batch.batchID.toHex(),
   usage: batch.usageText,
   capacity: `${batch.remainingSize.toFormattedString()} remaining out of ${batch.size.toFormattedString()}`,
+  immutable: batch.immutableFlag,
   ttl: `${batch.duration.represent()} (${batch.duration
     .toEndDate()
     .toDateString()})`,

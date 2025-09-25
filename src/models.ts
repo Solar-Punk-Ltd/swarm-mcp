@@ -9,6 +9,7 @@ export interface PostageBatchSummary {
   usage: string;
   capacity: string;
   ttl: string;
+  immutable: boolean;
 }
 
 export interface ResponseContent<U, V> {

@@ -55,6 +55,6 @@ export async function createPostageStamp(
   }
 
   return getResponseWithStructuredContent({
-    batchId: buyStorageResponse.toHex(),
+    postageBatchId: buyStorageResponse.toHex(),
   });
 }

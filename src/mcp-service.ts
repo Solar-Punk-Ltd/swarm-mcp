@@ -24,6 +24,10 @@ import { topupPostageStamp } from "./tools/topup_postage_stamp";
 import { createPostageStamp } from "./tools/create_postage_stamp";
 import { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
 import { TopupPostageStampArgs } from "./tools/topup_postage_stamp/models";
+import {
+  PostageBatchCuratedSchema,
+  PostageBatchSummarySchema,
+} from "./schemas";
 
 /**
  * Swarm MCP Server class
@@ -211,18 +215,34 @@ export class SwarmMCPServer {
               },
               minUsage: {
                 type: "number",
-                description: "Only list stamps at least this usage percentage",
+                description:
+                  "Only list stamps with at least this usage percentage",
               },
               maxUsage: {
                 type: "number",
-                description: "Only list stamps at most this usage percentage.",
+                description:
+                  "Only list stamps with at most this usage percentage.",
               },
             },
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              raw: {
+                type: "array",
+                raw: PostageBatchCuratedSchema,
+              },
+              stampsSummary: {
+                type: "array",
+                stampsSummary: PostageBatchSummarySchema,
+              },
+            },
+            required: ["stampsSummary"],
           },
         },
         {
           name: "get_postage_stamp",
-          description: "Get a specific postage stamp based on stamp ID.",
+          description: "Get a specific postage stamp based on postageBatchId.",
           inputSchema: {
             type: "object",
             properties: {
@@ -233,6 +253,14 @@ export class SwarmMCPServer {
               },
             },
             required: ["postageBatchId"],
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              raw: PostageBatchCuratedSchema,
+              stampsSummary: PostageBatchSummarySchema,
+            },
+            required: ["stampsSummary"],
           },
         },
         {
@@ -253,6 +281,16 @@ export class SwarmMCPServer {
               },
             },
             required: ["size", "duration"],
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              postageBatchId: {
+                type: "string",
+                description: "The id of the postage batch that was created.",
+              },
+            },
+            required: ["postageBatchId"],
           },
         },
         {
@@ -276,6 +314,17 @@ export class SwarmMCPServer {
                 description:
                   "Duration for which the data should be stored." +
                   "Time to live of the postage stamp, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month ",
+              },
+            },
+            required: ["postageBatchId"],
+          },
+          outputSchema: {
+            type: "object",
+            properties: {
+              postageBatchId: {
+                type: "string",
+                description:
+                  "The id of the postage batch for which the top up occurred.",
               },
             },
             required: ["postageBatchId"],
