@@ -23,6 +23,7 @@ export async function listPostageStamps(
   bee: Bee
 ): Promise<ToolResponse> {
   const { leastUsed, limit, minUsage, maxUsage } = args;
+
   let rawPostageBatches;
 
   try {
@@ -60,9 +61,17 @@ export async function listPostageStamps(
     return true;
   });
 
-  if (Boolean(leastUsed)) {
-    filteredPostageBatches = filteredPostageBatches.sort(
-      (a, b) => a.usage - b.usage
+  if (Boolean(leastUsed) && filteredPostageBatches.length) {
+    let batchMinUsage = filteredPostageBatches[0].usage;
+
+    filteredPostageBatches.forEach((batch) => {
+      if (batch.usage < batchMinUsage) {
+        batchMinUsage = batch.usage;
+      }
+    });
+
+    filteredPostageBatches = filteredPostageBatches.filter(
+      (batch) => batch.usage === batchMinUsage
     );
   }
 
