@@ -46,6 +46,21 @@ export const errorHasStatus = (error: unknown, status: number) => {
   return false;
 };
 
+export const getErrorMessage = (error: unknown) => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "responseBody" in error &&
+    typeof error.responseBody === "object" &&
+    error.responseBody !== null &&
+    "message" in error.responseBody
+  ) {
+    return error.responseBody.message as string;
+  }
+
+  return "";
+};
+
 // From bee.js
 const dateUnits: Record<string, number | undefined> = {
   ms: 1,

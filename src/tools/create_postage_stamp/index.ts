@@ -6,12 +6,17 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
+  getErrorMessage,
   getResponseWithStructuredContent,
   makeDate,
   ToolResponse,
 } from "../../utils";
 import { CreatePostageStampArgs } from "./models";
-import { GATEWAY_STAMP_ERROR_MESSAGE, NOT_FOUND_STATUS } from "../../constants";
+import {
+  BAD_REQUEST_STATUS,
+  GATEWAY_STAMP_ERROR_MESSAGE,
+  NOT_FOUND_STATUS,
+} from "../../constants";
 
 export async function createPostageStamp(
   args: CreatePostageStampArgs,
@@ -49,6 +54,8 @@ export async function createPostageStamp(
   } catch (error) {
     if (errorHasStatus(error, NOT_FOUND_STATUS)) {
       throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
+    } else if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
     } else {
       throw new McpError(ErrorCode.InvalidParams, "Unable to buy storage.");
     }
