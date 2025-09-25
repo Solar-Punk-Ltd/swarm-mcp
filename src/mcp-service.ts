@@ -232,12 +232,12 @@ export class SwarmMCPServer {
                 type: "array",
                 raw: PostageBatchCuratedSchema,
               },
-              stampsSummary: {
+              summary: {
                 type: "array",
-                stampsSummary: PostageBatchSummarySchema,
+                summary: PostageBatchSummarySchema,
               },
             },
-            required: ["stampsSummary"],
+            required: ["summary"],
           },
         },
         {
@@ -258,9 +258,9 @@ export class SwarmMCPServer {
             type: "object",
             properties: {
               raw: PostageBatchCuratedSchema,
-              stampsSummary: PostageBatchSummarySchema,
+              summary: PostageBatchSummarySchema,
             },
-            required: ["stampsSummary"],
+            required: ["summary"],
           },
         },
         {
