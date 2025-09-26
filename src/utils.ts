@@ -108,3 +108,39 @@ export function makeDate(numberWithUnit: string): number {
   }
   return number * multiplier;
 }
+
+// From bee.js
+const storageUnits: Record<string, number | undefined> = {
+  b: 1,
+  byte: 1,
+  bytes: 1,
+  kb: 1024,
+  kilobyte: 1024,
+  kilobytes: 1024,
+  mb: 1024 ** 2,
+  megabyte: 1024 ** 2,
+  megabytes: 1024 ** 2,
+  gb: 1024 ** 3,
+  gigabyte: 1024 ** 3,
+  gigabytes: 1024 ** 3,
+  tb: 1024 ** 4,
+  terabyte: 1024 ** 4,
+  terabytes: 1024 ** 4,
+};
+
+// From bee.js
+export function makeStorage(numberWithUnit: string): number {
+  const number = parseFloat(numberWithUnit);
+  if (isNaN(number)) {
+    throw Error("makeStorage got NaN for input");
+  }
+  const unit = numberWithUnit
+    .replace(/^-?[0-9.]+/, "")
+    .trim()
+    .toLowerCase();
+  const multiplier = storageUnits[unit];
+  if (!multiplier) {
+    throw Error(`Unknown unit: "${unit}"`);
+  }
+  return number * multiplier;
+}
