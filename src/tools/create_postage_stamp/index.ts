@@ -48,7 +48,7 @@ export async function createPostageStamp(
 
   try {
     buyStorageResponse = await bee.buyStorage(
-      Size.fromBytes(size),
+      Size.fromMegabytes(size),
       Duration.fromMilliseconds(durationMs)
     );
   } catch (error) {

@@ -266,13 +266,16 @@ export class SwarmMCPServer {
         },
         {
           name: "create_postage_stamp",
-          description: "Buy postage stamp based on size in bytes and duration.",
+          description:
+            "Buy postage stamp based on size in megabytes and duration.",
           inputSchema: {
             type: "object",
             properties: {
               size: {
                 type: "number",
-                description: "The storage size in bytes.",
+                description:
+                  "The storage size in MB (Megabytes)." +
+                  "These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB",
               },
               duration: {
                 type: "string",
@@ -296,7 +299,8 @@ export class SwarmMCPServer {
         },
         {
           name: "topup_postage_stamp",
-          description: "Increase the duration or size of a postage stamp.",
+          description:
+            "Increase the duration or size (in megabytes) of a postage stamp.",
           inputSchema: {
             type: "object",
             properties: {
@@ -308,7 +312,9 @@ export class SwarmMCPServer {
               },
               size: {
                 type: "number",
-                description: "The storage size in bytes.",
+                description:
+                  "The storage size in MB (Megabytes)." +
+                  "These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB",
               },
               duration: {
                 type: "string",
