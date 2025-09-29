@@ -20,10 +20,10 @@ import { listPostageStamps } from "./tools/list-postage-stamps";
 import { getPostageStamp } from "./tools/get_postage_stamp";
 import { ListPostageStampsArgs } from "./tools/list-postage-stamps/models";
 import { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
-import { topupPostageStamp } from "./tools/topup_postage_stamp";
+import { extendPostageStamp } from "./tools/extend_postage_stamp";
 import { createPostageStamp } from "./tools/create_postage_stamp";
 import { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
-import { TopupPostageStampArgs } from "./tools/topup_postage_stamp/models";
+import { ExtendPostageStampArgs } from "./tools/extend_postage_stamp/models";
 import {
   PostageBatchCuratedSchema,
   PostageBatchSummarySchema,
@@ -283,22 +283,16 @@ export class SwarmMCPServer {
                   "Duration for which the data should be stored." +
                   "Time to live of the postage stamp, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month ",
               },
+              label: {
+                type: "string",
+                description: "Sets label for the postage batch.",
+              },
             },
             required: ["size", "duration"],
           },
-          outputSchema: {
-            type: "object",
-            properties: {
-              postageBatchId: {
-                type: "string",
-                description: "The id of the postage batch that was created.",
-              },
-            },
-            required: ["postageBatchId"],
-          },
         },
         {
-          name: "topup_postage_stamp",
+          name: "extend_postage_stamp",
           description:
             "Increase the duration or size (in megabytes) of a postage stamp.",
           inputSchema: {
@@ -307,7 +301,7 @@ export class SwarmMCPServer {
               postageBatchId: {
                 type: "string",
                 description:
-                  "The id of the batch for which topup is performed.",
+                  "The id of the batch for which extend is performed.",
                 default: false,
               },
               size: {
@@ -393,9 +387,9 @@ export class SwarmMCPServer {
               this.bee
             );
 
-          case "topup_postage_stamp":
-            return topupPostageStamp(
-              args as unknown as TopupPostageStampArgs,
+          case "extend_postage_stamp":
+            return extendPostageStamp(
+              args as unknown as ExtendPostageStampArgs,
               this.bee
             );
         }

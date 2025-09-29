@@ -3,7 +3,7 @@
  * Buy postage stamp based on size and duration.
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { Bee, Duration, Size } from "@ethersphere/bee-js";
+import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
   getErrorMessage,
@@ -14,6 +14,8 @@ import {
 import { CreatePostageStampArgs } from "./models";
 import {
   BAD_REQUEST_STATUS,
+  CALL_TIMEOUT,
+  CALL_TIMEOUT_MESSAGE,
   GATEWAY_STAMP_ERROR_MESSAGE,
   NOT_FOUND_STATUS,
 } from "../../constants";
@@ -22,7 +24,7 @@ export async function createPostageStamp(
   args: CreatePostageStampArgs,
   bee: Bee
 ): Promise<ToolResponse> {
-  const { size, duration } = args;
+  const { size, duration, label } = args;
 
   if (!size) {
     throw new McpError(
@@ -44,13 +46,38 @@ export async function createPostageStamp(
     throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");
   }
 
-  let buyStorageResponse;
+  let buyStorageResponse: BatchId;
+  let hasTimedOut = false;
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => {
+      hasTimedOut = true;
+      resolve(true);
+    }, CALL_TIMEOUT);
+  });
 
   try {
-    buyStorageResponse = await bee.buyStorage(
+    const buyStoragePromise = bee.buyStorage(
       Size.fromMegabytes(size),
-      Duration.fromMilliseconds(durationMs)
+      Duration.fromMilliseconds(durationMs),
+      {
+        label,
+      }
     );
+    buyStorageResponse = (await Promise.race([
+      buyStoragePromise,
+      timeoutPromise,
+    ])) as BatchId;
+
+    if (hasTimedOut) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: CALL_TIMEOUT_MESSAGE,
+          },
+        ],
+      };
+    }
   } catch (error) {
     if (errorHasStatus(error, NOT_FOUND_STATUS)) {
       throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
@@ -61,7 +88,12 @@ export async function createPostageStamp(
     }
   }
 
-  return getResponseWithStructuredContent({
-    postageBatchId: buyStorageResponse.toHex(),
-  });
+  return {
+    content: [
+      {
+        type: "text",
+        text: `Postage batch ID: ${buyStorageResponse.toHex()}`,
+      },
+    ],
+  };
 }

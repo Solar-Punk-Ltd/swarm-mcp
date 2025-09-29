@@ -37,7 +37,7 @@ describe("can list tools", () => {
       "list_postage_stamps",
       "get_postage_stamp",
       "create_postage_stamp",
-      "topup_postage_stamp",
+      "extend_postage_stamp",
     ]);
   });
 });

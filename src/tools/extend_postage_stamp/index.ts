@@ -1,5 +1,5 @@
 /**
- * MCP Tool: topup_postage_stamp
+ * MCP Tool: extend_postage_stamp
  * Increase the duration and size of a postage stamp.
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
@@ -10,11 +10,11 @@ import {
   makeDate,
   ToolResponse,
 } from "../../utils";
-import { TopupPostageStampArgs } from "./models";
+import { ExtendPostageStampArgs } from "./models";
 import { GATEWAY_STAMP_ERROR_MESSAGE, NOT_FOUND_STATUS } from "../../constants";
 
-export async function topupPostageStamp(
-  args: TopupPostageStampArgs,
+export async function extendPostageStamp(
+  args: ExtendPostageStampArgs,
   bee: Bee
 ): Promise<ToolResponse> {
   const { postageBatchId, duration, size } = args;
@@ -54,7 +54,7 @@ export async function topupPostageStamp(
     if (errorHasStatus(error, NOT_FOUND_STATUS)) {
       throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
     } else {
-      throw new McpError(ErrorCode.InvalidParams, "Topup failed.");
+      throw new McpError(ErrorCode.InvalidParams, "Extend failed.");
     }
   }
 
