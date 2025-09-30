@@ -62,7 +62,7 @@ export const getErrorMessage = (error: unknown) => {
 };
 
 export const runWithTimeout = async <T>(
-  ayncAction: Promise<T>,
+  asyncAction: Promise<T>,
   timeout: number
 ): Promise<[unknown, boolean]> => {
   let hasTimedOut = false;
@@ -74,7 +74,7 @@ export const runWithTimeout = async <T>(
     }, timeout)
   );
 
-  const response = await Promise.race([ayncAction, timeoutPromise]);
+  const response = await Promise.race([asyncAction, timeoutPromise]);
 
   return [response, hasTimedOut];
 };
