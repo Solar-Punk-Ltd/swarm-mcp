@@ -267,7 +267,8 @@ export class SwarmMCPServer {
         {
           name: "create_postage_stamp",
           description:
-            "Buy postage stamp based on size in megabytes and duration.",
+            "Buy postage stamp based on size in megabytes and duration." +
+            "Do not use labels with specific capacity values because they can get misleading.",
           inputSchema: {
             type: "object",
             properties: {
