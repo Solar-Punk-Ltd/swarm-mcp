@@ -294,7 +294,7 @@ export class SwarmMCPServer {
         {
           name: "extend_postage_stamp",
           description:
-            "Increase the duration or size (in megabytes) of a postage stamp.",
+            "Increase the duration (relative to current duration) or size (in megabytes) of a postage stamp.",
           inputSchema: {
             type: "object",
             properties: {

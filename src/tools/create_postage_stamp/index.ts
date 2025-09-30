@@ -9,6 +9,7 @@ import {
   getErrorMessage,
   getResponseWithStructuredContent,
   makeDate,
+  runWithTimeout,
   ToolResponse,
 } from "../../utils";
 import { CreatePostageStampArgs } from "./models";
@@ -47,13 +48,6 @@ export async function createPostageStamp(
   }
 
   let buyStorageResponse: BatchId;
-  let hasTimedOut = false;
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => {
-      hasTimedOut = true;
-      resolve(true);
-    }, CALL_TIMEOUT);
-  });
 
   try {
     const buyStoragePromise = bee.buyStorage(
@@ -63,10 +57,10 @@ export async function createPostageStamp(
         label,
       }
     );
-    buyStorageResponse = (await Promise.race([
+    const [response, hasTimedOut] = await runWithTimeout(
       buyStoragePromise,
-      timeoutPromise,
-    ])) as BatchId;
+      CALL_TIMEOUT
+    );
 
     if (hasTimedOut) {
       return {
@@ -78,6 +72,8 @@ export async function createPostageStamp(
         ],
       };
     }
+
+    buyStorageResponse = response as BatchId;
   } catch (error) {
     if (errorHasStatus(error, NOT_FOUND_STATUS)) {
       throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);

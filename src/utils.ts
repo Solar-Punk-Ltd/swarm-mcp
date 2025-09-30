@@ -61,6 +61,24 @@ export const getErrorMessage = (error: unknown) => {
   return "";
 };
 
+export const runWithTimeout = async <T>(
+  ayncAction: Promise<T>,
+  timeout: number
+): Promise<[unknown, boolean]> => {
+  let hasTimedOut = false;
+
+  const timeoutPromise = new Promise((resolve) =>
+    setTimeout(() => {
+      hasTimedOut = true;
+      resolve(true);
+    }, timeout)
+  );
+
+  const response = await Promise.race([ayncAction, timeoutPromise]);
+
+  return [response, hasTimedOut];
+};
+
 // From bee.js
 const dateUnits: Record<string, number | undefined> = {
   ms: 1,
