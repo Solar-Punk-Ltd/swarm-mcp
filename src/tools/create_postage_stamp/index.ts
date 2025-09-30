@@ -16,7 +16,7 @@ import { CreatePostageStampArgs } from "./models";
 import {
   BAD_REQUEST_STATUS,
   CALL_TIMEOUT,
-  CALL_TIMEOUT_MESSAGE,
+  POSTAGE_CREATE_TIMEOUT_MESSAGE,
   GATEWAY_STAMP_ERROR_MESSAGE,
   NOT_FOUND_STATUS,
 } from "../../constants";
@@ -67,7 +67,7 @@ export async function createPostageStamp(
         content: [
           {
             type: "text",
-            text: CALL_TIMEOUT_MESSAGE,
+            text: POSTAGE_CREATE_TIMEOUT_MESSAGE,
           },
         ],
       };
