@@ -286,7 +286,7 @@ export class SwarmMCPServer {
               label: {
                 type: "string",
                 description:
-                  "Sets label for the postage batch. Do not use labels with specific capacity values because they can get misleading.",
+                  "Sets label for the postage batch. Do not set a label with specific capacity values because they can get misleading.",
               },
             },
             required: ["size", "duration"],
