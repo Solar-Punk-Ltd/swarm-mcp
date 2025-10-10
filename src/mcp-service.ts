@@ -517,7 +517,7 @@ export class SwarmMCPServer {
             type: "object",
             properties: {
               processedPercentage: {
-                type: "string",
+                type: "number",
                 description: "The deferred upload processed percentage.",
               },
               message: {
