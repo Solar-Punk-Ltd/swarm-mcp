@@ -32,7 +32,10 @@ const config: Config = {
   bee: {
     endpoint: process.env.BEE_API_URL || "https://api.gateway.ethswarm.org",
     feedPrivateKey: process.env.BEE_FEED_PK,
-    autoAssignStamp: process.env.AUTO_ASSIGN_STAMP === "true" || true,
+    autoAssignStamp:
+      process.env.AUTO_ASSIGN_STAMP !== undefined
+        ? process.env.AUTO_ASSIGN_STAMP === "true"
+        : true,
     deferredUploadSizeThreshold:
       Number(process.env.DEFERRED_UPLOAD_SIZE_THRESHOLD_MB) ||
       DEFERRED_UPLOAD_SIZE_THRESHOLD_MB,
