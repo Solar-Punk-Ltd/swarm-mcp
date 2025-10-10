@@ -15,7 +15,7 @@ import { uploadData } from "./tools/upload_data";
 import { downloadData } from "./tools/download_data";
 import { uploadFile } from "./tools/upload_file";
 import { uploadFolder } from "./tools/upload_folder";
-import { downloadFolder } from "./tools/download_folder";
+import { downloadFiles } from "./tools/download_files";
 import { queryUploadProgress } from "./tools/query_upload_progress";
 import { listPostageStamps } from "./tools/list-postage-stamps";
 import { getPostageStamp } from "./tools/get_postage_stamp";
@@ -37,7 +37,7 @@ import { UpdateFeedArgs } from "./tools/update_feed/models";
 import { ReadFeedArgs } from "./tools/read_feed/models";
 import { UploadFileArgs } from "./tools/upload_file/models";
 import { UploadFolderArgs } from "./tools/upload_folder/models";
-import { DownloadFolderArgs } from "./tools/download_folder/models";
+import { DownloadFilesArgs } from "./tools/download_files/models";
 import { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
 
 /**
@@ -340,7 +340,7 @@ export class SwarmMCPServer {
           },
         },
         {
-          name: "download_folder",
+          name: "download_files",
           description:
             "Download folder, files or binary data from a Swarm reference and save to file path or return file list of the reference " +
             "prioritizes this tool over download_text if there is no assumption about the data type",
@@ -573,9 +573,9 @@ export class SwarmMCPServer {
               this.server.server.transport
             );
 
-          case "download_folder":
-            return downloadFolder(
-              args as unknown as DownloadFolderArgs,
+          case "download_files":
+            return downloadFiles(
+              args as unknown as DownloadFilesArgs,
               this.bee,
               this.server.server.transport
             );

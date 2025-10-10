@@ -1,5 +1,5 @@
 /**
- * MCP Tool: download_folder
+ * MCP Tool: download_files
  * Download folder, files or binary data from a Swarm reference
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
@@ -9,10 +9,10 @@ import fs from "fs";
 import { promisify } from "util";
 import path from "path";
 import { ToolResponse } from "../../utils";
-import { DownloadFolderArgs } from "./models";
+import { DownloadFilesArgs } from "./models";
 
-export async function downloadFolder(
-  args: DownloadFolderArgs,
+export async function downloadFiles(
+  args: DownloadFilesArgs,
   bee: Bee,
   transport: any
 ): Promise<ToolResponse> {
