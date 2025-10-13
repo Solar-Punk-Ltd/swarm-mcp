@@ -82,7 +82,10 @@ export class SwarmMCPServer {
       tools: [
         {
           name: "upload_data",
-          description: "Upload text data to Swarm.",
+          description:
+            "Upload text data to Swarm. Optional options (ignore if they are not requested): " +
+            "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
           inputSchema: {
             type: "object",
             properties: {
@@ -102,7 +105,7 @@ export class SwarmMCPServer {
                 type: "string",
                 description:
                   "The id of the batch which will be used to perform the upload.",
-                default: false,
+                default: undefined,
               },
             },
             required: ["data"],
@@ -128,7 +131,9 @@ export class SwarmMCPServer {
         },
         {
           name: "update_feed",
-          description: "Update the feed of a given topic with new data.",
+          description:
+            "Update the feed of a given topic with new data. Optional options (ignore if they are not requested): " +
+            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
           inputSchema: {
             type: "object",
             properties: {
@@ -147,7 +152,7 @@ export class SwarmMCPServer {
                 type: "string",
                 description:
                   "The id of the batch which will be used to perform the upload.",
-                default: false,
+                default: undefined,
               },
             },
             required: ["data", "memoryTopic"],
@@ -236,7 +241,11 @@ export class SwarmMCPServer {
         },
         {
           name: "upload_file",
-          description: "Upload a file to Swarm",
+          description:
+            "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
+            "isPath: wether the data parameter is a path. " +
+            "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
           inputSchema: {
             type: "object",
             properties: {
@@ -261,7 +270,7 @@ export class SwarmMCPServer {
                 type: "string",
                 description:
                   "The id of the batch which will be used to perform the upload.",
-                default: false,
+                default: undefined,
               },
             },
             required: ["data"],
@@ -291,7 +300,11 @@ export class SwarmMCPServer {
         },
         {
           name: "upload_folder",
-          description: "Upload a folder to Swarm",
+          description:
+            "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
+            "folderPath: path to the folder to upload. " +
+            "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
           inputSchema: {
             type: "object",
             properties: {
@@ -311,7 +324,7 @@ export class SwarmMCPServer {
                 type: "string",
                 description:
                   "The id of the batch which will be used to perform the upload.",
-                default: false,
+                default: undefined,
               },
             },
             required: ["folderPath"],
@@ -416,7 +429,6 @@ export class SwarmMCPServer {
               postageBatchId: {
                 type: "string",
                 description: "The id of the stamp which is requested.",
-                default: false,
               },
             },
             required: ["postageBatchId"],
@@ -469,7 +481,6 @@ export class SwarmMCPServer {
                 type: "string",
                 description:
                   "The id of the batch for which extend is performed.",
-                default: false,
               },
               size: {
                 type: "number",
