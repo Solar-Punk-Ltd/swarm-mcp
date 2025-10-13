@@ -364,7 +364,7 @@ export class SwarmMCPServer {
         {
           name: "list_postage_stamps",
           description:
-            "List the available postage stamps. Options: leastUsed, limit, minUsage(%), maxUsage(%).",
+            "List the available postage stamps. Optional options (ignore if they are not requested): leastUsed, limit, minUsage(%), maxUsage(%).",
           inputSchema: {
             type: "object",
             properties: {
