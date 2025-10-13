@@ -85,7 +85,7 @@ export class SwarmMCPServer {
           description:
             "Upload text data to Swarm. Optional options (ignore if they are not requested): " +
             "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
-            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
           inputSchema: {
             type: "object",
             properties: {
@@ -133,7 +133,7 @@ export class SwarmMCPServer {
           name: "update_feed",
           description:
             "Update the feed of a given topic with new data. Optional options (ignore if they are not requested): " +
-            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
           inputSchema: {
             type: "object",
             properties: {
@@ -245,7 +245,7 @@ export class SwarmMCPServer {
             "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
             "isPath: wether the data parameter is a path. " +
             "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
-            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
           inputSchema: {
             type: "object",
             properties: {
@@ -304,7 +304,7 @@ export class SwarmMCPServer {
             "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
             "folderPath: path to the folder to upload. " +
             "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
-            "postageBatchId: The id of the batch which will be used to perform the upload. Optional, value is undefined if not requested.",
+            "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
           inputSchema: {
             type: "object",
             properties: {
