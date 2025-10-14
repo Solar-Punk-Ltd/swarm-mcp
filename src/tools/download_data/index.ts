@@ -22,7 +22,7 @@ export async function downloadData(
 
   const isRefNotSwarmHash = reference.length !== 64 && reference.length !== 66;
 
-  if (!isRefNotSwarmHash) {
+  if (isRefNotSwarmHash) {
     throw new McpError(
       ErrorCode.InvalidParams,
       "Invalid Swarm content address hash value for reference."
