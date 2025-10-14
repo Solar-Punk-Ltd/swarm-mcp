@@ -41,7 +41,7 @@ Uploads text data to the Swarm network.
 - `message`: Status message
 - `topicString`, `topic`, `feedUrl`: (If using `memoryTopic`) Feed details
 
-### `download_text`
+### `download_data`
 
 Retrieves text data from the Swarm network. Should be used when the data is known to be text format.
 
@@ -88,7 +88,7 @@ Uploads a folder to the Swarm network.
 
 ### `download_files`
 
-Downloads folder, files, or binary data from a Swarm reference. This tool should be prioritized over `download_text` if there is no assumption about the data type.
+Downloads folder, files, or binary data from a Swarm reference. This tool should be prioritized over `download_data` if there is no assumption about the data type.
 
 **Parameters:**
 

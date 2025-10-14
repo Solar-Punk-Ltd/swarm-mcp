@@ -122,7 +122,7 @@ export async function downloadFiles(
   } else {
     throw new McpError(
       ErrorCode.InvalidRequest,
-      "try download_text tool instead since the given reference is not a manifest"
+      "try download_data tool instead since the given reference is not a manifest"
     );
   }
 }
