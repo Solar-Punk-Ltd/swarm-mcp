@@ -45,10 +45,10 @@ export const getUploadPostageBatchId = async (
     }
   }
 
-  if (!argsPostageBatchId && maxRemainingSize === 0) {
+  if (!postageBatchId) {
     throw new McpError(
       ErrorCode.InvalidRequest,
-      "No postageBatchId was provided and there is no usable postage batch with capacity."
+      "There is no usable postage batch with capacity."
     );
   }
   return postageBatchId!;
