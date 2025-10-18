@@ -2,12 +2,13 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.Solar-Punk-Ltd/swarm-mcp",
   "description": "MCP server to interact with the Swarm decentralized storage infrastructure",
-  "status": "active",
+  "title": "Swarm MCP",
   "websiteUrl": "https://ethswarm.org",
   "repository": {
     "url": "https://github.com/Solar-Punk-Ltd/swarm-mcp",
     "source": "github"
   },
+  "status": "active",
   "version": "1.0.0",
   "transports": [
     {
@@ -17,6 +18,7 @@
   "packages": [
     {
       "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@solarpunkltd/swarm-mcp",
       "version": "1.0.0",
       "transport": {
