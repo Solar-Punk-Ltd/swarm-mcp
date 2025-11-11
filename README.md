@@ -10,10 +10,27 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 
 ## Features
 
-- Upload text data to Swarm through the MCP protocol
-- Download text data from Swarm through the MCP protocol
-- Standard MCP server interface using stdio transport
-- Configurable Bee API endpoints and postage batch IDs
+- Upload text data to Swarm.
+- Download text data from Swarm.
+- Upload files and folders to Swarm.
+- Download files and folders from Swarm.
+- Update data on a Swarm feed.
+- Read latest data from a Swarm feed.
+- Create postage stamp batches for storage.
+- Get a postage stamp batch.
+- List postage stamp batches.
+- Extend storage and duration of a postage stamp batch.
+
+## Configuration Options
+
+| Option                             | Type          | Default       | Description                                                                                                                                                |
+| -----------------------------------| --------------| --------------| ---------------------------------------------------------------------------------------------------------------------------------------------------------  |
+| `beeApiUrl`                        | string        | **required**  | The URL of the Bee node or of the Swarm Gateway. When using a gateway, its postage stamp will be used for uploads and postage stamp tools won't function.  |
+| `beeFeedPK`                        | string        | **required**  | The signer's private key used for updating the feed.                                                                                                       |
+| `autoAssignStamp`                  | boolean       | undefined     | If true, the batch with highest capacity is used for uploads.                                                                                              |
+| `deferredUploadSizeThresholdMB`    | number        | undefined     | The threshold above which file upload is deferred. Default is 5 MB.                                                                                        |
+
+
 
 ## MCP Tools
 
