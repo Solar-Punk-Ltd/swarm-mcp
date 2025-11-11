@@ -33,7 +33,7 @@ export async function readFeed(
   if (!config.bee.feedPrivateKey && !owner) {
     throw new McpError(
       ErrorCode.InvalidParams,
-      "Feed private key not configured. Set BEE_FEED_PK environment variable or specify owner."
+      "Feed private key not configured. Set BEE_FEED_PK environment variable or specify owner parameter."
     );
   }
 
