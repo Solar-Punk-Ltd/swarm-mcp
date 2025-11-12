@@ -23,10 +23,10 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 
 ## Configuration Options
 
-| Option                              | Type          | Default       | Description                                                                                                                                               |
+| Option                              | Type          | Required      | Description                                                                                                                                               |
 | ----------------------------------- | --------------| --------------| --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BEE_API_URL`                       | string        | **optional**  | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`.|
-| `BEE_FEED_PK`                       | string        | **optional**  | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                     |
+| `BEE_API_URL`                       | string        | **optional** (unless using your own node) | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`.|
+| `BEE_FEED_PK`                       | string        | **optional** (cannot update feed without it)  | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                     |
 | `AUTO_ASSIGN_STAMP`                 | boolean       | **optional**  | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.          |
 | `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number        | **optional**  | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                  |
 
