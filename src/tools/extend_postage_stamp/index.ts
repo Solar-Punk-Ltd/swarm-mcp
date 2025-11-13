@@ -5,6 +5,7 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
+  determineIfGateway,
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
@@ -15,7 +16,6 @@ import { ExtendPostageStampArgs } from "./models";
 import {
   BAD_REQUEST_STATUS,
   GATEWAY_STAMP_ERROR_MESSAGE,
-  NOT_FOUND_STATUS,
 } from "../../constants";
 
 export async function extendPostageStamp(
@@ -23,6 +23,12 @@ export async function extendPostageStamp(
   bee: Bee
 ): Promise<ToolResponse> {
   const { postageBatchId, duration, size } = args;
+
+  const isGateway = await determineIfGateway(bee);
+
+  if (isGateway) {
+    throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
+  }
 
   if (!postageBatchId) {
     throw new McpError(
@@ -56,9 +62,7 @@ export async function extendPostageStamp(
       extendDuration
     );
   } catch (error) {
-    if (errorHasStatus(error, NOT_FOUND_STATUS)) {
-      throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
-    } else if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
       throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
     } else {
       throw new McpError(ErrorCode.InvalidParams, "Extend failed.");

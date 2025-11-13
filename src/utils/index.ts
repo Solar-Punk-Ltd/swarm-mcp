@@ -1,4 +1,4 @@
-import { PostageBatch } from "@ethersphere/bee-js";
+import { Bee, PostageBatch } from "@ethersphere/bee-js";
 import { PostageBatchCurated, PostageBatchSummary } from "../models";
 
 export function hexToBytes(hex: string): Uint8Array {
@@ -77,6 +77,18 @@ export const runWithTimeout = async <T>(
   const response = await Promise.race([asyncAction, timeoutPromise]);
 
   return [response, hasTimedOut];
+};
+
+export const determineIfGateway = async (bee: Bee) => {
+  let isGateway = false;
+  
+  try {
+    await bee.getStatus();
+  } catch (error) {
+    isGateway = true;
+  }
+  
+  return isGateway;
 };
 
 // From bee.js
