@@ -1,7 +1,5 @@
 export const NOT_FOUND_STATUS = 404;
 export const BAD_REQUEST_STATUS = 400;
-export const GATEWAY_STAMP_ERROR_MESSAGE =
-  "You are using Swarm Gateway and postage stamp management functionalities is not supported by gateways.";
 export const GATEWAY_TAG_ERROR_MESSAGE =
   "You are using Swarm Gateway, tag functionality is not supported by gateways.";
 export const POSTAGE_CREATE_TIMEOUT_MESSAGE =
