@@ -5,7 +5,6 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import {
-  determineIfGateway,
   getBatchSummary,
   getResponseWithStructuredContent,
   ToolResponse,
@@ -16,15 +15,12 @@ import {
   PostageBatchSummary,
   ResponseContent,
 } from "../../models";
-import { GATEWAY_STAMP_ERROR_MESSAGE } from "../../constants";
 
 export async function getPostageStamp(
   args: GetPostageStampArgs,
   bee: Bee
 ): Promise<ToolResponse> {
   const { postageBatchId } = args;
-
-  await determineIfGateway(bee, GATEWAY_STAMP_ERROR_MESSAGE);
 
   if (!postageBatchId) {
     throw new McpError(

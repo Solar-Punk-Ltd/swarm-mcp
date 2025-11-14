@@ -4,7 +4,6 @@
  */
 import { Bee } from "@ethersphere/bee-js";
 import {
-  determineIfGateway,
   getBatchSummary,
   getResponseWithStructuredContent,
   ToolResponse,
@@ -16,7 +15,6 @@ import {
 } from "../../models";
 import { ListPostageStampsArgs } from "./models";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
-import { GATEWAY_STAMP_ERROR_MESSAGE } from "../../constants";
 
 export async function listPostageStamps(
   args: ListPostageStampsArgs,
@@ -24,8 +22,6 @@ export async function listPostageStamps(
 ): Promise<ToolResponse> {
   const { leastUsed, limit, minUsage, maxUsage } = args;
   
-  await determineIfGateway(bee, GATEWAY_STAMP_ERROR_MESSAGE);
-
   let rawPostageBatches;
 
   try {

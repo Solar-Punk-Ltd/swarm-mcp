@@ -4,9 +4,8 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
-import { determineIfGateway, getResponseWithStructuredContent, ToolResponse } from "../../utils";
+import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
 import { QueryUploadProgressArgs } from "./models";
-import { GATEWAY_TAG_ERROR_MESSAGE } from "../../constants";
 
 // The third argument (transport) is accepted for parity with other tools but unused here
 export async function queryUploadProgress(
@@ -14,8 +13,6 @@ export async function queryUploadProgress(
   bee: Bee,
   _transport?: unknown
 ): Promise<ToolResponse> {
-  await determineIfGateway(bee, GATEWAY_TAG_ERROR_MESSAGE);
-
   if (!args?.tagId) {
     throw new McpError(
       ErrorCode.InvalidParams,

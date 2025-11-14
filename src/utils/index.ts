@@ -1,6 +1,5 @@
 import { Bee, PostageBatch } from "@ethersphere/bee-js";
 import { PostageBatchCurated, PostageBatchSummary } from "../models";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { NOT_FOUND_STATUS } from "../constants";
 
 export function hexToBytes(hex: string): Uint8Array {
@@ -81,15 +80,19 @@ export const runWithTimeout = async <T>(
   return [response, hasTimedOut];
 };
 
-export const determineIfGateway = async (bee: Bee, errorMessage: string) => {
+export const determineIfGateway = async (bee: Bee) => {
+  let isGateway = false;
+
   try {
     // Request fails for gateways with 404.
     await bee.getNodeInfo();
   } catch (error) {
     if (errorHasStatus(error, NOT_FOUND_STATUS)) {
-      throw new McpError(ErrorCode.MethodNotFound, errorMessage);
+      isGateway = true;
     }
   }
+  
+  return isGateway;
 };
 
 // From bee.js
