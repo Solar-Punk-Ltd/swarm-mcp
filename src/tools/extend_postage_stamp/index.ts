@@ -24,11 +24,7 @@ export async function extendPostageStamp(
 ): Promise<ToolResponse> {
   const { postageBatchId, duration, size } = args;
 
-  const isGateway = await determineIfGateway(bee);
-
-  if (isGateway) {
-    throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
-  }
+  await determineIfGateway(bee, GATEWAY_STAMP_ERROR_MESSAGE);
 
   if (!postageBatchId) {
     throw new McpError(

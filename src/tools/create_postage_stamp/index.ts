@@ -26,11 +26,7 @@ export async function createPostageStamp(
 ): Promise<ToolResponse> {
   const { size, duration, label } = args;
 
-  const isGateway = await determineIfGateway(bee);
-
-  if (isGateway) {
-    throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
-  }
+  await determineIfGateway(bee, GATEWAY_STAMP_ERROR_MESSAGE);
 
   if (!size) {
     throw new McpError(

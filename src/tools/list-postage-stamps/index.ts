@@ -24,11 +24,7 @@ export async function listPostageStamps(
 ): Promise<ToolResponse> {
   const { leastUsed, limit, minUsage, maxUsage } = args;
   
-  const isGateway = await determineIfGateway(bee);
-  
-  if (isGateway) {
-    throw new McpError(ErrorCode.MethodNotFound, GATEWAY_STAMP_ERROR_MESSAGE);
-  }
+  await determineIfGateway(bee, GATEWAY_STAMP_ERROR_MESSAGE);
 
   let rawPostageBatches;
 
