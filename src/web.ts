@@ -34,6 +34,7 @@ async function main() {
     try {
       await httpTransport.handleRequest(req, res, req.body);
     } catch (error) {
+      console.error("Error handling MCP request:", error);
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: "2.0",
@@ -81,6 +82,7 @@ async function main() {
     if (transport) {
       await transport.handlePostMessage(req, res, req.body);
     } else {
+      console.error(`No transport found for sessionId ${sessionId}`);
       res.status(403).send("Session not found");
     }
   });
@@ -90,6 +92,7 @@ async function main() {
 }
 
 main().catch((error) => {
+  console.error("Failed to start Swarm MCP Server:", error);
   process.exit(1);
 });
 
