@@ -34,7 +34,6 @@ async function main() {
     try {
       await httpTransport.handleRequest(req, res, req.body);
     } catch (error) {
-      console.error("Error handling MCP request:", error);
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: "2.0",
@@ -48,10 +47,6 @@ async function main() {
   // Setup for stateful SSE transport
   app.get("/sse", async (req, res) => {
     if (req.query.sessionId) {
-      console.error(
-        "Client Reconnecting? This shouldn't happen; when client has a sessionId, GET /sse should not be called again.",
-        req.query.sessionId
-      );
       res
         .status(400)
         .send(
@@ -86,19 +81,15 @@ async function main() {
     if (transport) {
       await transport.handlePostMessage(req, res, req.body);
     } else {
-      console.error(`No transport found for sessionId ${sessionId}`);
       res.status(403).send("Session not found");
     }
   });
 
   // Start the server
-  app.listen(port, host, () => {
-    console.info(`Swarm MCP Server running on http://${host}:${port}`);
-  });
+  app.listen(port, host, () => {});
 }
 
 main().catch((error) => {
-  console.error("Failed to start Swarm MCP Server:", error);
   process.exit(1);
 });
 

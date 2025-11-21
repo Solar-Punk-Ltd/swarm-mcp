@@ -68,9 +68,6 @@ export class SwarmMCPServer {
 
     this.setupToolHandlers();
 
-    this.server.server.onerror = (error: Error) =>
-      console.error("[Error]", error);
-
     process.on("SIGINT", async () => {
       await this.server.close();
       process.exit(0);
