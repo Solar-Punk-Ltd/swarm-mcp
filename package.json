@@ -1,6 +1,6 @@
 {
   "name": "swarm-mcp",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "main": "dist/index.js",
   "bin": {
     "swarm-mcp": "dist/index.js"
