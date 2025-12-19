@@ -99,7 +99,7 @@ Increase the duration (relative to current duration) or size (in megabytes) of a
 **Sample prompt:**
 
 ```bash
-Extend 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa to 5 days.
+Extend 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa by 5 days.
 ```
 
 
