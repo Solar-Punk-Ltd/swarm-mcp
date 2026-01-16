@@ -85,7 +85,7 @@ export const determineIfGateway = async (bee: Bee) => {
 
   try {
     // Request fails for gateways with 404.
-    const getNodeInfoPromise =  bee.getNodeInfo();
+    const getNodeInfoPromise = bee.getNodeInfo();
 
     const [response, hasTimedOut] = await runWithTimeout(
       getNodeInfoPromise,
@@ -98,7 +98,7 @@ export const determineIfGateway = async (bee: Bee) => {
       isGateway = true;
     }
   }
-  
+
   return isGateway;
 };
 

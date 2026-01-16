@@ -37,7 +37,7 @@ export async function extendPostageStamp(
     );
   }
 
-  const extendSize = !!size ? Size.fromMegabytes(size) : Size.fromBytes(1);
+  const extendSize = size ? Size.fromMegabytes(size) : Size.fromBytes(1);
   let extendDuration = Duration.ZERO;
 
   try {

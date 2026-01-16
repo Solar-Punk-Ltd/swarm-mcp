@@ -21,7 +21,7 @@ export async function listPostageStamps(
   bee: Bee
 ): Promise<ToolResponse> {
   const { leastUsed, limit, minUsage, maxUsage } = args;
-  
+
   let rawPostageBatches;
 
   try {

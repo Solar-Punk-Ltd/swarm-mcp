@@ -10,6 +10,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
+import { z } from "zod";
 // Import refactored tool modules
 import { uploadData } from "./tools/upload_data";
 import { downloadData } from "./tools/download_data";
@@ -40,6 +41,20 @@ import { UploadFileArgs } from "./tools/upload_file/models";
 import { UploadFolderArgs } from "./tools/upload_folder/models";
 import { DownloadFilesArgs } from "./tools/download_files/models";
 import { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
+import {
+  uploadDataSchema,
+  updateFeedSchema,
+  downloadDataSchema,
+  readFeedSchema,
+  uploadFileSchema,
+  uploadFolderSchema,
+  downloadFilesSchema,
+  listPostageStampsSchema,
+  getPostageStampSchema,
+  createPostageStampSchema,
+  extendPostageStampSchema,
+  queryUploadProgressSchema,
+} from "./schemas/zod-schemas";
 import { determineIfGateway } from "./utils";
 
 /**
@@ -109,69 +124,96 @@ export class SwarmMCPServer {
 
         // Call the appropriate tool based on the request name
         switch (request.params.name) {
-          case "upload_data":
-            return uploadData(args as unknown as UploadDataArgs, this.bee);
+          case "upload_data": {
+            const validArgs = uploadDataSchema.parse(args);
+            return uploadData(validArgs as unknown as UploadDataArgs, this.bee);
+          }
 
-          case "download_data":
-            return downloadData(args as unknown as DownloadDataArgs, this.bee);
+          case "download_data": {
+            const validArgs = downloadDataSchema.parse(args);
+            return downloadData(
+              validArgs as unknown as DownloadDataArgs,
+              this.bee
+            );
+          }
 
-          case "update_feed":
-            return updateFeed(args as unknown as UpdateFeedArgs, this.bee);
+          case "update_feed": {
+            const validArgs = updateFeedSchema.parse(args);
+            return updateFeed(validArgs as unknown as UpdateFeedArgs, this.bee);
+          }
 
-          case "read_feed":
-            return readFeed(args as unknown as ReadFeedArgs, this.bee);
+          case "read_feed": {
+            const validArgs = readFeedSchema.parse(args);
+            return readFeed(validArgs as unknown as ReadFeedArgs, this.bee);
+          }
 
-          case "upload_file":
+          case "upload_file": {
+            const validArgs = uploadFileSchema.parse(args);
             return uploadFile(
-              args as unknown as UploadFileArgs,
+              validArgs as unknown as UploadFileArgs,
               this.bee,
               this.server.server.transport
             );
+          }
 
-          case "upload_folder":
+          case "upload_folder": {
+            const validArgs = uploadFolderSchema.parse(args);
             return uploadFolder(
-              args as unknown as UploadFolderArgs,
+              validArgs as unknown as UploadFolderArgs,
               this.bee,
               this.server.server.transport
             );
+          }
 
-          case "download_files":
+          case "download_files": {
+            const validArgs = downloadFilesSchema.parse(args);
             return downloadFiles(
-              args as unknown as DownloadFilesArgs,
+              validArgs as unknown as DownloadFilesArgs,
               this.bee,
               this.server.server.transport
             );
+          }
 
-          case "query_upload_progress":
+          case "query_upload_progress": {
+            const validArgs = queryUploadProgressSchema.parse(args);
             return queryUploadProgress(
-              args as unknown as QueryUploadProgressArgs,
+              validArgs as unknown as QueryUploadProgressArgs,
               this.bee,
               this.server.server.transport
             );
+          }
 
-          case "list_postage_stamps":
+          case "list_postage_stamps": {
+            const validArgs = listPostageStampsSchema.parse(args);
             return listPostageStamps(
-              args as unknown as ListPostageStampsArgs,
+              validArgs as unknown as ListPostageStampsArgs,
               this.bee
             );
+          }
 
-          case "get_postage_stamp":
+          case "get_postage_stamp": {
+            const validArgs = getPostageStampSchema.parse(args);
             return getPostageStamp(
-              args as unknown as GetPostageStampArgs,
+              validArgs as unknown as GetPostageStampArgs,
               this.bee
             );
+          }
 
-          case "create_postage_stamp":
+          case "create_postage_stamp": {
+            const validArgs = createPostageStampSchema.parse(args);
             return createPostageStamp(
-              args as unknown as CreatePostageStampArgs,
+              validArgs as unknown as CreatePostageStampArgs,
               this.bee
             );
+          }
 
-          case "extend_postage_stamp":
+          case "extend_postage_stamp": {
+            const validArgs = extendPostageStampSchema.parse(args);
             return extendPostageStamp(
-              args as unknown as ExtendPostageStampArgs,
+              validArgs as unknown as ExtendPostageStampArgs,
               this.bee
             );
+          }
         }
 
         throw new McpError(
@@ -182,4 +224,3 @@ export class SwarmMCPServer {
     );
   }
 }
-

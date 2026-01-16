@@ -23,19 +23,16 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 
 ## Configuration Options
 
-| Option                              | Type          | Required      | Description                                                                                                                                               |
-| ----------------------------------- | --------------| --------------| --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BEE_API_URL`                       | string        | **optional** (unless using your own node) | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`.|
-| `BEE_FEED_PK`                       | string        | **optional** (cannot update feed without it)  | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                     |
-| `AUTO_ASSIGN_STAMP`                 | boolean       | **optional**  | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.          |
-| `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number        | **optional**  | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                  |
-
-
+| Option                              | Type    | Required                                     | Description                                                                                                                                                |
+| ----------------------------------- | ------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BEE_API_URL`                       | string  | **optional** (unless using your own node)    | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`. |
+| `BEE_FEED_PK`                       | string  | **optional** (cannot update feed without it) | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                      |
+| `AUTO_ASSIGN_STAMP`                 | boolean | **optional**                                 | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.           |
+| `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number  | **optional**                                 | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                   |
 
 ## MCP Tools
 
 The server provides the following MCP tools:
-
 
 ### `create_postage_stamp`
 
@@ -43,7 +40,7 @@ Buy postage stamp batch based on size in megabytes and duration.
 
 **Parameters:**
 
-- `size`: The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB.
+- `size`: The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1 KB = 0.001 MB, 1GB= 1000MB.
 - `duration`: Duration for which the data should be stored. Time to live of the postage stamp batch, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month.
 - `label`: (Optional) Sets label for the postage stamp batch.
 
@@ -67,7 +64,6 @@ Get a specific postage stamp batch based on batch id.
 Give me the details for batch 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa.
 ```
 
-
 ### `list_postage_stamps`
 
 List the available postage stamp batches.
@@ -85,7 +81,6 @@ List the available postage stamp batches.
 List my stamps.
 ```
 
-
 ### `extend_postage_stamp`
 
 Increase the duration (relative to current duration) or size (in megabytes) of a postage stamp batch.
@@ -93,7 +88,7 @@ Increase the duration (relative to current duration) or size (in megabytes) of a
 **Parameters:**
 
 - `postageBatchId`: The id of the postage stamp batch for which extend is performed.
-- `size`: (Optional) The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB.
+- `size`: (Optional) The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1 KB = 0.001 MB, 1GB= 1000MB.
 - `duration`: (Optional) Duration for which the data should be stored. Time to live of the postage stamp batch, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month.
 
 **Sample prompt:**
@@ -101,7 +96,6 @@ Increase the duration (relative to current duration) or size (in megabytes) of a
 ```bash
 Extend 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa to 5 days.
 ```
-
 
 ### `upload_data`
 
@@ -119,7 +113,6 @@ Upload text data to Swarm.
 Upload data to Swarm: Hello World!.
 ```
 
-
 ### `download_data`
 
 Downloads immutable data from a Swarm content address hash.
@@ -133,7 +126,6 @@ Downloads immutable data from a Swarm content address hash.
 ```bash
 Download data from Swarm: 76d133e2798d2b15db55b6c3de01303acd86e43998eab372e25c5a2115bf3f0b.
 ```
-
 
 ### `update_feed`
 
@@ -151,7 +143,6 @@ Update the feed of a given topic with new data.
 Update the Swarm feed of Topic1 with: Message1 using postage batch id 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa.
 ```
 
-
 ### `read_feed`
 
 Retrieve the latest data from the feed of a given topic.
@@ -166,7 +157,6 @@ Retrieve the latest data from the feed of a given topic.
 ```bash
 Read the Swarm feed of Topic1.
 ```
-
 
 ### `upload_file`
 
@@ -185,15 +175,14 @@ Upload a file to Swarm.
 Upload to Swarm the file: uploads/file.txt.
 ```
 
-
 ### `upload_folder`
 
 Upload a folder to Swarm.
 
 **Parameters:**
 
-- `folderPath`: Path to the folder to upload. 
-- `redundancyLevel`: (Optional) Redundancy level for fault tolerance (higher values provide better fault tolerance but increase storage overhead). 0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid. 
+- `folderPath`: Path to the folder to upload.
+- `redundancyLevel`: (Optional) Redundancy level for fault tolerance (higher values provide better fault tolerance but increase storage overhead). 0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid.
 - `postageBatchId`: (Optional) The postage stamp batch ID which will be used to perform the upload, if it is provided.
 
 **Sample prompt:**
@@ -202,11 +191,9 @@ Upload a folder to Swarm.
 Upload to Swarm folder: /home/conversational-agent-client/uploads.
 ```
 
-
 ### `download_files`
 
 Download folder, files from a Swarm reference and save to file path or return file list of the reference.
-
 
 **Parameters:**
 
@@ -218,7 +205,6 @@ Download folder, files from a Swarm reference and save to file path or return fi
 ```bash
 Download from Swarm the file with reference ba35af06601ddf5ac3d71ee33da0db7537215a914fd6a5414b5597bb3d618bdb to folder downloads.
 ```
-
 
 ### `query_upload_progress`
 
