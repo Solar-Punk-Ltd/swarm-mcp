@@ -7,10 +7,13 @@ import {
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
+  GetTaskRequestSchema,
+  GetTaskPayloadRequestSchema,
+  ListTasksRequestSchema,
+  CancelTaskRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
-import { z } from "zod";
 // Import refactored tool modules
 import { uploadData } from "./tools/upload_data";
 import { downloadData } from "./tools/download_data";
@@ -26,11 +29,7 @@ import { extendPostageStamp } from "./tools/extend_postage_stamp";
 import { createPostageStamp } from "./tools/create_postage_stamp";
 import { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
 import { ExtendPostageStampArgs } from "./tools/extend_postage_stamp/models";
-import {
-  PostageBatchCuratedSchema,
-  PostageBatchSummarySchema,
-  SwarmToolsSchema,
-} from "./schemas";
+import { SwarmToolsSchema } from "./schemas";
 import { updateFeed } from "./tools/update_feed";
 import { readFeed } from "./tools/read_feed";
 import { UploadDataArgs } from "./tools/upload_data/models";
@@ -55,7 +54,10 @@ import {
   extendPostageStampSchema,
   queryUploadProgressSchema,
 } from "./schemas/zod-schemas";
+import { TaskManager } from "./tasks/task-manager";
 import { determineIfGateway } from "./utils";
+import { isTaskTerminal } from "./tasks/utils";
+import { ExtendedTask } from "./tasks/models";
 
 /**
  * Swarm MCP Server class
@@ -63,10 +65,12 @@ import { determineIfGateway } from "./utils";
 export class SwarmMCPServer {
   public readonly server: McpServer;
   private readonly bee: Bee;
+  private readonly taskManager: TaskManager;
 
   constructor() {
     // Initialize Bee client with the configured endpoint
     this.bee = new Bee(config.bee.endpoint);
+    this.taskManager = new TaskManager(this.bee);
 
     this.server = new McpServer(
       {
@@ -76,12 +80,17 @@ export class SwarmMCPServer {
       {
         capabilities: {
           tools: {},
+          tasks: {
+            list: {},
+            cancel: {},
+          },
           resources: {},
         },
       }
     );
 
     this.setupToolHandlers();
+    this.setupTaskHandlers();
 
     this.server.server.onerror = (error: Error) =>
       console.error("[Error]", error);
@@ -152,7 +161,8 @@ export class SwarmMCPServer {
             return uploadFile(
               validArgs as unknown as UploadFileArgs,
               this.bee,
-              this.server.server.transport
+              this.server.server.transport,
+              this.taskManager
             );
           }
 
@@ -220,6 +230,84 @@ export class SwarmMCPServer {
           ErrorCode.MethodNotFound,
           `Unknown tool: ${request.params.name}`
         );
+      }
+    );
+  }
+
+  private setupTaskHandlers() {
+    this.server.server.setRequestHandler(
+      ListTasksRequestSchema,
+      async (request) => {
+        const cursor = request.params?.cursor ?? "0";
+        return this.taskManager.listTasks(cursor);
+      }
+    );
+
+    this.server.server.setRequestHandler(
+      GetTaskRequestSchema,
+      async (request) => {
+        const taskId = request.params.taskId;
+        return this.taskManager.getTask(taskId);
+      }
+    );
+
+    this.server.server.setRequestHandler(
+      CancelTaskRequestSchema,
+      async (request) => {
+        const taskId = request.params.taskId;
+        const cancelledTask = this.taskManager.cancelTask(taskId);
+        return cancelledTask;
+      }
+    );
+
+    this.server.server.setRequestHandler(
+      GetTaskPayloadRequestSchema,
+      async (request) => {
+        const taskId = request.params.taskId;
+
+        // Check task exists first
+        let task: ExtendedTask;
+        try {
+          task = this.taskManager.getTask(taskId);
+        } catch {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Task not found: ${taskId}`
+          );
+        }
+
+        // Block until terminal OR timeout (30s max)
+        const maxWait = 30000;
+        const startTime = Date.now();
+
+        while (
+          !isTaskTerminal(task.status) &&
+          Date.now() - startTime < maxWait
+        ) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, task.pollInterval ?? 1000)
+          );
+
+          try {
+            task = this.taskManager.getTask(taskId);
+          } catch {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `Task expired: ${taskId}`
+            );
+          }
+        }
+
+        if (!isTaskTerminal(task.status)) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Task timeout: ${taskId}`
+          );
+        }
+
+        // Return the original result structure (e.g., CallToolResult for tools/call)
+        const result = this.taskManager.getTaskResult(taskId);
+        return result as Record<string, unknown>;
       }
     );
   }

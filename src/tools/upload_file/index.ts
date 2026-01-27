@@ -16,17 +16,17 @@ import {
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFileArgs } from "./models";
-import {
-  BAD_REQUEST_STATUS,
-  GATEWAY_TAG_ERROR_MESSAGE,
-  NOT_FOUND_STATUS,
-} from "../../constants";
+import { BAD_REQUEST_STATUS } from "../../constants";
+
+import { TaskManager } from "../../tasks/task-manager";
+import { updateUploadFileTaskStatus } from "./utils";
 
 export async function uploadFile(
   args: UploadFileArgs,
   bee: Bee,
-  transport: any
-): Promise<ToolResponse> {
+  transport: any,
+  taskManager?: TaskManager
+): Promise<ToolResponse | any> {
   if (!args.data) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -83,6 +83,25 @@ export async function uploadFile(
       tagId = tag.uid.toString();
       message =
         "File upload started in deferred mode. Use query_upload_progress to track progress.";
+
+      // Create MCP Task if manager is available
+      if (taskManager) {
+        const task = taskManager.createTask(
+          "swarm_upload",
+          "swarm_upload",
+          updateUploadFileTaskStatus,
+          tag.uid
+        );
+        // Start the upload in background
+        bee
+          .uploadFile(postageBatchId, binaryData, name, options)
+          .catch(() => {});
+
+        // Return Task immediately
+        return {
+          task,
+        };
+      }
     } catch (error) {
       // Ignore tag creation error
     }
