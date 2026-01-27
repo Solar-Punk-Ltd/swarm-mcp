@@ -171,7 +171,8 @@ export class SwarmMCPServer {
             return uploadFolder(
               validArgs as unknown as UploadFolderArgs,
               this.bee,
-              this.server.server.transport
+              this.server.server.transport,
+              this.taskManager
             );
           }
 

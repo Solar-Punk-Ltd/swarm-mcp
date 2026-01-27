@@ -87,8 +87,8 @@ export async function uploadFile(
       // Create MCP Task if manager is available
       if (taskManager) {
         const task = taskManager.createTask(
-          "swarm_upload",
-          "swarm_upload",
+          "swarm_upload_file",
+          "swarm_upload_file",
           updateUploadFileTaskStatus,
           tag.uid
         );
