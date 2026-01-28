@@ -3,12 +3,12 @@ import { ExtendedTask, TaskState } from "../../tasks/models";
 import { getResponseWithStructuredContent } from "../../utils";
 
 export const updateUploadFileTaskStatus = async (
-  task: ExtendedTask,
+  extendedTask: ExtendedTask,
   bee: Bee
 ): Promise<void> => {
   try {
-    if (!task.meta?.id) return;
-    const tagUid = task.meta.id as number;
+    if (!extendedTask.meta?.id) return;
+    const tagUid = extendedTask.meta.id as number;
     const tag = await bee.retrieveTag(tagUid);
 
     const synced = tag.synced ?? 0;
@@ -21,12 +21,12 @@ export const updateUploadFileTaskStatus = async (
     const isComplete = processedPercentage === 100;
 
     const now = new Date().toISOString();
-    task.lastUpdatedAt = now;
+    extendedTask.task.lastUpdatedAt = now;
 
     if (isComplete) {
-      task.status = TaskState.COMPLETED;
-      task.statusMessage = "Upload completed successfully.";
-      task.result = getResponseWithStructuredContent({
+      extendedTask.task.status = TaskState.COMPLETED;
+      extendedTask.task.statusMessage = "Upload completed successfully.";
+      extendedTask.result = getResponseWithStructuredContent({
         processedPercentage,
         message: isComplete
           ? "Upload completed successfully."
@@ -40,13 +40,17 @@ export const updateUploadFileTaskStatus = async (
         console.error(`Failed to delete tag ${tagUid}:`, error);
       });
     } else {
-      task.status = TaskState.WORKING;
-      task.statusMessage = `Processing: ${processedPercentage}% (${processed}/${total} chunks)`;
+      extendedTask.task.status = TaskState.WORKING;
+      extendedTask.task.statusMessage = `Processing: ${processedPercentage}% (${processed}/${total} chunks)`;
     }
   } catch (error) {
-    console.error(`Failed to update task ${task.taskId} status:`, error);
-    task.status = TaskState.FAILED;
-    task.statusMessage = "Failed to retrieve upload status from Swarm";
-    task.lastUpdatedAt = new Date().toISOString();
+    console.error(
+      `Failed to update task ${extendedTask.task.taskId} status:`,
+      error
+    );
+    extendedTask.task.status = TaskState.FAILED;
+    extendedTask.task.statusMessage =
+      "Failed to retrieve upload status from Swarm";
+    extendedTask.task.lastUpdatedAt = new Date().toISOString();
   }
 };

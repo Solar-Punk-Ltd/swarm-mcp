@@ -1,7 +1,8 @@
 import { Bee } from "@ethersphere/bee-js";
 import { Task } from "@modelcontextprotocol/sdk/types.js";
 
-export interface ExtendedTask extends Task {
+export interface ExtendedTask {
+  task: Task;
   meta?: {
     type: string;
     [key: string]: unknown;

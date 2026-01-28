@@ -12,7 +12,7 @@ import { ExtendedTask, TaskState } from "./models";
 import { isTaskTerminal } from "./utils";
 
 export class TaskManager {
-  private tasks: Map<string, ExtendedTask> = new Map();
+  private extendedTasks: Map<string, ExtendedTask> = new Map();
   private bee: Bee;
   private cleanupInterval: NodeJS.Timeout;
   private statusUpdateInterval: NodeJS.Timeout;
@@ -38,7 +38,7 @@ export class TaskManager {
     id?: number
   ): Task {
     const taskId = uuidv4();
-    const task: ExtendedTask = {
+    const task: Task = {
       taskId,
       status: TaskState.WORKING,
       statusMessage: `${name} started`,
@@ -46,6 +46,10 @@ export class TaskManager {
       lastUpdatedAt: new Date().toISOString(),
       pollInterval: TASK_POLL_INTERVAL,
       ttl: TASK_TTL_MS,
+    };
+
+    const extendedTask: ExtendedTask = {
+      task,
       meta: {
         type,
         id,
@@ -53,52 +57,71 @@ export class TaskManager {
       updateStatus,
     };
 
-    this.tasks.set(taskId, task);
+    this.extendedTasks.set(taskId, extendedTask);
     return task;
   }
 
   getTask(taskId: string): Task {
-    const task = this.tasks.get(taskId);
-    if (!task) {
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (!extendedTask) {
       throw new McpError(ErrorCode.InvalidRequest, `Task not found: ${taskId}`);
     }
 
-    return task;
+    return extendedTask.task;
   }
 
-  getTaskResult(taskId: string): unknown {
-    const task = this.tasks.get(taskId);
-    if (!task) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Task not found: ${taskId}.`
-      );
+  // In TaskManager class
+  async getTaskResult(taskId: string): Promise<unknown> {
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (!extendedTask) {
+      throw new McpError(ErrorCode.InvalidRequest, `Task not found: ${taskId}`);
     }
 
-    if (task.status !== TaskState.COMPLETED) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Task is not completed yet: ${task.status}`
+    // Block until terminal state
+    while (!isTaskTerminal(extendedTask.task.status)) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, extendedTask.task.pollInterval ?? 1000)
       );
+
+      // Re-check task still exists
+      if (!this.extendedTasks.has(taskId)) {
+        throw new McpError(ErrorCode.InvalidRequest, `Task expired: ${taskId}`);
+      }
     }
 
-    return task.result;
+    // Handle different terminal states
+    if (extendedTask.task.status === TaskState.COMPLETED) {
+      return extendedTask.result;
+    } else if (extendedTask.task.status === TaskState.FAILED) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        extendedTask.task.statusMessage ?? "Task failed"
+      );
+    } else if (extendedTask.task.status === TaskState.CANCELLED) {
+      throw new McpError(ErrorCode.InvalidRequest, "Task was cancelled");
+    }
+
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Unexpected task state: ${extendedTask.task.status}`
+    );
   }
 
   setTaskResult(taskId: string, result: unknown): void {
-    const task = this.tasks.get(taskId);
-    if (task) {
-      task.result = result;
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (extendedTask) {
+      extendedTask.result = result;
     }
   }
 
   listTasks(cursor?: string): { tasks: Task[]; nextCursor?: string } {
-    const allTasks = Array.from(this.tasks.values());
+    const allTasks = Array.from(this.extendedTasks.values());
 
     // Sort by creation date (newest first)
     allTasks.sort(
       (a: ExtendedTask, b: ExtendedTask) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.task.createdAt).getTime() -
+        new Date(a.task.createdAt).getTime()
     );
 
     // Implement cursor-based pagination
@@ -107,7 +130,7 @@ export class TaskManager {
     const paginatedTasks = allTasks.slice(startIndex, endIndex);
 
     const response: { tasks: Task[]; nextCursor?: string } = {
-      tasks: paginatedTasks,
+      tasks: paginatedTasks.map((extendedTask) => extendedTask.task),
     };
 
     // Add nextCursor if there are more tasks
@@ -119,8 +142,8 @@ export class TaskManager {
   }
 
   cancelTask(taskId: string): Task {
-    const task = this.tasks.get(taskId);
-    if (!task) {
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (!extendedTask) {
       throw new McpError(
         ErrorCode.InvalidRequest,
         `Task not found: ${taskId}.`
@@ -128,25 +151,26 @@ export class TaskManager {
     }
 
     // Cannot cancel tasks in terminal states
-    if (isTaskTerminal(task.status)) {
+    if (isTaskTerminal(extendedTask.task.status)) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Cannot cancel task in terminal state: ${task.status}.`
+        `Cannot cancel task in terminal state: ${extendedTask.task.status}.`
       );
     }
 
     // Update task status
-    task.status = TaskState.CANCELLED;
-    task.statusMessage = "Task cancelled by user.";
-    task.lastUpdatedAt = new Date().toISOString();
+    extendedTask.task.status = TaskState.CANCELLED;
+    extendedTask.task.statusMessage = "Task cancelled by user.";
+    extendedTask.task.lastUpdatedAt = new Date().toISOString();
 
-    return task;
+    return extendedTask.task;
   }
 
   private async updateAllSwarmTasks(): Promise<void> {
-    const activeTasks = Array.from(this.tasks.values()).filter(
-      (task) =>
-        typeof task.updateStatus === "function" && !isTaskTerminal(task.status)
+    const activeTasks = Array.from(this.extendedTasks.values()).filter(
+      (extendedTask) =>
+        typeof extendedTask.updateStatus === "function" &&
+        !isTaskTerminal(extendedTask.task.status)
     );
 
     // Update all active Swarm tasks in parallel
@@ -159,10 +183,10 @@ export class TaskManager {
     const now = Date.now();
     const tasksToDelete: string[] = [];
 
-    for (const [taskId, task] of this.tasks.entries()) {
+    for (const [taskId, extendedTask] of this.extendedTasks.entries()) {
       // Only clean up terminal tasks
-      if (isTaskTerminal(task.status)) {
-        const lastUpdated = new Date(task.lastUpdatedAt).getTime();
+      if (isTaskTerminal(extendedTask.task.status)) {
+        const lastUpdated = new Date(extendedTask.task.lastUpdatedAt).getTime();
         if (now - lastUpdated > TASK_TTL_MS) {
           tasksToDelete.push(taskId);
         }
@@ -171,7 +195,7 @@ export class TaskManager {
 
     // Delete old tasks
     for (const taskId of tasksToDelete) {
-      this.tasks.delete(taskId);
+      this.extendedTasks.delete(taskId);
     }
 
     if (tasksToDelete.length > 0) {

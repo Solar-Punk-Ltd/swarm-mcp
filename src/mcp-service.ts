@@ -11,6 +11,7 @@ import {
   GetTaskPayloadRequestSchema,
   ListTasksRequestSchema,
   CancelTaskRequestSchema,
+  Task,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
@@ -56,8 +57,6 @@ import {
 } from "./schemas/zod-schemas";
 import { TaskManager } from "./tasks/task-manager";
 import { determineIfGateway } from "./utils";
-import { isTaskTerminal } from "./tasks/utils";
-import { ExtendedTask } from "./tasks/models";
 
 /**
  * Swarm MCP Server class
@@ -265,49 +264,7 @@ export class SwarmMCPServer {
       GetTaskPayloadRequestSchema,
       async (request) => {
         const taskId = request.params.taskId;
-
-        // Check task exists first
-        let task: ExtendedTask;
-        try {
-          task = this.taskManager.getTask(taskId);
-        } catch {
-          throw new McpError(
-            ErrorCode.InvalidRequest,
-            `Task not found: ${taskId}`
-          );
-        }
-
-        // Block until terminal OR timeout (30s max)
-        const maxWait = 30000;
-        const startTime = Date.now();
-
-        while (
-          !isTaskTerminal(task.status) &&
-          Date.now() - startTime < maxWait
-        ) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, task.pollInterval ?? 1000)
-          );
-
-          try {
-            task = this.taskManager.getTask(taskId);
-          } catch {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              `Task expired: ${taskId}`
-            );
-          }
-        }
-
-        if (!isTaskTerminal(task.status)) {
-          throw new McpError(
-            ErrorCode.InvalidRequest,
-            `Task timeout: ${taskId}`
-          );
-        }
-
-        // Return the original result structure (e.g., CallToolResult for tools/call)
-        const result = this.taskManager.getTaskResult(taskId);
+        const result = await this.taskManager.getTaskResult(taskId);
         return result as Record<string, unknown>;
       }
     );
