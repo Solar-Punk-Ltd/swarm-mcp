@@ -64,7 +64,7 @@ export class TaskManager {
   getTask(taskId: string): Task {
     const extendedTask = this.extendedTasks.get(taskId);
     if (!extendedTask) {
-      throw new McpError(ErrorCode.InvalidRequest, `Task not found: ${taskId}`);
+      throw new McpError(ErrorCode.InvalidParams, `Task not found: ${taskId}`);
     }
 
     return extendedTask.task;
@@ -74,36 +74,38 @@ export class TaskManager {
   async getTaskResult(taskId: string): Promise<unknown> {
     const extendedTask = this.extendedTasks.get(taskId);
     if (!extendedTask) {
-      throw new McpError(ErrorCode.InvalidRequest, `Task not found: ${taskId}`);
+      throw new McpError(ErrorCode.InvalidParams, `Task not found: ${taskId}`);
     }
 
+    const { task } = extendedTask;
+
     // Block until terminal state
-    while (!isTaskTerminal(extendedTask.task.status)) {
+    while (!isTaskTerminal(task.status)) {
       await new Promise((resolve) =>
-        setTimeout(resolve, extendedTask.task.pollInterval ?? 1000)
+        setTimeout(resolve, task.pollInterval ?? 1000)
       );
 
       // Re-check task still exists
       if (!this.extendedTasks.has(taskId)) {
-        throw new McpError(ErrorCode.InvalidRequest, `Task expired: ${taskId}`);
+        throw new McpError(ErrorCode.InvalidParams, `Task expired: ${taskId}`);
       }
     }
 
     // Handle different terminal states
-    if (extendedTask.task.status === TaskState.COMPLETED) {
+    if (task.status === TaskState.COMPLETED) {
       return extendedTask.result;
-    } else if (extendedTask.task.status === TaskState.FAILED) {
+    } else if (task.status === TaskState.FAILED) {
       throw new McpError(
         ErrorCode.InternalError,
-        extendedTask.task.statusMessage ?? "Task failed"
+        task.statusMessage ?? "Task failed"
       );
-    } else if (extendedTask.task.status === TaskState.CANCELLED) {
-      throw new McpError(ErrorCode.InvalidRequest, "Task was cancelled");
+    } else if (task.status === TaskState.CANCELLED) {
+      throw new McpError(ErrorCode.InvalidParams, "Task was cancelled");
     }
 
     throw new McpError(
       ErrorCode.InternalError,
-      `Unexpected task state: ${extendedTask.task.status}`
+      `Unexpected task state: ${task.status}`
     );
   }
 
@@ -126,6 +128,9 @@ export class TaskManager {
 
     // Implement cursor-based pagination
     const startIndex = cursor ? parseInt(cursor, 10) : 0;
+    if (cursor && (isNaN(startIndex) || startIndex < 0)) {
+      throw new McpError(ErrorCode.InvalidParams, `Invalid cursor: ${cursor}`);
+    }
     const endIndex = startIndex + PAGE_SIZE;
     const paginatedTasks = allTasks.slice(startIndex, endIndex);
 
@@ -144,10 +149,7 @@ export class TaskManager {
   cancelTask(taskId: string): Task {
     const extendedTask = this.extendedTasks.get(taskId);
     if (!extendedTask) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        `Task not found: ${taskId}.`
-      );
+      throw new McpError(ErrorCode.InvalidParams, `Task not found: ${taskId}`);
     }
 
     // Cannot cancel tasks in terminal states
