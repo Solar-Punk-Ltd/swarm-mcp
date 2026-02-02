@@ -82,7 +82,7 @@ export async function uploadFolder(
           "swarm_upload_folder",
           "swarm_upload_folder",
           updateUploadFolderTaskStatus,
-          tag.uid
+          tagId
         );
         // Start the upload in background
         bee

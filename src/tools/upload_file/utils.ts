@@ -1,6 +1,5 @@
 import { Bee } from "@ethersphere/bee-js";
 import { ExtendedTask, TaskState } from "../../tasks/models";
-import { getResponseWithStructuredContent } from "../../utils";
 
 export const updateUploadFileTaskStatus = async (
   extendedTask: ExtendedTask,
@@ -26,14 +25,6 @@ export const updateUploadFileTaskStatus = async (
     if (isComplete) {
       extendedTask.task.status = TaskState.COMPLETED;
       extendedTask.task.statusMessage = "Upload completed successfully.";
-      extendedTask.result = getResponseWithStructuredContent({
-        processedPercentage,
-        message: isComplete
-          ? "Upload completed successfully."
-          : `Upload progress: ${processedPercentage}% processed`,
-        startedAt: tag.startedAt,
-        tagAddress: tag.address,
-      });
 
       // Clean up tag (fire and forget)
       bee.deleteTag(tagUid).catch((error) => {

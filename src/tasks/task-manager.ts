@@ -35,7 +35,8 @@ export class TaskManager {
     name: string,
     type: string,
     updateStatus: (task: ExtendedTask, bee: Bee) => void,
-    id?: number
+    id?: string,
+    result?: unknown
   ): Task {
     const taskId = uuidv4();
     const task: Task = {
@@ -55,6 +56,7 @@ export class TaskManager {
         id,
       },
       updateStatus,
+      result,
     };
 
     this.extendedTasks.set(taskId, extendedTask);
@@ -70,7 +72,6 @@ export class TaskManager {
     return extendedTask.task;
   }
 
-  // In TaskManager class
   async getTaskResult(taskId: string): Promise<unknown> {
     const extendedTask = this.extendedTasks.get(taskId);
     if (!extendedTask) {

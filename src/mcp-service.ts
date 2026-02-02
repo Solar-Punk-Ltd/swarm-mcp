@@ -65,6 +65,7 @@ export class SwarmMCPServer {
   public readonly server: McpServer;
   private readonly bee: Bee;
   private readonly taskManager: TaskManager;
+  private clientSupportsTasks = false;
 
   constructor() {
     // Initialize Bee client with the configured endpoint
@@ -82,6 +83,11 @@ export class SwarmMCPServer {
           tasks: {
             list: {},
             cancel: {},
+            requests: {
+              tools: {
+                call: {},
+              },
+            },
           },
           resources: {},
         },
@@ -109,10 +115,18 @@ export class SwarmMCPServer {
       "query_upload_progress",
     ];
 
+    // const taskSupportTools = [
+    //   "create_postage_stamp",
+    //   "extend_postage_stamp",
+    //   "upload_file",
+    //   "upload_folder",
+    // ];
+
     this.server.server.setRequestHandler(ListToolsRequestSchema, async () => {
       const isGateway = await determineIfGateway(this.bee);
 
       let tools = SwarmToolsSchema;
+
       if (isGateway) {
         tools = SwarmToolsSchema.filter(
           (item) => !nodeOnlyTools.includes(item.name)

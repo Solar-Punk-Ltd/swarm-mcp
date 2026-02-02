@@ -52,6 +52,9 @@ export const SwarmToolsSchema = [
       },
       required: ["reference", "url"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "update_feed",
@@ -107,6 +110,9 @@ export const SwarmToolsSchema = [
       },
       required: ["reference", "topic", "feedUrl"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "download_data",
@@ -130,6 +136,9 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["textData"],
+    },
+    execution: {
+      taskSupport: "forbidden",
     },
   },
   {
@@ -159,6 +168,9 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["textData"],
+    },
+    execution: {
+      taskSupport: "forbidden",
     },
   },
   {
@@ -197,28 +209,31 @@ export const SwarmToolsSchema = [
       },
       required: ["data"],
     },
-    outputSchema: {
-      type: "object",
-      properties: {
-        reference: {
-          type: "string",
-          description: "Swarm reference hash for uploaded file.",
-        },
-        url: {
-          type: "string",
-          description: "The URL to access the uploaded file.",
-        },
-        message: {
-          type: "string",
-          description: "Upload file response message.",
-        },
-        tagId: {
-          type: "string",
-          description: "The tag ID for deferred uploads.",
-        },
-      },
-      required: ["reference", "url"],
+    execution: {
+      taskSupport: "optional",
     },
+    // outputSchema: {
+    //   type: "object",
+    //   properties: {
+    //     reference: {
+    //       type: "string",
+    //       description: "Swarm reference hash for uploaded file.",
+    //     },
+    //     url: {
+    //       type: "string",
+    //       description: "The URL to access the uploaded file.",
+    //     },
+    //     message: {
+    //       type: "string",
+    //       description: "Upload file response message.",
+    //     },
+    //     tagId: {
+    //       type: "string",
+    //       description: "The tag ID for deferred uploads.",
+    //     },
+    //   },
+    //   required: ["reference", "url"],
+    // },
   },
   {
     name: "upload_folder",
@@ -251,28 +266,31 @@ export const SwarmToolsSchema = [
       },
       required: ["folderPath"],
     },
-    outputSchema: {
-      type: "object",
-      properties: {
-        reference: {
-          type: "string",
-          description: "Swarm reference hash for uploaded folder.",
-        },
-        url: {
-          type: "string",
-          description: "The URL to access the uploaded folder.",
-        },
-        message: {
-          type: "string",
-          description: "Upload folder response message.",
-        },
-        tagId: {
-          type: "string",
-          description: "The tag ID for deferred uploads.",
-        },
-      },
-      required: ["reference", "url"],
+    execution: {
+      taskSupport: "optional",
     },
+    // outputSchema: {
+    //   type: "object",
+    //   properties: {
+    //     reference: {
+    //       type: "string",
+    //       description: "Swarm reference hash for uploaded folder.",
+    //     },
+    //     url: {
+    //       type: "string",
+    //       description: "The URL to access the uploaded folder.",
+    //     },
+    //     message: {
+    //       type: "string",
+    //       description: "Upload folder response message.",
+    //     },
+    //     tagId: {
+    //       type: "string",
+    //       description: "The tag ID for deferred uploads.",
+    //     },
+    //   },
+    //   required: ["reference", "url"],
+    // },
   },
   {
     name: "download_files",
@@ -294,6 +312,9 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["reference"],
+    },
+    execution: {
+      taskSupport: "forbidden",
     },
   },
   {
@@ -339,6 +360,9 @@ export const SwarmToolsSchema = [
       },
       required: ["summary"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "get_postage_stamp",
@@ -360,6 +384,9 @@ export const SwarmToolsSchema = [
         summary: PostageBatchSummarySchema,
       },
       required: ["summary"],
+    },
+    execution: {
+      taskSupport: "forbidden",
     },
   },
   {
@@ -388,6 +415,9 @@ export const SwarmToolsSchema = [
       },
       required: ["size", "duration"],
     },
+    execution: {
+      taskSupport: "optional",
+    },
   },
   {
     name: "extend_postage_stamp",
@@ -414,6 +444,9 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["postageBatchId"],
+    },
+    execution: {
+      taskSupport: "optional",
     },
   },
   {
@@ -452,6 +485,9 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["processedPercentage", "tagAddress"],
+    },
+    execution: {
+      taskSupport: "forbidden",
     },
   },
 ];
