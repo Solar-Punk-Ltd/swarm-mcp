@@ -1,17 +1,27 @@
 import { Bee } from "@ethersphere/bee-js";
 import { ExtendedTask } from "./models";
 import { Task } from "@modelcontextprotocol/sdk/types.js";
-import { TASK_STATUS_UPDATE_INTERVAL_MS } from "./constants";
+import {
+  TASK_CLEANUP_INTERVAL_MS,
+  TASK_STATUS_UPDATE_INTERVAL_MS,
+  TASK_TTL_MS,
+} from "./constants";
 import { TaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 import { isTaskTerminal } from "./utils";
 
 export class TaskManager {
   private bee: Bee;
   private extendedTasks: Map<string, ExtendedTask> = new Map();
+  private cleanupInterval: NodeJS.Timeout;
   private statusUpdateInterval: NodeJS.Timeout;
 
   constructor(bee: Bee) {
     this.bee = bee;
+
+    // Start periodic cleanup
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupOldTasks();
+    }, TASK_CLEANUP_INTERVAL_MS);
 
     this.statusUpdateInterval = setInterval(() => {
       this.updateAllSwarmTasks();
@@ -68,6 +78,30 @@ export class TaskManager {
     await Promise.allSettled(
       activeTasks.map((task) => task.updateStatus!(task, this.bee))
     );
+  }
+
+  private cleanupOldTasks(): void {
+    const now = Date.now();
+    const tasksToDelete: string[] = [];
+
+    for (const [taskId, extendedTask] of this.extendedTasks.entries()) {
+      // Only clean up terminal tasks
+      if (isTaskTerminal(extendedTask.task.status)) {
+        const lastUpdated = new Date(extendedTask.task.lastUpdatedAt).getTime();
+        if (now - lastUpdated > TASK_TTL_MS) {
+          tasksToDelete.push(taskId);
+        }
+      }
+    }
+
+    // Delete old tasks
+    for (const taskId of tasksToDelete) {
+      this.extendedTasks.delete(taskId);
+    }
+
+    if (tasksToDelete.length > 0) {
+      console.log(`Cleaned up ${tasksToDelete.length} old task(s)`);
+    }
   }
 
   destroy(): void {
