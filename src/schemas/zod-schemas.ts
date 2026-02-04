@@ -21,16 +21,23 @@ export const readFeedSchema = z.object({
   owner: z.string().optional(),
 });
 
+// export const uploadFileSchema = z.object({
+//   data: z.string(),
+//   isPath: z.boolean().optional(),
+//   redundancyLevel: z.number().optional(),
+//   postageBatchId: z.string().optional(),
+// });
+
 export const uploadFileSchema = z.object({
   data: z.string(),
-  isPath: z.boolean().optional().default(false),
-  redundancyLevel: z.number().optional().default(0),
+  isPath: z.boolean().optional(),
+  redundancyLevel: z.number().optional(),
   postageBatchId: z.string().optional(),
 });
 
 export const uploadFolderSchema = z.object({
   folderPath: z.string(),
-  redundancyLevel: z.number().optional().default(0),
+  redundancyLevel: z.number().optional(),
   postageBatchId: z.string().optional(),
 });
 

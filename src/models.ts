@@ -1,4 +1,6 @@
 import { PostageBatch } from "@ethersphere/bee-js";
+import { TaskManager } from "./tasks/task-manager";
+import { TaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 
 export type PostageBatchCurated = Omit<PostageBatch, "batchID"> & {
   batchID: string;
@@ -20,4 +22,10 @@ export interface ResponseContent<U, V> {
 export interface ResponseWithStructuredContent<T> {
   content: Array<{ type: "text"; text: string }>;
   structuredContent: T;
+}
+
+export interface TaskInformation {
+  manager: TaskManager;
+  store: TaskStore;
+  taskId: string;
 }

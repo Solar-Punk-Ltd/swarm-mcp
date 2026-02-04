@@ -78,12 +78,12 @@ export async function uploadFolder(
 
       // Create MCP Task if manager is available
       if (taskManager) {
-        const task = taskManager.createTask(
-          "swarm_upload_folder",
-          "swarm_upload_folder",
-          updateUploadFolderTaskStatus,
-          tagId
-        );
+        // const task = taskManager.createTask(
+        //   "swarm_upload_folder",
+        //   "swarm_upload_folder",
+        //   updateUploadFolderTaskStatus,
+        //   tagId
+        // );
         // Start the upload in background
         bee
           .uploadFilesFromDirectory(postageBatchId, args.folderPath, options)
@@ -91,7 +91,7 @@ export async function uploadFolder(
 
         // Return Task immediately
         return {
-          task,
+          task: null,
         };
       }
     } catch (error) {

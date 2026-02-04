@@ -16,20 +16,17 @@ import {
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFileArgs } from "./models";
-import {
-  BAD_REQUEST_STATUS,
-  GATEWAY_TAG_ERROR_MESSAGE,
-  NOT_FOUND_STATUS,
-} from "../../constants";
-import { TaskManager } from "../../tasks/task-manager";
+import { BAD_REQUEST_STATUS } from "../../constants";
 import { updateUploadFileTaskStatus } from "./utils";
+import { TaskInformation } from "../../models";
+import { TaskState } from "../../tasks/models";
 
 export async function uploadFile(
   args: UploadFileArgs,
   bee: Bee,
   transport: any,
-  taskManager?: TaskManager,
-  clientSupportsTasks: boolean = false,
+  taskInformation?: TaskInformation,
+  task?: Task
 ): Promise<ToolResponse | Task> {
   if (!args.data) {
     throw new McpError(
@@ -105,25 +102,33 @@ export async function uploadFile(
     }
   }
 
-  if (deferred && taskManager && clientSupportsTasks) {
-    const task = taskManager.createTask(
-      "swarm_upload_file",
-      "swarm_upload_file",
-      updateUploadFileTaskStatus,
-      tagId,
-      result
-    );
-
-    // Return Task immediately
-    return {
-      task,
-    };
-  }
-
-  return getResponseWithStructuredContent({
+  const responseWithStructuredContent = getResponseWithStructuredContent({
     reference: result.reference.toString(),
     url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
     message,
     tagId,
   });
+
+  if (!deferred && taskInformation) {
+    // Complete immediately
+    await taskInformation.store.storeTaskResult(
+      taskInformation.taskId,
+      TaskState.COMPLETED,
+      responseWithStructuredContent
+    );
+  } else if (taskInformation && task) {
+    // store in TaskManager
+    taskInformation.manager.createTask(
+      task,
+      taskInformation.store,
+      updateUploadFileTaskStatus,
+      {
+        reference: result.reference.toString(),
+        url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
+        tagId,
+      }
+    );
+  }
+
+  return responseWithStructuredContent;
 }

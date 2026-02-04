@@ -1,53 +1,56 @@
 /**
  * MCP Service implementation for handling blob data operations with Bee (Swarm)
+ * Using Experimental MCP SDK Tasks API
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
-  GetTaskRequestSchema,
-  GetTaskPayloadRequestSchema,
-  ListTasksRequestSchema,
-  CancelTaskRequestSchema,
-  Task,
+  ServerNotification,
+  ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
-// Import refactored tool modules
+import { SwarmToolsSchema } from "./schemas";
+import { determineIfGateway } from "./utils";
+
+// Regular sync tools
 import { uploadData } from "./tools/upload_data";
 import { downloadData } from "./tools/download_data";
-import { uploadFile } from "./tools/upload_file";
-import { uploadFolder } from "./tools/upload_folder";
-import { downloadFiles } from "./tools/download_files";
-import { queryUploadProgress } from "./tools/query_upload_progress";
-import { listPostageStamps } from "./tools/list-postage-stamps";
-import { getPostageStamp } from "./tools/get_postage_stamp";
-import { ListPostageStampsArgs } from "./tools/list-postage-stamps/models";
-import { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
-import { extendPostageStamp } from "./tools/extend_postage_stamp";
-import { createPostageStamp } from "./tools/create_postage_stamp";
-import { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
-import { ExtendPostageStampArgs } from "./tools/extend_postage_stamp/models";
-import { SwarmToolsSchema } from "./schemas";
 import { updateFeed } from "./tools/update_feed";
 import { readFeed } from "./tools/read_feed";
-import { UploadDataArgs } from "./tools/upload_data/models";
-import { DownloadDataArgs } from "./tools/download_data/models";
-import { UpdateFeedArgs } from "./tools/update_feed/models";
-import { ReadFeedArgs } from "./tools/read_feed/models";
-import { UploadFileArgs } from "./tools/upload_file/models";
-import { UploadFolderArgs } from "./tools/upload_folder/models";
-import { DownloadFilesArgs } from "./tools/download_files/models";
-import { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
+import { downloadFiles } from "./tools/download_files";
+import { listPostageStamps } from "./tools/list-postage-stamps";
+import { getPostageStamp } from "./tools/get_postage_stamp";
+import { queryUploadProgress } from "./tools/query_upload_progress";
+import { createPostageStamp } from "./tools/create_postage_stamp";
+import { extendPostageStamp } from "./tools/extend_postage_stamp";
+
+// Model types
+import type { UploadFileArgs } from "./tools/upload_file/models";
+import type { UploadFolderArgs } from "./tools/upload_folder/models";
+import type { UploadDataArgs } from "./tools/upload_data/models";
+import type { DownloadDataArgs } from "./tools/download_data/models";
+import type { UpdateFeedArgs } from "./tools/update_feed/models";
+import type { ReadFeedArgs } from "./tools/read_feed/models";
+import type { DownloadFilesArgs } from "./tools/download_files/models";
+import type { ListPostageStampsArgs } from "./tools/list-postage-stamps/models";
+import type { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
+import type { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
+import type { ExtendPostageStampArgs } from "./tools/extend_postage_stamp/models";
+import type { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
+
+// Zod schemas
 import {
-  uploadDataSchema,
-  updateFeedSchema,
-  downloadDataSchema,
-  readFeedSchema,
   uploadFileSchema,
   uploadFolderSchema,
+  uploadDataSchema,
+  downloadDataSchema,
+  updateFeedSchema,
+  readFeedSchema,
   downloadFilesSchema,
   listPostageStampsSchema,
   getPostageStampSchema,
@@ -55,20 +58,26 @@ import {
   extendPostageStampSchema,
   queryUploadProgressSchema,
 } from "./schemas/zod-schemas";
+import {
+  AnySchema,
+  ZodRawShapeCompat,
+} from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import { TASK_POLL_INTERVAL, TASK_TTL_MS } from "./tasks/constants";
+import { uploadFile } from "./tools/upload_file";
+import { uploadFolder } from "./tools/upload_folder";
 import { TaskManager } from "./tasks/task-manager";
-import { determineIfGateway } from "./utils";
 
 /**
- * Swarm MCP Server class
+ * Swarm MCP Server class using Experimental Tasks API
  */
 export class SwarmMCPServer {
   public readonly server: McpServer;
   private readonly bee: Bee;
   private readonly taskManager: TaskManager;
-  private clientSupportsTasks = false;
 
   constructor() {
-    // Initialize Bee client with the configured endpoint
+    // Initialize Bee client
     this.bee = new Bee(config.bee.endpoint);
     this.taskManager = new TaskManager(this.bee);
 
@@ -94,79 +103,141 @@ export class SwarmMCPServer {
       }
     );
 
-    this.setupToolHandlers();
-    this.setupTaskHandlers();
+    this.registerTaskTools();
+
+    // Setup regular sync tools
+    this.registerSyncTools();
 
     this.server.server.onerror = (error: Error) =>
       console.error("[Error]", error);
 
     process.on("SIGINT", async () => {
+      // Clear all active polls
       await this.server.close();
       process.exit(0);
     });
   }
 
-  private setupToolHandlers() {
-    const nodeOnlyTools = [
-      "list_postage_stamps",
-      "get_postage_stamp",
-      "create_postage_stamp",
-      "extend_postage_stamp",
-      "query_upload_progress",
-    ];
+  private registerTaskTools() {
+    const experimental = this.server.experimental.tasks;
 
-    // const taskSupportTools = [
-    //   "create_postage_stamp",
-    //   "extend_postage_stamp",
-    //   "upload_file",
-    //   "upload_folder",
-    // ];
+    experimental.registerToolTask(
+      "upload_file",
+      {
+        description:
+          "Upload a file to Swarm with deferred upload support for large files.",
+        inputSchema: {
+          data: z.string(),
+          isPath: z.boolean().optional(),
+          redundancyLevel: z.number().optional(),
+          postageBatchId: z.string().optional(),
+        } as unknown as AnySchema | ZodRawShapeCompat,
+        execution: { taskSupport: "optional" },
+      },
+      {
+        createTask: async (
+          args: z.infer<typeof uploadFileSchema>,
+          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+        ) => {
+          const validArgs = uploadFileSchema.parse(args);
+          const taskStore = extra.taskStore!;
 
+          const task = await taskStore.createTask({
+            ttl: TASK_TTL_MS,
+            pollInterval: TASK_POLL_INTERVAL,
+          });
+
+          uploadFile(
+            validArgs as unknown as UploadFileArgs,
+            this.bee,
+            this.server.server.transport,
+            {
+              manager: this.taskManager,
+              store: taskStore,
+              taskId: task.taskId,
+            },
+            task
+          );
+
+          return { task };
+        },
+        getTask: async (
+          args: Record<string, unknown>,
+          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+        ) => {
+          if (!extra.taskId) {
+            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
+          }
+
+          const task = await extra.taskStore!.getTask(extra.taskId);
+
+          if (!task) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `Task not found: ${extra.taskId}`
+            );
+          }
+          return { task };
+        },
+        getTaskResult: async (
+          args: Record<string, unknown>,
+          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+        ) => {
+          if (!extra.taskId) {
+            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
+          }
+
+          return await extra.taskStore!.getTaskResult(extra.taskId);
+        },
+      } as any
+    );
+  }
+
+  private registerSyncTools() {
+    // List tools
     this.server.server.setRequestHandler(ListToolsRequestSchema, async () => {
       const isGateway = await determineIfGateway(this.bee);
-
       let tools = SwarmToolsSchema;
 
       if (isGateway) {
-        tools = SwarmToolsSchema.filter(
-          (item) => !nodeOnlyTools.includes(item.name)
-        );
+        const nodeOnlyTools = [
+          "list_postage_stamps",
+          "get_postage_stamp",
+          "create_postage_stamp",
+          "extend_postage_stamp",
+          "query_upload_progress",
+        ];
+        tools = tools.filter((item) => !nodeOnlyTools.includes(item.name));
       }
 
-      return {
-        tools,
-      };
+      return { tools };
     });
 
+    // Handle sync tool calls
     this.server.server.setRequestHandler(
       CallToolRequestSchema,
       async (request) => {
-        // Extract arguments from the request
         const args = request.params.arguments;
 
-        // Call the appropriate tool based on the request name
         switch (request.params.name) {
           case "upload_data": {
             const validArgs = uploadDataSchema.parse(args);
-            return uploadData(validArgs as unknown as UploadDataArgs, this.bee);
+            return uploadData(validArgs as UploadDataArgs, this.bee);
           }
 
           case "download_data": {
             const validArgs = downloadDataSchema.parse(args);
-            return downloadData(
-              validArgs as unknown as DownloadDataArgs,
-              this.bee
-            );
+            return downloadData(validArgs as DownloadDataArgs, this.bee);
           }
 
           case "update_feed": {
             const validArgs = updateFeedSchema.parse(args);
-            return updateFeed(validArgs as unknown as UpdateFeedArgs, this.bee);
+            return updateFeed(validArgs as UpdateFeedArgs, this.bee);
           }
 
           case "read_feed": {
             const validArgs = readFeedSchema.parse(args);
-            return readFeed(validArgs as unknown as ReadFeedArgs, this.bee);
+            return readFeed(validArgs as ReadFeedArgs, this.bee);
           }
 
           case "upload_file": {
@@ -174,8 +245,7 @@ export class SwarmMCPServer {
             return uploadFile(
               validArgs as unknown as UploadFileArgs,
               this.bee,
-              this.server.server.transport,
-              this.taskManager
+              this.server.server.transport
             );
           }
 
@@ -184,24 +254,14 @@ export class SwarmMCPServer {
             return uploadFolder(
               validArgs as unknown as UploadFolderArgs,
               this.bee,
-              this.server.server.transport,
-              this.taskManager
+              this.server.server.transport
             );
           }
 
           case "download_files": {
             const validArgs = downloadFilesSchema.parse(args);
             return downloadFiles(
-              validArgs as unknown as DownloadFilesArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          case "query_upload_progress": {
-            const validArgs = queryUploadProgressSchema.parse(args);
-            return queryUploadProgress(
-              validArgs as unknown as QueryUploadProgressArgs,
+              validArgs as DownloadFilesArgs,
               this.bee,
               this.server.server.transport
             );
@@ -210,23 +270,20 @@ export class SwarmMCPServer {
           case "list_postage_stamps": {
             const validArgs = listPostageStampsSchema.parse(args);
             return listPostageStamps(
-              validArgs as unknown as ListPostageStampsArgs,
+              validArgs as ListPostageStampsArgs,
               this.bee
             );
           }
 
           case "get_postage_stamp": {
             const validArgs = getPostageStampSchema.parse(args);
-            return getPostageStamp(
-              validArgs as unknown as GetPostageStampArgs,
-              this.bee
-            );
+            return getPostageStamp(validArgs as GetPostageStampArgs, this.bee);
           }
 
           case "create_postage_stamp": {
             const validArgs = createPostageStampSchema.parse(args);
             return createPostageStamp(
-              validArgs as unknown as CreatePostageStampArgs,
+              validArgs as CreatePostageStampArgs,
               this.bee
             );
           }
@@ -234,52 +291,26 @@ export class SwarmMCPServer {
           case "extend_postage_stamp": {
             const validArgs = extendPostageStampSchema.parse(args);
             return extendPostageStamp(
-              validArgs as unknown as ExtendPostageStampArgs,
+              validArgs as ExtendPostageStampArgs,
               this.bee
             );
           }
+
+          case "query_upload_progress": {
+            const validArgs = queryUploadProgressSchema.parse(args);
+            return queryUploadProgress(
+              validArgs as QueryUploadProgressArgs,
+              this.bee,
+              this.server.server.transport
+            );
+          }
+
+          default:
+            throw new McpError(
+              ErrorCode.MethodNotFound,
+              `Unknown tool: ${request.params.name}`
+            );
         }
-
-        throw new McpError(
-          ErrorCode.MethodNotFound,
-          `Unknown tool: ${request.params.name}`
-        );
-      }
-    );
-  }
-
-  private setupTaskHandlers() {
-    this.server.server.setRequestHandler(
-      ListTasksRequestSchema,
-      async (request) => {
-        const cursor = request.params?.cursor ?? "0";
-        return this.taskManager.listTasks(cursor);
-      }
-    );
-
-    this.server.server.setRequestHandler(
-      GetTaskRequestSchema,
-      async (request) => {
-        const taskId = request.params.taskId;
-        return this.taskManager.getTask(taskId);
-      }
-    );
-
-    this.server.server.setRequestHandler(
-      CancelTaskRequestSchema,
-      async (request) => {
-        const taskId = request.params.taskId;
-        const cancelledTask = this.taskManager.cancelTask(taskId);
-        return cancelledTask;
-      }
-    );
-
-    this.server.server.setRequestHandler(
-      GetTaskPayloadRequestSchema,
-      async (request) => {
-        const taskId = request.params.taskId;
-        const result = await this.taskManager.getTaskResult(taskId);
-        return result as Record<string, unknown>;
       }
     );
   }

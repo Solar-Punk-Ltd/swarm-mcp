@@ -1,13 +1,16 @@
 import { Bee } from "@ethersphere/bee-js";
 import { ExtendedTask, TaskState } from "../../tasks/models";
+import { UploadDeferredResult } from "./models";
+import { getResponseWithStructuredContent } from "../../utils";
 
 export const updateUploadFileTaskStatus = async (
   extendedTask: ExtendedTask,
   bee: Bee
 ): Promise<void> => {
   try {
-    if (!extendedTask.meta?.id) return;
-    const tagUid = extendedTask.meta.id as number;
+    if (!extendedTask.result) return;
+    const uploadDeferredResult = extendedTask.result as UploadDeferredResult;
+    const tagUid = Number(uploadDeferredResult.tagId);
     const tag = await bee.retrieveTag(tagUid);
 
     const synced = tag.synced ?? 0;
@@ -23,25 +26,45 @@ export const updateUploadFileTaskStatus = async (
     extendedTask.task.lastUpdatedAt = now;
 
     if (isComplete) {
-      extendedTask.task.status = TaskState.COMPLETED;
-      extendedTask.task.statusMessage = "Upload completed successfully.";
+      await extendedTask.store.updateTaskStatus(
+        extendedTask.task.taskId,
+        TaskState.COMPLETED,
+        "Upload completed successfully."
+      );
+      await extendedTask.store.storeTaskResult(
+        extendedTask.task.taskId,
+        TaskState.COMPLETED,
+        getResponseWithStructuredContent({
+          reference: uploadDeferredResult.reference,
+          url: uploadDeferredResult.url,
+          message: "Upload completed successfully.",
+        })
+      );
+      // extendedTask.task.status = TaskState.COMPLETED;
+      // extendedTask.task.statusMessage = "Upload completed successfully.";
 
       // Clean up tag (fire and forget)
       bee.deleteTag(tagUid).catch((error) => {
         console.error(`Failed to delete tag ${tagUid}:`, error);
       });
     } else {
-      extendedTask.task.status = TaskState.WORKING;
-      extendedTask.task.statusMessage = `Processing: ${processedPercentage}% (${processed}/${total} chunks)`;
+      await extendedTask.store.updateTaskStatus(
+        extendedTask.task.taskId,
+        TaskState.COMPLETED,
+        "Upload completed successfully."
+      );
+      // extendedTask.task.status = TaskState.WORKING;
+      // extendedTask.task.statusMessage = `Processing: ${processedPercentage}% (${processed}/${total} chunks)`;
     }
   } catch (error) {
-    console.error(
-      `Failed to update task ${extendedTask.task.taskId} status:`,
-      error
+    await extendedTask.store.updateTaskStatus(
+      extendedTask.task.taskId,
+      TaskState.FAILED,
+      `Failed to update task ${extendedTask.task.taskId} status:`
     );
-    extendedTask.task.status = TaskState.FAILED;
-    extendedTask.task.statusMessage =
-      "Failed to retrieve upload status from Swarm";
-    extendedTask.task.lastUpdatedAt = new Date().toISOString();
+    // extendedTask.task.status = TaskState.FAILED;
+    // extendedTask.task.statusMessage =
+    //   "Failed to retrieve upload status from Swarm";
+    // extendedTask.task.lastUpdatedAt = new Date().toISOString();
   }
 };

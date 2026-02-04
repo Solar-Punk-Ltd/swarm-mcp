@@ -1,14 +1,16 @@
 import { Bee } from "@ethersphere/bee-js";
 import { ExtendedTask, TaskState } from "../../tasks/models";
 import { getResponseWithStructuredContent } from "../../utils";
+import { UploadDeferredResult } from "../upload_file/models";
 
 export const updateUploadFolderTaskStatus = async (
   extendedTask: ExtendedTask,
   bee: Bee
 ): Promise<void> => {
   try {
-    if (!extendedTask.meta?.id) return;
-    const tagUid = extendedTask.meta.id as number;
+    if (!extendedTask.result) return;
+    const uploadDeferredResult = extendedTask.result as UploadDeferredResult;
+    const tagUid = Number(uploadDeferredResult.tagId);
     const tag = await bee.retrieveTag(tagUid);
 
     const synced = tag.synced ?? 0;
