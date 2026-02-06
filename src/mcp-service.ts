@@ -7,6 +7,8 @@ import { z } from "zod";
 import {
   CallToolRequestSchema,
   ErrorCode,
+  InitializeRequestSchema,
+  ListTasksRequestSchema,
   ListToolsRequestSchema,
   McpError,
   ServerNotification,
@@ -67,6 +69,7 @@ import { TASK_POLL_INTERVAL, TASK_TTL_MS } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
 import { uploadFolder } from "./tools/upload_folder";
 import { TaskManager } from "./tasks/task-manager";
+import { TaskState } from "./tasks/models";
 
 /**
  * Swarm MCP Server class using Experimental Tasks API
@@ -91,7 +94,6 @@ export class SwarmMCPServer {
           tools: {},
           tasks: {
             list: {},
-            cancel: {},
             requests: {
               tools: {
                 call: {},
@@ -104,6 +106,7 @@ export class SwarmMCPServer {
     );
 
     this.registerTaskTools();
+    this.registerTaskHandlers();
 
     // Setup regular sync tools
     this.registerSyncTools();
@@ -139,6 +142,7 @@ export class SwarmMCPServer {
           args: z.infer<typeof uploadFileSchema>,
           extra: RequestHandlerExtra<ServerRequest, ServerNotification>
         ) => {
+
           const validArgs = uploadFileSchema.parse(args);
           const taskStore = extra.taskStore!;
 
@@ -157,7 +161,24 @@ export class SwarmMCPServer {
               taskId: task.taskId,
             },
             task
-          );
+          ).catch(async (error) => {
+            console.error(
+              `[Task Error] Background upload failed for task ${task.taskId}:`,
+              error
+            );
+            try {
+              await taskStore.updateTaskStatus(
+                task.taskId,
+                TaskState.FAILED,
+                `Upload failed: ${error.message || "Unknown error"}`
+              );
+            } catch (updateError) {
+              console.error(
+                `[Task Error] Failed to update task status for ${task.taskId}:`,
+                updateError
+              );
+            }
+          });
 
           return { task };
         },
@@ -190,6 +211,20 @@ export class SwarmMCPServer {
           return await extra.taskStore!.getTaskResult(extra.taskId);
         },
       } as any
+    );
+  }
+
+  private registerTaskHandlers() {
+    // List tasks handler
+    this.server.server.setRequestHandler(
+      // Replace with actual MCP tasks/list schema import
+      ListTasksRequestSchema,
+      async (
+        request,
+        extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+      ) => {
+        return await extra.taskStore!.listTasks(request.params?.cursor);
+      }
     );
   }
 
@@ -238,15 +273,6 @@ export class SwarmMCPServer {
           case "read_feed": {
             const validArgs = readFeedSchema.parse(args);
             return readFeed(validArgs as ReadFeedArgs, this.bee);
-          }
-
-          case "upload_file": {
-            const validArgs = uploadFileSchema.parse(args);
-            return uploadFile(
-              validArgs as unknown as UploadFileArgs,
-              this.bee,
-              this.server.server.transport
-            );
           }
 
           case "upload_folder": {
@@ -300,6 +326,15 @@ export class SwarmMCPServer {
             const validArgs = queryUploadProgressSchema.parse(args);
             return queryUploadProgress(
               validArgs as QueryUploadProgressArgs,
+              this.bee,
+              this.server.server.transport
+            );
+          }
+
+          case "upload_file": {
+            const validArgs = uploadFileSchema.parse(args);
+            return uploadFile(
+              validArgs as unknown as UploadFileArgs,
               this.bee,
               this.server.server.transport
             );

@@ -21,13 +21,6 @@ export const readFeedSchema = z.object({
   owner: z.string().optional(),
 });
 
-// export const uploadFileSchema = z.object({
-//   data: z.string(),
-//   isPath: z.boolean().optional(),
-//   redundancyLevel: z.number().optional(),
-//   postageBatchId: z.string().optional(),
-// });
-
 export const uploadFileSchema = z.object({
   data: z.string(),
   isPath: z.boolean().optional(),
