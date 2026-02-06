@@ -307,7 +307,11 @@ export class SwarmMCPServer {
         request,
         extra: RequestHandlerExtra<ServerRequest, ServerNotification>
       ) => {
-        return await extra.taskStore!.listTasks(request.params?.cursor);
+        if (!extra?.taskStore) {
+          // If task support is disabled or not initialized, return empty list
+          return { tasks: [], nextCursor: null };
+        }
+        return await extra.taskStore.listTasks(request.params?.cursor);
       }
     );
   }
