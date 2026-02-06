@@ -26,33 +26,41 @@ export const updateUploadFolderTaskStatus = async (
     extendedTask.task.lastUpdatedAt = now;
 
     if (isComplete) {
+      await extendedTask.store.storeTaskResult(
+        extendedTask.task.taskId,
+        TaskState.COMPLETED,
+        getResponseWithStructuredContent({
+          reference: uploadDeferredResult.reference,
+          url: uploadDeferredResult.url,
+          message: "Folder upload completed successfully.",
+        })
+      );
+
       extendedTask.task.status = TaskState.COMPLETED;
       extendedTask.task.statusMessage = "Folder upload completed successfully.";
-      extendedTask.result = getResponseWithStructuredContent({
-        processedPercentage,
-        message: isComplete
-          ? "Folder upload completed successfully."
-          : `Folder upload progress: ${processedPercentage}% processed`,
-        startedAt: tag.startedAt,
-        tagAddress: tag.address,
-      });
 
       // Clean up tag (fire and forget)
       bee.deleteTag(tagUid).catch((error) => {
         console.error(`Failed to delete tag ${tagUid}:`, error);
       });
     } else {
+      await extendedTask.store.updateTaskStatus(
+        extendedTask.task.taskId,
+        TaskState.WORKING,
+        `Processing: ${processedPercentage}% (${processed}/${total} chunks)`
+      );
       extendedTask.task.status = TaskState.WORKING;
       extendedTask.task.statusMessage = `Processing: ${processedPercentage}% (${processed}/${total} chunks)`;
     }
   } catch (error) {
-    console.error(
-      `Failed to update task ${extendedTask.task.taskId} status:`,
-      error
+    await extendedTask.store.updateTaskStatus(
+      extendedTask.task.taskId,
+      TaskState.FAILED,
+      `Failed to update task ${extendedTask.task.taskId} status:`
     );
     extendedTask.task.status = TaskState.FAILED;
     extendedTask.task.statusMessage =
-      "Failed to retrieve folder upload status from Swarm";
+      "Failed to retrieve upload status from Swarm";
     extendedTask.task.lastUpdatedAt = new Date().toISOString();
   }
 };

@@ -26,11 +26,6 @@ export const updateUploadFileTaskStatus = async (
     extendedTask.task.lastUpdatedAt = now;
 
     if (isComplete) {
-      await extendedTask.store.updateTaskStatus(
-        extendedTask.task.taskId,
-        TaskState.COMPLETED,
-        "Upload completed successfully."
-      );
       await extendedTask.store.storeTaskResult(
         extendedTask.task.taskId,
         TaskState.COMPLETED,

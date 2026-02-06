@@ -129,12 +129,9 @@ export class SwarmMCPServer {
       {
         description:
           "Upload a file to Swarm with deferred upload support for large files.",
-        inputSchema: {
-          data: z.string(),
-          isPath: z.boolean().optional(),
-          redundancyLevel: z.number().optional(),
-          postageBatchId: z.string().optional(),
-        } as unknown as AnySchema | ZodRawShapeCompat,
+        inputSchema: uploadFileSchema.shape as unknown as
+          | AnySchema
+          | ZodRawShapeCompat,
         execution: { taskSupport: "optional" },
       },
       {
@@ -142,7 +139,6 @@ export class SwarmMCPServer {
           args: z.infer<typeof uploadFileSchema>,
           extra: RequestHandlerExtra<ServerRequest, ServerNotification>
         ) => {
-
           const validArgs = uploadFileSchema.parse(args);
           const taskStore = extra.taskStore!;
 
@@ -171,6 +167,94 @@ export class SwarmMCPServer {
                 task.taskId,
                 TaskState.FAILED,
                 `Upload failed: ${error.message || "Unknown error"}`
+              );
+            } catch (updateError) {
+              console.error(
+                `[Task Error] Failed to update task status for ${task.taskId}:`,
+                updateError
+              );
+            }
+          });
+
+          return { task };
+        },
+        getTask: async (
+          args: Record<string, unknown>,
+          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+        ) => {
+          if (!extra.taskId) {
+            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
+          }
+
+          const task = await extra.taskStore!.getTask(extra.taskId);
+
+          if (!task) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `Task not found: ${extra.taskId}`
+            );
+          }
+          return { task };
+        },
+        getTaskResult: async (
+          args: Record<string, unknown>,
+          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+        ) => {
+          if (!extra.taskId) {
+            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
+          }
+
+          return await extra.taskStore!.getTaskResult(extra.taskId);
+        },
+      } as any
+    );
+
+    experimental.registerToolTask(
+      "upload_folder",
+      {
+        description:
+          "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
+          "folderPath: path to the folder to upload. " +
+          "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+          "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
+        inputSchema: uploadFolderSchema.shape as unknown as
+          | AnySchema
+          | ZodRawShapeCompat,
+        execution: { taskSupport: "optional" },
+      },
+      {
+        createTask: async (
+          args: z.infer<typeof uploadFolderSchema>,
+          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+        ) => {
+          const validArgs = uploadFolderSchema.parse(args);
+          const taskStore = extra.taskStore!;
+
+          const task = await taskStore.createTask({
+            ttl: TASK_TTL_MS,
+            pollInterval: TASK_POLL_INTERVAL,
+          });
+
+          uploadFolder(
+            validArgs as unknown as UploadFolderArgs,
+            this.bee,
+            this.server.server.transport,
+            {
+              manager: this.taskManager,
+              store: taskStore,
+              taskId: task.taskId,
+            },
+            task
+          ).catch(async (error) => {
+            console.error(
+              `[Task Error] Background folder upload failed for task ${task.taskId}:`,
+              error
+            );
+            try {
+              await taskStore.updateTaskStatus(
+                task.taskId,
+                TaskState.FAILED,
+                `Folder upload failed: ${error.message || "Unknown error"}`
               );
             } catch (updateError) {
               console.error(

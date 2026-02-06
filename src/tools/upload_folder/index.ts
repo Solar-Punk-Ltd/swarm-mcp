@@ -1,8 +1,4 @@
-/**
- * MCP Tool: upload_folder
- * Upload a folder to Swarm
- */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { McpError, ErrorCode, Task } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
@@ -18,15 +14,17 @@ import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFolderArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
-import { TaskManager } from "../../tasks/task-manager";
 import { updateUploadFolderTaskStatus } from "./utils";
+import { TaskInformation } from "../../models";
+import { TaskState } from "../../tasks/models";
 
 export async function uploadFolder(
   args: UploadFolderArgs,
   bee: Bee,
   transport: any,
-  taskManager?: TaskManager
-): Promise<ToolResponse | any> {
+  taskInformation?: TaskInformation,
+  task?: Task
+): Promise<ToolResponse | Task> {
   if (!args.folderPath) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -63,7 +61,7 @@ export async function uploadFolder(
     options.redundancyLevel = redundancyLevel;
   }
 
-  const deferred = true;
+  const deferred = true; // Folders are always deferred if possible/requested
   options.deferred = deferred;
   let message = "Folder successfully uploaded to Swarm";
 
@@ -75,25 +73,6 @@ export async function uploadFolder(
       options.tag = tag.uid;
       message =
         "Folder upload started in deferred mode. Use query_upload_progress to track progress.";
-
-      // Create MCP Task if manager is available
-      if (taskManager) {
-        // const task = taskManager.createTask(
-        //   "swarm_upload_folder",
-        //   "swarm_upload_folder",
-        //   updateUploadFolderTaskStatus,
-        //   tagId
-        // );
-        // Start the upload in background
-        bee
-          .uploadFilesFromDirectory(postageBatchId, args.folderPath, options)
-          .catch(() => {});
-
-        // Return Task immediately
-        return {
-          task: null,
-        };
-      }
     } catch (error) {
       options.deferred = false;
     }
@@ -116,10 +95,33 @@ export async function uploadFolder(
     }
   }
 
-  return getResponseWithStructuredContent({
+  const responseWithStructuredContent = getResponseWithStructuredContent({
     reference: result.reference.toString(),
     url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
     message,
     tagId,
   });
+
+  if (!deferred && taskInformation) {
+    // Complete immediately
+    await taskInformation.store.storeTaskResult(
+      taskInformation.taskId,
+      TaskState.COMPLETED,
+      responseWithStructuredContent
+    );
+  } else if (taskInformation && task) {
+    // store in TaskManager
+    taskInformation.manager.createTask(
+      task,
+      taskInformation.store,
+      updateUploadFolderTaskStatus,
+      {
+        reference: result.reference.toString(),
+        url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
+        tagId,
+      }
+    );
+  }
+
+  return responseWithStructuredContent;
 }
