@@ -110,16 +110,16 @@ export class TaskManager {
     result: unknown,
     isDeferredStoreUpdate: boolean = false
   ): Promise<void> {
-    if (!isDeferredStoreUpdate) {
-      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, {
-        result,
-      });
-    }
     const extendedTask = this.extendedTasks.get(taskId);
     if (extendedTask) {
       extendedTask.result = {
         result,
       };
+    }
+    if (!isDeferredStoreUpdate) {
+      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, {
+        result,
+      });
     }
   }
 

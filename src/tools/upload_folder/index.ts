@@ -16,7 +16,7 @@ import { BAD_REQUEST_STATUS } from "../../constants";
 
 import { updateUploadFolderTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel } from "../../tasks/models";
+import { CreateTaskModel, TaskState } from "../../tasks/models";
 
 export async function uploadFolder(
   args: UploadFolderArgs,
@@ -49,8 +49,6 @@ export async function uploadFolder(
     );
   }
 
-  const isRunningAsTask = taskManager && createTaskModel;
-
   const postageBatchId = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
@@ -80,15 +78,45 @@ export async function uploadFolder(
     }
   }
 
-  let result;
-  let task;
+  const isRunningAsTask = deferred && taskManager && createTaskModel;
 
   if (isRunningAsTask) {
-    task = await taskManager.createTask(
+    const task = await taskManager.createTask(
       createTaskModel,
       updateUploadFolderTaskStatus
     );
+
+    bee
+      .uploadFilesFromDirectory(postageBatchId, args.folderPath, options)
+      .then(async (result) => {
+        const responseWithStructuredContent = getResponseWithStructuredContent({
+          reference: result.reference.toString(),
+          url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
+          message,
+          tagId,
+        });
+        await taskManager.setTaskResult(
+          task.taskId,
+          responseWithStructuredContent
+        );
+      })
+      .catch((error) => {
+        let errorMessage = "Unable to upload folder.";
+        if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+          errorMessage = getErrorMessage(error);
+        }
+
+        taskManager.updateTaskStatus(
+          task.taskId,
+          TaskState.FAILED,
+          errorMessage
+        );
+      });
+
+    return task;
   }
+
+  let result;
 
   try {
     // Start the deferred upload
@@ -111,30 +139,6 @@ export async function uploadFolder(
     message,
     tagId,
   });
-
-  if (taskManager && createTaskModel) {
-    const task = await taskManager.createTask(
-      createTaskModel,
-      updateUploadFolderTaskStatus,
-      responseWithStructuredContent
-    );
-
-    if (!deferred) {
-      await taskManager.syncStoreCompletedResult(task.taskId);
-    }
-
-    return task;
-  }
-
-  if (isRunningAsTask && task) {
-    await taskManager.setTaskResult(
-      task.taskId,
-      responseWithStructuredContent,
-      deferred
-    );
-
-    return task;
-  }
 
   return responseWithStructuredContent;
 }

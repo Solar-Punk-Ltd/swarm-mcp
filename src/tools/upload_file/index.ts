@@ -19,7 +19,7 @@ import { UploadFileArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 import { updateUploadFileTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel } from "../../tasks/models";
+import { CreateTaskModel, TaskState } from "../../tasks/models";
 
 export async function uploadFile(
   args: UploadFileArgs,
@@ -34,8 +34,6 @@ export async function uploadFile(
       "Missing required parameter: data"
     );
   }
-
-  const isRunningAsTask = taskManager && createTaskModel;
 
   const postageBatchId = await getUploadPostageBatchId(
     args.postageBatchId,
@@ -91,15 +89,46 @@ export async function uploadFile(
     }
   }
 
-  let result;
-  let task;
+  const isRunningAsTask = deferred && taskManager && createTaskModel;
 
   if (isRunningAsTask) {
-    task = await taskManager.createTask(
+    const task = await taskManager.createTask(
       createTaskModel,
       updateUploadFileTaskStatus
     );
+
+    bee
+      .uploadFile(postageBatchId, binaryData, name, options)
+      .then(async (result) => {
+        const responseWithStructuredContent = getResponseWithStructuredContent({
+          reference: result.reference.toString(),
+          url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
+          message: `File upload started in deferred mode. You can use query_upload_progress for tagId ${tagId} to track progress or wait for the task result.`,
+          tagId,
+        });
+
+        await taskManager.setTaskResult(
+          task.taskId,
+          responseWithStructuredContent
+        );
+      })
+      .catch((error) => {
+        let errorMessage = "Unable to upload file.";
+        if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+          errorMessage = getErrorMessage(error);
+        }
+
+        taskManager.updateTaskStatus(
+          task.taskId,
+          TaskState.FAILED,
+          errorMessage
+        );
+      });
+
+    return task;
   }
+
+  let result;
 
   try {
     // Start the deferred upload
@@ -118,16 +147,6 @@ export async function uploadFile(
     message,
     tagId,
   });
-
-  if (isRunningAsTask && task) {
-    await taskManager.setTaskResult(
-      task.taskId,
-      responseWithStructuredContent,
-      deferred
-    );
-
-    return task;
-  }
 
   return responseWithStructuredContent;
 }
