@@ -1,5 +1,5 @@
 export const TASK_CLEANUP_INTERVAL_MS = 60000;
-export const TASK_TTL_MS = 600000;
+export const TASK_TTL_MS = 12000000;
 export const TASK_STATUS_UPDATE_INTERVAL_MS = 10000;
 export const TASK_POLL_INTERVAL = 5000;
 export const PAGE_SIZE = 50;

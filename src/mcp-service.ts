@@ -14,9 +14,6 @@ import {
   ListTasksRequestSchema,
   ListToolsRequestSchema,
   McpError,
-  Result,
-  ServerNotification,
-  ServerRequest,
   Task,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
@@ -69,7 +66,6 @@ import {
   extendPostageStampSchema,
   queryUploadProgressSchema,
 } from "./schemas/zod-schemas";
-import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { TASK_POLL_INTERVAL, TASK_TTL_MS } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
 import { uploadFolder } from "./tools/upload_folder";
@@ -78,51 +74,6 @@ import { CreateTaskModel } from "./tasks/models";
 import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
 import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/index.js";
 
-class TaskStore extends InMemoryTaskStore {
-  private updateResolvers = new Map<string, (() => void)[]>();
-
-  override async updateTaskStatus(
-    taskId: string,
-    status: Task["status"],
-    statusMessage?: string,
-    sessionId?: string
-  ): Promise<void> {
-    await super.updateTaskStatus(taskId, status, statusMessage, sessionId);
-    this.notifyUpdate(taskId);
-  }
-
-  override async storeTaskResult(
-    taskId: string,
-    status: "completed" | "failed",
-    result: Result,
-    sessionId?: string
-  ): Promise<void> {
-    await super.storeTaskResult(taskId, status, result, sessionId);
-    this.notifyUpdate(taskId);
-  }
-
-  async waitForUpdate(taskId: string): Promise<void> {
-    return new Promise<void>((resolve) => {
-      let waiters = this.updateResolvers.get(taskId);
-      if (!waiters) {
-        waiters = [];
-        this.updateResolvers.set(taskId, waiters);
-      }
-      waiters.push(resolve);
-    });
-  }
-
-  private notifyUpdate(taskId: string): void {
-    const waiters = this.updateResolvers.get(taskId);
-    if (waiters) {
-      this.updateResolvers.delete(taskId);
-      for (const resolve of waiters) {
-        resolve();
-      }
-    }
-  }
-}
-
 /**
  * Swarm MCP Server class using Experimental Tasks API
  */
@@ -130,12 +81,10 @@ export class SwarmMCPServer {
   public readonly server: McpServer;
   private readonly bee: Bee;
   private readonly taskManager: TaskManager;
-  private readonly taskStore: TaskStore;
   private readonly inMemoryTaskStore: InMemoryTaskStore;
 
   constructor() {
     this.bee = new Bee(config.bee.endpoint);
-    this.taskStore = new TaskStore();
     this.inMemoryTaskStore = new InMemoryTaskStore();
     this.taskManager = new TaskManager(this.bee, this.inMemoryTaskStore);
 
@@ -176,7 +125,7 @@ export class SwarmMCPServer {
 
         if (taskParams && taskSupportTools.includes(name)) {
           const taskOptions: CreateTaskOptions = {
-            ttl: taskParams.ttl ?? TASK_TTL_MS,
+            ttl: TASK_TTL_MS,
             pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
           };
           const createTaskModel: CreateTaskModel = {
@@ -339,6 +288,24 @@ export class SwarmMCPServer {
       }
     );
 
+    this.registerTaskHandlers();
+
+    // // Setup regular sync tools
+    this.registerSyncTools();
+
+    this.server.server.onerror = (error: Error) =>
+      console.error("[Error]", error);
+
+    process.on("SIGINT", async () => {
+      // Clear all active polls
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  private registerTaskHandlers() {
+    const server = this.server.server;
+
     // Handle tasks/get
     server.setRequestHandler(
       GetTaskRequestSchema,
@@ -362,35 +329,9 @@ export class SwarmMCPServer {
       }
     );
 
-    // this.registerTaskTools();
-    this.registerTaskHandlers();
-
-    // // Setup regular sync tools
-    this.registerSyncTools();
-
-    this.server.server.onerror = (error: Error) =>
-      console.error("[Error]", error);
-
-    process.on("SIGINT", async () => {
-      // Clear all active polls
-      await this.server.close();
-      process.exit(0);
+    server.setRequestHandler(ListTasksRequestSchema, async (request) => {
+      return this.taskManager.listTasks(request.params?.cursor);
     });
-  }
-
-  private registerTaskHandlers() {
-    this.server.server.setRequestHandler(
-      ListTasksRequestSchema,
-      async (
-        request,
-        extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-      ) => {
-        if (!extra?.taskStore) {
-          return { tasks: [] };
-        }
-        return await extra.taskStore.listTasks(request.params?.cursor);
-      }
-    );
   }
 
   private registerSyncTools() {

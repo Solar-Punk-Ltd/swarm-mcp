@@ -49,6 +49,8 @@ export async function uploadFolder(
     );
   }
 
+  const isRunningAsTask = taskManager && createTaskModel;
+
   const postageBatchId = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
@@ -79,6 +81,14 @@ export async function uploadFolder(
   }
 
   let result;
+  let task;
+
+  if (isRunningAsTask) {
+    task = await taskManager.createTask(
+      createTaskModel,
+      updateUploadFolderTaskStatus
+    );
+  }
 
   try {
     // Start the deferred upload
@@ -112,6 +122,16 @@ export async function uploadFolder(
     if (!deferred) {
       await taskManager.syncStoreCompletedResult(task.taskId);
     }
+
+    return task;
+  }
+
+  if (isRunningAsTask && task) {
+    await taskManager.setTaskResult(
+      task.taskId,
+      responseWithStructuredContent,
+      deferred
+    );
 
     return task;
   }

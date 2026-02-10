@@ -72,18 +72,7 @@ export class TaskManager {
   }
 
   async updateTaskStatus(taskId: string, status: TaskState, message: string) {
-    const extendedTask = this.extendedTasks.get(taskId);
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `!!!: ${extendedTask ? JSON.stringify(extendedTask) : "MISSING"}`
-    );
-    await this.store.updateTaskStatus(taskId, status, message);
-
-    // if (!!extendedTask) {
-    //   extendedTask.task.status = status;
-    //   extendedTask.task.statusMessage = message;
-    //   extendedTask.task.lastUpdatedAt = new Date().toISOString();
-    // }
+    this.store.updateTaskStatus(taskId, status, message);
   }
 
   async getTaskResult(taskId: string, _sessionId: string): Promise<Result> {
@@ -100,7 +89,7 @@ export class TaskManager {
         const result = await this.store.getTaskResult(taskId);
 
         return {
-          result: "Hiii11",
+          result,
           _meta: {
             ...result._meta,
           },
@@ -109,12 +98,19 @@ export class TaskManager {
     }
   }
 
+  async listTasks(cursor: string | undefined): Promise<{
+    tasks: Task[];
+    nextCursor?: string;
+  }> {
+    return this.store.listTasks(cursor);
+  }
+
   async setTaskResult(
     taskId: string,
     result: unknown,
-    deferStoreUpdate: boolean = false
+    isDeferredStoreUpdate: boolean = false
   ): Promise<void> {
-    if (!deferStoreUpdate) {
+    if (!isDeferredStoreUpdate) {
       await this.store.storeTaskResult(taskId, TaskState.COMPLETED, {
         result,
       });
@@ -166,10 +162,6 @@ export class TaskManager {
     // Delete old tasks
     for (const taskId of tasksToDelete) {
       this.extendedTasks.delete(taskId);
-    }
-
-    if (tasksToDelete.length > 0) {
-      console.log(`Cleaned up ${tasksToDelete.length} old task(s)`);
     }
   }
 
