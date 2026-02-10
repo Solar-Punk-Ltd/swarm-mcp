@@ -18,15 +18,15 @@ import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFileArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 import { updateUploadFileTaskStatus } from "./utils";
-import { TaskInformation } from "../../models";
-import { TaskState } from "../../tasks/models";
+import { TaskManager } from "../../tasks/task-manager";
+import { CreateTaskModel } from "../../tasks/models";
 
 export async function uploadFile(
   args: UploadFileArgs,
   bee: Bee,
   transport: any,
-  taskInformation?: TaskInformation,
-  task?: Task
+  taskManager?: TaskManager,
+  createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | Task> {
   if (!args.data) {
     throw new McpError(
@@ -109,25 +109,18 @@ export async function uploadFile(
     tagId,
   });
 
-  if (!deferred && taskInformation) {
-    // Complete immediately
-    await taskInformation.store.storeTaskResult(
-      taskInformation.taskId,
-      TaskState.COMPLETED,
+  if (taskManager && createTaskModel) {
+    const task = await taskManager.createTask(
+      createTaskModel,
+      updateUploadFileTaskStatus,
       responseWithStructuredContent
     );
-  } else if (taskInformation && task) {
-    // store in TaskManager
-    taskInformation.manager.createTask(
-      task,
-      taskInformation.store,
-      updateUploadFileTaskStatus,
-      {
-        reference: result.reference.toString(),
-        url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
-        tagId,
-      }
-    );
+
+    if (!deferred) {
+      await taskManager.syncStoreCompletedResult(task.taskId);
+    }
+
+    return task;
   }
 
   return responseWithStructuredContent;

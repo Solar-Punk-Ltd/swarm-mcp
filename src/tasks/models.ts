@@ -1,12 +1,25 @@
 import { Bee } from "@ethersphere/bee-js";
-import { TaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
-import { Task } from "@modelcontextprotocol/sdk/types.js";
+import { RequestId, Task } from "@modelcontextprotocol/sdk/types.js";
+import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
+import { TaskManager } from "./task-manager";
+
+export type UpdateStatusFunction = (
+  task: ExtendedTask,
+  bee: Bee,
+  taskManager: TaskManager
+) => void;
 
 export interface ExtendedTask {
   task: Task;
-  store: TaskStore;
   result?: unknown;
-  updateStatus?: (task: ExtendedTask, bee: Bee) => void;
+  updateStatus?: UpdateStatusFunction;
+}
+
+export interface CreateTaskModel {
+  taskOptions: CreateTaskOptions;
+  requestId: RequestId;
+  request: unknown;
+  sessionId: string | undefined;
 }
 
 export enum TaskState {

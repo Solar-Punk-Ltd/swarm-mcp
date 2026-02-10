@@ -1,6 +1,7 @@
 import { Bee, PostageBatch } from "@ethersphere/bee-js";
 import { PostageBatchCurated, PostageBatchSummary } from "../models";
 import { NODE_STATUS_CHECK_CALL_TIMEOUT, NOT_FOUND_STATUS } from "../constants";
+import { SwarmToolsSchema } from "../schemas";
 
 export function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
@@ -185,3 +186,11 @@ export function makeStorage(numberWithUnit: string): number {
   }
   return number * multiplier;
 }
+
+export const getToolsWithTaskSupport = () => {
+  return SwarmToolsSchema.filter((schema) => {
+    const taskSupport = schema.execution?.taskSupport;
+
+    return taskSupport === "optional" || taskSupport === "required";
+  }).map((schema) => schema.name);
+};

@@ -15,15 +15,15 @@ import { UploadFolderArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
 import { updateUploadFolderTaskStatus } from "./utils";
-import { TaskInformation } from "../../models";
-import { TaskState } from "../../tasks/models";
+import { TaskManager } from "../../tasks/task-manager";
+import { CreateTaskModel } from "../../tasks/models";
 
 export async function uploadFolder(
   args: UploadFolderArgs,
   bee: Bee,
   transport: any,
-  taskInformation?: TaskInformation,
-  task?: Task
+  taskManager?: TaskManager,
+  createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | Task> {
   if (!args.folderPath) {
     throw new McpError(
@@ -102,25 +102,18 @@ export async function uploadFolder(
     tagId,
   });
 
-  if (!deferred && taskInformation) {
-    // Complete immediately
-    await taskInformation.store.storeTaskResult(
-      taskInformation.taskId,
-      TaskState.COMPLETED,
+  if (taskManager && createTaskModel) {
+    const task = await taskManager.createTask(
+      createTaskModel,
+      updateUploadFolderTaskStatus,
       responseWithStructuredContent
     );
-  } else if (taskInformation && task) {
-    // store in TaskManager
-    taskInformation.manager.createTask(
-      task,
-      taskInformation.store,
-      updateUploadFolderTaskStatus,
-      {
-        reference: result.reference.toString(),
-        url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
-        tagId,
-      }
-    );
+
+    if (!deferred) {
+      await taskManager.syncStoreCompletedResult(task.taskId);
+    }
+
+    return task;
   }
 
   return responseWithStructuredContent;

@@ -210,7 +210,7 @@ export const SwarmToolsSchema = [
       required: ["data"],
     },
     execution: {
-      taskSupport: "optional",
+      taskSupport: "required",
     },
     // outputSchema: {
     //   type: "object",
@@ -267,7 +267,7 @@ export const SwarmToolsSchema = [
       required: ["folderPath"],
     },
     execution: {
-      taskSupport: "optional",
+      taskSupport: "required",
     },
     // outputSchema: {
     //   type: "object",

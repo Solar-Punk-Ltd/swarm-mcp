@@ -3,21 +3,30 @@
  * Using Experimental MCP SDK Tasks API
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import {
   CallToolRequestSchema,
+  CreateTaskResult,
   ErrorCode,
-  InitializeRequestSchema,
+  GetTaskPayloadRequestSchema,
+  GetTaskPayloadResult,
+  GetTaskRequestSchema,
+  GetTaskResult,
   ListTasksRequestSchema,
   ListToolsRequestSchema,
   McpError,
+  Result,
   ServerNotification,
   ServerRequest,
+  Task,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
 import { SwarmToolsSchema } from "./schemas";
-import { determineIfGateway } from "./utils";
+import {
+  determineIfGateway,
+  getToolsWithTaskSupport,
+  ToolResponse,
+} from "./utils";
 
 // Regular sync tools
 import { uploadData } from "./tools/upload_data";
@@ -60,16 +69,59 @@ import {
   extendPostageStampSchema,
   queryUploadProgressSchema,
 } from "./schemas/zod-schemas";
-import {
-  AnySchema,
-  ZodRawShapeCompat,
-} from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { TASK_POLL_INTERVAL, TASK_TTL_MS } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
 import { uploadFolder } from "./tools/upload_folder";
 import { TaskManager } from "./tasks/task-manager";
-import { TaskState } from "./tasks/models";
+import { CreateTaskModel } from "./tasks/models";
+import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
+import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/index.js";
+
+class TaskStore extends InMemoryTaskStore {
+  private updateResolvers = new Map<string, (() => void)[]>();
+
+  override async updateTaskStatus(
+    taskId: string,
+    status: Task["status"],
+    statusMessage?: string,
+    sessionId?: string
+  ): Promise<void> {
+    await super.updateTaskStatus(taskId, status, statusMessage, sessionId);
+    this.notifyUpdate(taskId);
+  }
+
+  override async storeTaskResult(
+    taskId: string,
+    status: "completed" | "failed",
+    result: Result,
+    sessionId?: string
+  ): Promise<void> {
+    await super.storeTaskResult(taskId, status, result, sessionId);
+    this.notifyUpdate(taskId);
+  }
+
+  async waitForUpdate(taskId: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+      let waiters = this.updateResolvers.get(taskId);
+      if (!waiters) {
+        waiters = [];
+        this.updateResolvers.set(taskId, waiters);
+      }
+      waiters.push(resolve);
+    });
+  }
+
+  private notifyUpdate(taskId: string): void {
+    const waiters = this.updateResolvers.get(taskId);
+    if (waiters) {
+      this.updateResolvers.delete(taskId);
+      for (const resolve of waiters) {
+        resolve();
+      }
+    }
+  }
+}
 
 /**
  * Swarm MCP Server class using Experimental Tasks API
@@ -78,11 +130,14 @@ export class SwarmMCPServer {
   public readonly server: McpServer;
   private readonly bee: Bee;
   private readonly taskManager: TaskManager;
+  private readonly taskStore: TaskStore;
+  private readonly inMemoryTaskStore: InMemoryTaskStore;
 
   constructor() {
-    // Initialize Bee client
     this.bee = new Bee(config.bee.endpoint);
-    this.taskManager = new TaskManager(this.bee);
+    this.taskStore = new TaskStore();
+    this.inMemoryTaskStore = new InMemoryTaskStore();
+    this.taskManager = new TaskManager(this.bee, this.inMemoryTaskStore);
 
     this.server = new McpServer(
       {
@@ -105,10 +160,212 @@ export class SwarmMCPServer {
       }
     );
 
-    this.registerTaskTools();
+    const server = this.server.server;
+
+    const taskSupportTools = getToolsWithTaskSupport();
+
+    // Handle tool calls
+    server.setRequestHandler(
+      CallToolRequestSchema,
+      async (request, ctx): Promise<ToolResponse | CreateTaskResult> => {
+        const { name, arguments: args } = request.params;
+        const taskParams = (request.params._meta?.task ||
+          request.params.task) as
+          | { ttl?: number; pollInterval?: number }
+          | undefined;
+
+        if (taskParams && taskSupportTools.includes(name)) {
+          const taskOptions: CreateTaskOptions = {
+            ttl: taskParams.ttl ?? TASK_TTL_MS,
+            pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
+          };
+          const createTaskModel: CreateTaskModel = {
+            taskOptions,
+            requestId: ctx.requestId,
+            request,
+            sessionId: ctx.sessionId,
+          };
+
+          let task: Task;
+
+          switch (request.params.name) {
+            case "upload_file": {
+              const validArgs = uploadFileSchema.parse(args);
+              task = (await uploadFile(
+                validArgs as unknown as UploadFileArgs,
+                this.bee,
+                this.server.server.transport,
+                this.taskManager,
+                createTaskModel
+              )) as Task;
+
+              break;
+            }
+
+            case "upload_folder": {
+              const validArgs = uploadFolderSchema.parse(args);
+              task = (await uploadFolder(
+                validArgs as unknown as UploadFolderArgs,
+                this.bee,
+                this.server.server.transport,
+                this.taskManager,
+                createTaskModel
+              )) as Task;
+
+              break;
+            }
+
+            // case "create_postage_stamp": {
+            //   const validArgs = createPostageStampSchema.parse(args);
+            //   return createPostageStamp(
+            //     validArgs as CreatePostageStampArgs,
+            //     this.bee
+            //   );
+            // }
+
+            // case "extend_postage_stamp": {
+            //   const validArgs = extendPostageStampSchema.parse(args);
+            //   return extendPostageStamp(
+            //     validArgs as ExtendPostageStampArgs,
+            //     this.bee
+            //   );
+            // }
+
+            default:
+              throw new McpError(
+                ErrorCode.MethodNotFound,
+                `Unknown tool: ${request.params.name}`
+              );
+          }
+
+          return { task };
+        } else {
+          switch (request.params.name) {
+            case "upload_data": {
+              const validArgs = uploadDataSchema.parse(args);
+              return uploadData(validArgs as UploadDataArgs, this.bee);
+            }
+
+            case "download_data": {
+              const validArgs = downloadDataSchema.parse(args);
+              return downloadData(validArgs as DownloadDataArgs, this.bee);
+            }
+
+            case "update_feed": {
+              const validArgs = updateFeedSchema.parse(args);
+              return updateFeed(validArgs as UpdateFeedArgs, this.bee);
+            }
+
+            case "read_feed": {
+              const validArgs = readFeedSchema.parse(args);
+              return readFeed(validArgs as ReadFeedArgs, this.bee);
+            }
+
+            case "upload_file": {
+              const validArgs = uploadFileSchema.parse(args);
+              return uploadFile(
+                validArgs as unknown as UploadFileArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "upload_folder": {
+              const validArgs = uploadFolderSchema.parse(args);
+              return uploadFolder(
+                validArgs as unknown as UploadFolderArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "download_files": {
+              const validArgs = downloadFilesSchema.parse(args);
+              return downloadFiles(
+                validArgs as DownloadFilesArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "list_postage_stamps": {
+              const validArgs = listPostageStampsSchema.parse(args);
+              return listPostageStamps(
+                validArgs as ListPostageStampsArgs,
+                this.bee
+              );
+            }
+
+            case "get_postage_stamp": {
+              const validArgs = getPostageStampSchema.parse(args);
+              return getPostageStamp(
+                validArgs as GetPostageStampArgs,
+                this.bee
+              );
+            }
+
+            case "create_postage_stamp": {
+              const validArgs = createPostageStampSchema.parse(args);
+              return createPostageStamp(
+                validArgs as CreatePostageStampArgs,
+                this.bee
+              );
+            }
+
+            case "extend_postage_stamp": {
+              const validArgs = extendPostageStampSchema.parse(args);
+              return extendPostageStamp(
+                validArgs as ExtendPostageStampArgs,
+                this.bee
+              );
+            }
+
+            case "query_upload_progress": {
+              const validArgs = queryUploadProgressSchema.parse(args);
+              return queryUploadProgress(
+                validArgs as QueryUploadProgressArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            default:
+              throw new McpError(
+                ErrorCode.MethodNotFound,
+                `Unknown tool: ${request.params.name}`
+              );
+          }
+        }
+      }
+    );
+
+    // Handle tasks/get
+    server.setRequestHandler(
+      GetTaskRequestSchema,
+      async (request): Promise<GetTaskResult> => {
+        const { taskId } = request.params;
+        const task = await this.taskManager.getTask(taskId);
+        if (!task) {
+          throw new Error(`Task ${taskId} not found`);
+        }
+        return task;
+      }
+    );
+
+    // Handle tasks/result
+    server.setRequestHandler(
+      GetTaskPayloadRequestSchema,
+      async (request, ctx): Promise<GetTaskPayloadResult> => {
+        const { taskId } = request.params;
+
+        return this.taskManager.getTaskResult(taskId, ctx.sessionId ?? "");
+      }
+    );
+
+    // this.registerTaskTools();
     this.registerTaskHandlers();
 
-    // Setup regular sync tools
+    // // Setup regular sync tools
     this.registerSyncTools();
 
     this.server.server.onerror = (error: Error) =>
@@ -121,195 +378,15 @@ export class SwarmMCPServer {
     });
   }
 
-  private registerTaskTools() {
-    const experimental = this.server.experimental.tasks;
-
-    experimental.registerToolTask(
-      "upload_file",
-      {
-        description:
-          "Upload a file to Swarm with deferred upload support for large files.",
-        inputSchema: uploadFileSchema.shape as unknown as
-          | AnySchema
-          | ZodRawShapeCompat,
-        execution: { taskSupport: "optional" },
-      },
-      {
-        createTask: async (
-          args: z.infer<typeof uploadFileSchema>,
-          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-        ) => {
-          const validArgs = uploadFileSchema.parse(args);
-          const taskStore = extra.taskStore!;
-
-          const task = await taskStore.createTask({
-            ttl: TASK_TTL_MS,
-            pollInterval: TASK_POLL_INTERVAL,
-          });
-
-          uploadFile(
-            validArgs as unknown as UploadFileArgs,
-            this.bee,
-            this.server.server.transport,
-            {
-              manager: this.taskManager,
-              store: taskStore,
-              taskId: task.taskId,
-            },
-            task
-          ).catch(async (error) => {
-            console.error(
-              `[Task Error] Background upload failed for task ${task.taskId}:`,
-              error
-            );
-            try {
-              await taskStore.updateTaskStatus(
-                task.taskId,
-                TaskState.FAILED,
-                `Upload failed: ${error.message || "Unknown error"}`
-              );
-            } catch (updateError) {
-              console.error(
-                `[Task Error] Failed to update task status for ${task.taskId}:`,
-                updateError
-              );
-            }
-          });
-
-          return { task };
-        },
-        getTask: async (
-          args: Record<string, unknown>,
-          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-        ) => {
-          if (!extra.taskId) {
-            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
-          }
-
-          const task = await extra.taskStore!.getTask(extra.taskId);
-
-          if (!task) {
-            throw new McpError(
-              ErrorCode.InvalidParams,
-              `Task not found: ${extra.taskId}`
-            );
-          }
-          return { task };
-        },
-        getTaskResult: async (
-          args: Record<string, unknown>,
-          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-        ) => {
-          if (!extra.taskId) {
-            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
-          }
-
-          return await extra.taskStore!.getTaskResult(extra.taskId);
-        },
-      } as any
-    );
-
-    experimental.registerToolTask(
-      "upload_folder",
-      {
-        description:
-          "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
-          "folderPath: path to the folder to upload. " +
-          "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
-          "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
-        inputSchema: uploadFolderSchema.shape as unknown as
-          | AnySchema
-          | ZodRawShapeCompat,
-        execution: { taskSupport: "optional" },
-      },
-      {
-        createTask: async (
-          args: z.infer<typeof uploadFolderSchema>,
-          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-        ) => {
-          const validArgs = uploadFolderSchema.parse(args);
-          const taskStore = extra.taskStore!;
-
-          const task = await taskStore.createTask({
-            ttl: TASK_TTL_MS,
-            pollInterval: TASK_POLL_INTERVAL,
-          });
-
-          uploadFolder(
-            validArgs as unknown as UploadFolderArgs,
-            this.bee,
-            this.server.server.transport,
-            {
-              manager: this.taskManager,
-              store: taskStore,
-              taskId: task.taskId,
-            },
-            task
-          ).catch(async (error) => {
-            console.error(
-              `[Task Error] Background folder upload failed for task ${task.taskId}:`,
-              error
-            );
-            try {
-              await taskStore.updateTaskStatus(
-                task.taskId,
-                TaskState.FAILED,
-                `Folder upload failed: ${error.message || "Unknown error"}`
-              );
-            } catch (updateError) {
-              console.error(
-                `[Task Error] Failed to update task status for ${task.taskId}:`,
-                updateError
-              );
-            }
-          });
-
-          return { task };
-        },
-        getTask: async (
-          args: Record<string, unknown>,
-          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-        ) => {
-          if (!extra.taskId) {
-            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
-          }
-
-          const task = await extra.taskStore!.getTask(extra.taskId);
-
-          if (!task) {
-            throw new McpError(
-              ErrorCode.InvalidParams,
-              `Task not found: ${extra.taskId}`
-            );
-          }
-          return { task };
-        },
-        getTaskResult: async (
-          args: Record<string, unknown>,
-          extra: RequestHandlerExtra<ServerRequest, ServerNotification>
-        ) => {
-          if (!extra.taskId) {
-            throw new McpError(ErrorCode.InvalidParams, `Missing task id.`);
-          }
-
-          return await extra.taskStore!.getTaskResult(extra.taskId);
-        },
-      } as any
-    );
-  }
-
   private registerTaskHandlers() {
-    // List tasks handler
     this.server.server.setRequestHandler(
-      // Replace with actual MCP tasks/list schema import
       ListTasksRequestSchema,
       async (
         request,
         extra: RequestHandlerExtra<ServerRequest, ServerNotification>
       ) => {
         if (!extra?.taskStore) {
-          // If task support is disabled or not initialized, return empty list
-          return { tasks: [], nextCursor: null };
+          return { tasks: [] };
         }
         return await extra.taskStore.listTasks(request.params?.cursor);
       }
@@ -320,7 +397,7 @@ export class SwarmMCPServer {
     // List tools
     this.server.server.setRequestHandler(ListToolsRequestSchema, async () => {
       const isGateway = await determineIfGateway(this.bee);
-      let tools = SwarmToolsSchema;
+      let tools = [...SwarmToolsSchema];
 
       if (isGateway) {
         const nodeOnlyTools = [
@@ -335,106 +412,5 @@ export class SwarmMCPServer {
 
       return { tools };
     });
-
-    // Handle sync tool calls
-    this.server.server.setRequestHandler(
-      CallToolRequestSchema,
-      async (request) => {
-        const args = request.params.arguments;
-
-        switch (request.params.name) {
-          case "upload_data": {
-            const validArgs = uploadDataSchema.parse(args);
-            return uploadData(validArgs as UploadDataArgs, this.bee);
-          }
-
-          case "download_data": {
-            const validArgs = downloadDataSchema.parse(args);
-            return downloadData(validArgs as DownloadDataArgs, this.bee);
-          }
-
-          case "update_feed": {
-            const validArgs = updateFeedSchema.parse(args);
-            return updateFeed(validArgs as UpdateFeedArgs, this.bee);
-          }
-
-          case "read_feed": {
-            const validArgs = readFeedSchema.parse(args);
-            return readFeed(validArgs as ReadFeedArgs, this.bee);
-          }
-
-          case "upload_folder": {
-            const validArgs = uploadFolderSchema.parse(args);
-            return uploadFolder(
-              validArgs as unknown as UploadFolderArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          case "download_files": {
-            const validArgs = downloadFilesSchema.parse(args);
-            return downloadFiles(
-              validArgs as DownloadFilesArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          case "list_postage_stamps": {
-            const validArgs = listPostageStampsSchema.parse(args);
-            return listPostageStamps(
-              validArgs as ListPostageStampsArgs,
-              this.bee
-            );
-          }
-
-          case "get_postage_stamp": {
-            const validArgs = getPostageStampSchema.parse(args);
-            return getPostageStamp(validArgs as GetPostageStampArgs, this.bee);
-          }
-
-          case "create_postage_stamp": {
-            const validArgs = createPostageStampSchema.parse(args);
-            return createPostageStamp(
-              validArgs as CreatePostageStampArgs,
-              this.bee
-            );
-          }
-
-          case "extend_postage_stamp": {
-            const validArgs = extendPostageStampSchema.parse(args);
-            return extendPostageStamp(
-              validArgs as ExtendPostageStampArgs,
-              this.bee
-            );
-          }
-
-          case "query_upload_progress": {
-            const validArgs = queryUploadProgressSchema.parse(args);
-            return queryUploadProgress(
-              validArgs as QueryUploadProgressArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          case "upload_file": {
-            const validArgs = uploadFileSchema.parse(args);
-            return uploadFile(
-              validArgs as unknown as UploadFileArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          default:
-            throw new McpError(
-              ErrorCode.MethodNotFound,
-              `Unknown tool: ${request.params.name}`
-            );
-        }
-      }
-    );
   }
 }

@@ -1,22 +1,35 @@
 import { Bee } from "@ethersphere/bee-js";
-import { ExtendedTask } from "./models";
-import { Task } from "@modelcontextprotocol/sdk/types.js";
+import {
+  CreateTaskModel,
+  ExtendedTask,
+  TaskState,
+  UpdateStatusFunction,
+} from "./models";
+import {
+  ErrorCode,
+  McpError,
+  Result,
+  Task,
+} from "@modelcontextprotocol/sdk/types.js";
 import {
   TASK_CLEANUP_INTERVAL_MS,
   TASK_STATUS_UPDATE_INTERVAL_MS,
   TASK_TTL_MS,
 } from "./constants";
-import { TaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 import { isTaskTerminal } from "./utils";
+import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
+import { isTerminal } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 
 export class TaskManager {
   private bee: Bee;
+  private store: InMemoryTaskStore;
   private extendedTasks: Map<string, ExtendedTask> = new Map();
   private cleanupInterval: NodeJS.Timeout;
   private statusUpdateInterval: NodeJS.Timeout;
 
-  constructor(bee: Bee) {
+  constructor(bee: Bee, taskStore: InMemoryTaskStore) {
     this.bee = bee;
+    this.store = taskStore;
 
     // Start periodic cleanup
     this.cleanupInterval = setInterval(() => {
@@ -28,15 +41,19 @@ export class TaskManager {
     }, TASK_STATUS_UPDATE_INTERVAL_MS);
   }
 
-  createTask(
-    task: Task,
-    store: TaskStore,
-    updateStatus: (task: ExtendedTask, bee: Bee) => void,
+  async createTask(
+    createTaskModel: CreateTaskModel,
+    updateStatus: UpdateStatusFunction,
     result?: unknown
-  ): Task {
+  ): Promise<Task> {
+    const task = await this.store.createTask(
+      createTaskModel.taskOptions,
+      createTaskModel.requestId,
+      createTaskModel.request as any,
+      createTaskModel.sessionId
+    );
     const extendedTask: ExtendedTask = {
       task,
-      store,
       updateStatus,
       result,
     };
@@ -50,20 +67,72 @@ export class TaskManager {
     this.extendedTasks.delete(taskId);
   }
 
-  async getTaskResult(taskId: string): Promise<unknown> {
-    const extendedTask = this.extendedTasks.get(taskId);
-
-    if (!extendedTask) {
-      return null;
-    }
-
-    return extendedTask.result;
+  async getTask(taskId: string): Promise<Task | null> {
+    return this.store.getTask(taskId);
   }
 
-  setTaskResult(taskId: string, result: unknown): void {
+  async updateTaskStatus(taskId: string, status: TaskState, message: string) {
+    const extendedTask = this.extendedTasks.get(taskId);
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      `!!!: ${extendedTask ? JSON.stringify(extendedTask) : "MISSING"}`
+    );
+    await this.store.updateTaskStatus(taskId, status, message);
+
+    // if (!!extendedTask) {
+    //   extendedTask.task.status = status;
+    //   extendedTask.task.statusMessage = message;
+    //   extendedTask.task.lastUpdatedAt = new Date().toISOString();
+    // }
+  }
+
+  async getTaskResult(taskId: string, _sessionId: string): Promise<Result> {
+    while (true) {
+      const task = await this.store.getTask(taskId);
+      if (!task) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Task not found: ${taskId}`
+        );
+      }
+
+      if (isTerminal(task.status)) {
+        const result = await this.store.getTaskResult(taskId);
+
+        return {
+          result: "Hiii11",
+          _meta: {
+            ...result._meta,
+          },
+        };
+      }
+    }
+  }
+
+  async setTaskResult(
+    taskId: string,
+    result: unknown,
+    deferStoreUpdate: boolean = false
+  ): Promise<void> {
+    if (!deferStoreUpdate) {
+      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, {
+        result,
+      });
+    }
     const extendedTask = this.extendedTasks.get(taskId);
     if (extendedTask) {
-      extendedTask.result = result;
+      extendedTask.result = {
+        result,
+      };
+    }
+  }
+
+  async syncStoreCompletedResult(taskId: string): Promise<void> {
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (extendedTask) {
+      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, {
+        result: extendedTask.result,
+      });
     }
   }
 
@@ -76,7 +145,7 @@ export class TaskManager {
 
     // Update all active Swarm tasks in parallel
     await Promise.allSettled(
-      activeTasks.map((task) => task.updateStatus!(task, this.bee))
+      activeTasks.map((task) => task.updateStatus!(task, this.bee, this))
     );
   }
 
@@ -107,6 +176,9 @@ export class TaskManager {
   destroy(): void {
     if (this.statusUpdateInterval) {
       clearInterval(this.statusUpdateInterval);
+    }
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
     }
   }
 }

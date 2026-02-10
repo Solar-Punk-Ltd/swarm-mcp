@@ -1,11 +1,17 @@
 import { Bee } from "@ethersphere/bee-js";
-import { ExtendedTask, TaskState } from "../../tasks/models";
+import {
+  ExtendedTask,
+  TaskState,
+  UpdateStatusFunction,
+} from "../../tasks/models";
 import { UploadDeferredResult } from "./models";
 import { getResponseWithStructuredContent } from "../../utils";
+import { TaskManager } from "../../tasks/task-manager";
 
-export const updateUploadFileTaskStatus = async (
+export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
   extendedTask: ExtendedTask,
-  bee: Bee
+  bee: Bee,
+  taskManager: TaskManager
 ): Promise<void> => {
   try {
     if (!extendedTask.result) return;
@@ -26,40 +32,30 @@ export const updateUploadFileTaskStatus = async (
     extendedTask.task.lastUpdatedAt = now;
 
     if (isComplete) {
-      await extendedTask.store.storeTaskResult(
+      taskManager.setTaskResult(
         extendedTask.task.taskId,
-        TaskState.COMPLETED,
         getResponseWithStructuredContent({
           reference: uploadDeferredResult.reference,
           url: uploadDeferredResult.url,
           message: "Upload completed successfully.",
         })
       );
-      extendedTask.task.status = TaskState.COMPLETED;
-      extendedTask.task.statusMessage = "Upload completed successfully.";
-
       // Clean up tag (fire and forget)
       bee.deleteTag(tagUid).catch((error) => {
         console.error(`Failed to delete tag ${tagUid}:`, error);
       });
     } else {
-      await extendedTask.store.updateTaskStatus(
+      await taskManager.updateTaskStatus(
         extendedTask.task.taskId,
         TaskState.WORKING,
         `Processing: ${processedPercentage}% (${processed}/${total} chunks)`
       );
-      extendedTask.task.status = TaskState.WORKING;
-      extendedTask.task.statusMessage = `Processing: ${processedPercentage}% (${processed}/${total} chunks)`;
     }
   } catch (error) {
-    await extendedTask.store.updateTaskStatus(
+    await taskManager.updateTaskStatus(
       extendedTask.task.taskId,
       TaskState.FAILED,
-      `Failed to update task ${extendedTask.task.taskId} status:`
+      `Failed to update task ${extendedTask.task.taskId} status.`
     );
-    extendedTask.task.status = TaskState.FAILED;
-    extendedTask.task.statusMessage =
-      "Failed to retrieve upload status from Swarm";
-    extendedTask.task.lastUpdatedAt = new Date().toISOString();
   }
 };

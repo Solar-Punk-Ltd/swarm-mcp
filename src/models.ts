@@ -26,6 +26,5 @@ export interface ResponseWithStructuredContent<T> {
 
 export interface TaskInformation {
   manager: TaskManager;
-  store: TaskStore;
   taskId: string;
 }
