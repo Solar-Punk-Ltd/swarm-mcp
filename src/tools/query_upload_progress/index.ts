@@ -41,11 +41,9 @@ export async function queryUploadProgress(
       total > 0 ? Math.round((processed / total) * 100) : 0;
     const isComplete = processedPercentage === 100;
 
-    let tagDeleted = false;
     if (isComplete) {
       try {
         await bee.deleteTag(tagUid);
-        tagDeleted = true;
       } catch {
         // Non-fatal: if deletion fails we still return progress
       }

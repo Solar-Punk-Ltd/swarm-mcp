@@ -6,7 +6,7 @@ import {
 } from "../../tasks/models";
 import { getResponseWithStructuredContent } from "../../utils";
 import { TaskManager } from "../../tasks/task-manager";
-import { UploadDeferredResult } from "../upload_file/models";
+import { UploadDeferredResult } from "../../models";
 
 export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
   extendedTask: ExtendedTask,

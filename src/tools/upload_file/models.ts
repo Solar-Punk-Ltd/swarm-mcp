@@ -4,9 +4,3 @@ export interface UploadFileArgs {
   redundancyLevel?: number;
   postageBatchId?: string;
 }
-
-export interface UploadDeferredResult {
-  reference: string;
-  url: string;
-  tagId: string;
-}

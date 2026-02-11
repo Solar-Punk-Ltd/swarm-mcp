@@ -27,3 +27,9 @@ export interface TaskInformation {
   manager: TaskManager;
   taskId: string;
 }
+
+export interface UploadDeferredResult {
+  reference: string;
+  url: string;
+  tagId: string;
+}
