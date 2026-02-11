@@ -2,7 +2,7 @@
  * MCP Tool: extend_postage_stamp
  * Increase the duration and size of a postage stamp.
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { McpError, ErrorCode, Task } from "@modelcontextprotocol/sdk/types.js";
 import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
@@ -18,11 +18,15 @@ import {
   CALL_TIMEOUT,
   EXTEND_POSTAGE_TIMEOUT_MESSAGE,
 } from "../../constants";
+import { TaskManager } from "../../tasks/task-manager";
+import { CreateTaskModel, TaskState } from "../../tasks/models";
 
 export async function extendPostageStamp(
   args: ExtendPostageStampArgs,
-  bee: Bee
-): Promise<ToolResponse> {
+  bee: Bee,
+  taskManager?: TaskManager,
+  createTaskModel?: CreateTaskModel
+): Promise<ToolResponse | Task> {
   const { postageBatchId, duration, size } = args;
 
   if (!postageBatchId) {
@@ -46,6 +50,44 @@ export async function extendPostageStamp(
     }
   } catch (makeDateError) {
     throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");
+  }
+
+  const isRunningAsTask = taskManager && createTaskModel;
+
+  if (isRunningAsTask) {
+    const task = await taskManager.createTask(createTaskModel, null);
+
+    bee
+      .extendStorage(postageBatchId, extendSize, extendDuration)
+      .then(async (result) => {
+        const extendStorageResponse = result as BatchId;
+        const responseWithStructuredContent = getResponseWithStructuredContent({
+          postageBatchId: extendStorageResponse.toHex(),
+        });
+
+        await taskManager!.setTaskResult(
+          task.taskId,
+          responseWithStructuredContent
+        );
+
+        return getResponseWithStructuredContent({
+          postageBatchId: extendStorageResponse.toHex(),
+        });
+      })
+      .catch((error) => {
+        let errorMessage = "Extend failed.";
+        if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+          errorMessage = getErrorMessage(error);
+        }
+
+        taskManager!.updateTaskStatus(
+          task.taskId,
+          TaskState.FAILED,
+          errorMessage
+        );
+      });
+
+    return task;
   }
 
   let extendStorageResponse;

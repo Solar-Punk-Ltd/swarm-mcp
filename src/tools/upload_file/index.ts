@@ -89,11 +89,11 @@ export async function uploadFile(
     }
   }
 
-  const isRunningAsTask = deferred && taskManager && createTaskModel;
+  const isRunningAsTask = taskManager && createTaskModel;
 
   if (isRunningAsTask) {
-    const task = await taskManager.createTask(
-      createTaskModel,
+    const task = await taskManager!.createTask(
+      createTaskModel!,
       updateUploadFileTaskStatus
     );
 
@@ -107,7 +107,7 @@ export async function uploadFile(
           tagId,
         });
 
-        await taskManager.setTaskResult(
+        await taskManager!.setTaskResult(
           task.taskId,
           responseWithStructuredContent
         );
@@ -118,7 +118,7 @@ export async function uploadFile(
           errorMessage = getErrorMessage(error);
         }
 
-        taskManager.updateTaskStatus(
+        taskManager!.updateTaskStatus(
           task.taskId,
           TaskState.FAILED,
           errorMessage

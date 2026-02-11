@@ -73,6 +73,7 @@ import { TaskManager } from "./tasks/task-manager";
 import { CreateTaskModel } from "./tasks/models";
 import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
 import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/index.js";
+import { isTask } from "./tasks/utils";
 
 /**
  * Swarm MCP Server class using Experimental Tasks API
@@ -135,50 +136,58 @@ export class SwarmMCPServer {
             sessionId: ctx.sessionId,
           };
 
-          let task: Task;
+          let response: Task | ToolResponse;
 
           switch (request.params.name) {
             case "upload_file": {
               const validArgs = uploadFileSchema.parse(args);
-              task = (await uploadFile(
+              response = await uploadFile(
                 validArgs as unknown as UploadFileArgs,
                 this.bee,
                 this.server.server.transport,
                 this.taskManager,
                 createTaskModel
-              )) as Task;
+              );
 
               break;
             }
 
             case "upload_folder": {
               const validArgs = uploadFolderSchema.parse(args);
-              task = (await uploadFolder(
+              response = await uploadFolder(
                 validArgs as unknown as UploadFolderArgs,
                 this.bee,
                 this.server.server.transport,
                 this.taskManager,
                 createTaskModel
-              )) as Task;
+              );
 
               break;
             }
 
-            // case "create_postage_stamp": {
-            //   const validArgs = createPostageStampSchema.parse(args);
-            //   return createPostageStamp(
-            //     validArgs as CreatePostageStampArgs,
-            //     this.bee
-            //   );
-            // }
+            case "create_postage_stamp": {
+              const validArgs = createPostageStampSchema.parse(args);
+              response = await createPostageStamp(
+                validArgs as CreatePostageStampArgs,
+                this.bee,
+                this.taskManager,
+                createTaskModel
+              );
 
-            // case "extend_postage_stamp": {
-            //   const validArgs = extendPostageStampSchema.parse(args);
-            //   return extendPostageStamp(
-            //     validArgs as ExtendPostageStampArgs,
-            //     this.bee
-            //   );
-            // }
+              break;
+            }
+
+            case "extend_postage_stamp": {
+              const validArgs = extendPostageStampSchema.parse(args);
+              response = await extendPostageStamp(
+                validArgs as ExtendPostageStampArgs,
+                this.bee,
+                this.taskManager,
+                createTaskModel
+              );
+
+              break;
+            }
 
             default:
               throw new McpError(
@@ -187,7 +196,11 @@ export class SwarmMCPServer {
               );
           }
 
-          return { task };
+          if (isTask(response)) {
+            return { task: response } as CreateTaskResult;
+          }
+
+          return response;
         } else {
           switch (request.params.name) {
             case "upload_data": {

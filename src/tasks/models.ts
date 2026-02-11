@@ -12,7 +12,7 @@ export type UpdateStatusFunction = (
 export interface ExtendedTask {
   task: Task;
   result?: unknown;
-  updateStatus?: UpdateStatusFunction;
+  updateStatus: UpdateStatusFunction | null;
 }
 
 export interface CreateTaskModel {

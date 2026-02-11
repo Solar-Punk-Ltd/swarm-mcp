@@ -43,7 +43,7 @@ export class TaskManager {
 
   async createTask(
     createTaskModel: CreateTaskModel,
-    updateStatus: UpdateStatusFunction,
+    updateStatus: UpdateStatusFunction | null,
     result?: unknown
   ): Promise<Task> {
     const task = await this.store.createTask(
