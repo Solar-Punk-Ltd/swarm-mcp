@@ -2,7 +2,11 @@
  * MCP Tool: upload_file
  * Upload a file to Swarm
  */
-import { McpError, ErrorCode, Task } from "@modelcontextprotocol/sdk/types.js";
+import {
+  McpError,
+  ErrorCode,
+  CreateTaskResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
@@ -27,7 +31,7 @@ export async function uploadFile(
   transport: any,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
-): Promise<ToolResponse | Task> {
+): Promise<ToolResponse | CreateTaskResult> {
   if (!args.data) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -103,7 +107,7 @@ export async function uploadFile(
         const responseWithStructuredContent = getResponseWithStructuredContent({
           reference: result.reference.toString(),
           url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
-          message: `File upload started in deferred mode. You can use query_upload_progress for tagId ${tagId} to track progress or wait for the task result.`,
+          message: "File upload complete.",
           tagId,
         });
 
@@ -125,7 +129,9 @@ export async function uploadFile(
         );
       });
 
-    return task;
+    return {
+      task,
+    };
   }
 
   let result;
@@ -141,12 +147,10 @@ export async function uploadFile(
     }
   }
 
-  const responseWithStructuredContent = getResponseWithStructuredContent({
+  return getResponseWithStructuredContent({
     reference: result.reference.toString(),
     url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
     message,
     tagId,
   });
-
-  return responseWithStructuredContent;
 }

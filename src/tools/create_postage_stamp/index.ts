@@ -2,11 +2,16 @@
  * MCP Tool: create_postage_stamp
  * Buy postage stamp based on size and duration.
  */
-import { McpError, ErrorCode, Task } from "@modelcontextprotocol/sdk/types.js";
+import {
+  McpError,
+  ErrorCode,
+  CreateTaskResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
   getErrorMessage,
+  getResponseWithStructuredContent,
   makeDate,
   runWithTimeout,
   ToolResponse,
@@ -25,7 +30,7 @@ export async function createPostageStamp(
   bee: Bee,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
-): Promise<ToolResponse | Task> {
+): Promise<ToolResponse | CreateTaskResult> {
   const { size, duration, label } = args;
 
   if (!size) {
@@ -62,15 +67,15 @@ export async function createPostageStamp(
       )
       .then(async (result) => {
         const buyStorageResponse = result as BatchId;
-
-        await taskManager!.setTaskResult(task.taskId, {
-          content: [
-            {
-              type: "text",
-              text: `Postage batch ID: ${buyStorageResponse.toHex()}`,
-            },
-          ],
+        const responseWithStructuredContent = getResponseWithStructuredContent({
+          postageBatchId: buyStorageResponse.toHex(),
+          message: "Postage batch creation succeeded.",
         });
+
+        await taskManager!.setTaskResult(
+          task.taskId,
+          responseWithStructuredContent
+        );
       })
       .catch((error) => {
         let errorMessage = "Unable to buy storage.";
@@ -85,7 +90,9 @@ export async function createPostageStamp(
         );
       });
 
-    return task;
+    return {
+      task,
+    };
   }
 
   let buyStorageResponse: BatchId;
@@ -123,12 +130,8 @@ export async function createPostageStamp(
     }
   }
 
-  return {
-    content: [
-      {
-        type: "text",
-        text: `Postage batch ID: ${buyStorageResponse.toHex()}`,
-      },
-    ],
-  };
+  return getResponseWithStructuredContent({
+    postageBatchId: buyStorageResponse.toHex(),
+    message: "Postage batch creation succeeded.",
+  });
 }

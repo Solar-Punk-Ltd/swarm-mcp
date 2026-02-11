@@ -73,7 +73,6 @@ import { TaskManager } from "./tasks/task-manager";
 import { CreateTaskModel } from "./tasks/models";
 import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
 import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/index.js";
-import { isTask } from "./tasks/utils";
 
 /**
  * Swarm MCP Server class using Experimental Tasks API
@@ -124,9 +123,12 @@ export class SwarmMCPServer {
           | { ttl?: number; pollInterval?: number }
           | undefined;
 
-        if (taskParams && taskSupportTools.includes(name)) {
+        const shouldExecuteAsTask =
+          taskParams && taskSupportTools.includes(name);
+
+        if (shouldExecuteAsTask) {
           const taskOptions: CreateTaskOptions = {
-            ttl: TASK_TTL_MS,
+            ttl: Math.max(TASK_TTL_MS, taskParams.ttl || 0),
             pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
           };
           const createTaskModel: CreateTaskModel = {
@@ -136,99 +138,15 @@ export class SwarmMCPServer {
             sessionId: ctx.sessionId,
           };
 
-          let response: Task | ToolResponse;
-
           switch (request.params.name) {
-            case "upload_file": {
-              const validArgs = uploadFileSchema.parse(args);
-              response = await uploadFile(
-                validArgs as unknown as UploadFileArgs,
-                this.bee,
-                this.server.server.transport,
-                this.taskManager,
-                createTaskModel
-              );
-
-              break;
-            }
-
-            case "upload_folder": {
-              const validArgs = uploadFolderSchema.parse(args);
-              response = await uploadFolder(
-                validArgs as unknown as UploadFolderArgs,
-                this.bee,
-                this.server.server.transport,
-                this.taskManager,
-                createTaskModel
-              );
-
-              break;
-            }
-
-            case "create_postage_stamp": {
-              const validArgs = createPostageStampSchema.parse(args);
-              response = await createPostageStamp(
-                validArgs as CreatePostageStampArgs,
-                this.bee,
-                this.taskManager,
-                createTaskModel
-              );
-
-              break;
-            }
-
-            case "extend_postage_stamp": {
-              const validArgs = extendPostageStampSchema.parse(args);
-              response = await extendPostageStamp(
-                validArgs as ExtendPostageStampArgs,
-                this.bee,
-                this.taskManager,
-                createTaskModel
-              );
-
-              break;
-            }
-
-            default:
-              throw new McpError(
-                ErrorCode.MethodNotFound,
-                `Unknown tool: ${request.params.name}`
-              );
-          }
-
-          if (isTask(response)) {
-            return { task: response } as CreateTaskResult;
-          }
-
-          return response;
-        } else {
-          switch (request.params.name) {
-            case "upload_data": {
-              const validArgs = uploadDataSchema.parse(args);
-              return uploadData(validArgs as UploadDataArgs, this.bee);
-            }
-
-            case "download_data": {
-              const validArgs = downloadDataSchema.parse(args);
-              return downloadData(validArgs as DownloadDataArgs, this.bee);
-            }
-
-            case "update_feed": {
-              const validArgs = updateFeedSchema.parse(args);
-              return updateFeed(validArgs as UpdateFeedArgs, this.bee);
-            }
-
-            case "read_feed": {
-              const validArgs = readFeedSchema.parse(args);
-              return readFeed(validArgs as ReadFeedArgs, this.bee);
-            }
-
             case "upload_file": {
               const validArgs = uploadFileSchema.parse(args);
               return uploadFile(
                 validArgs as unknown as UploadFileArgs,
                 this.bee,
-                this.server.server.transport
+                this.server.server.transport,
+                this.taskManager,
+                createTaskModel
               );
             }
 
@@ -237,32 +155,9 @@ export class SwarmMCPServer {
               return uploadFolder(
                 validArgs as unknown as UploadFolderArgs,
                 this.bee,
-                this.server.server.transport
-              );
-            }
-
-            case "download_files": {
-              const validArgs = downloadFilesSchema.parse(args);
-              return downloadFiles(
-                validArgs as DownloadFilesArgs,
-                this.bee,
-                this.server.server.transport
-              );
-            }
-
-            case "list_postage_stamps": {
-              const validArgs = listPostageStampsSchema.parse(args);
-              return listPostageStamps(
-                validArgs as ListPostageStampsArgs,
-                this.bee
-              );
-            }
-
-            case "get_postage_stamp": {
-              const validArgs = getPostageStampSchema.parse(args);
-              return getPostageStamp(
-                validArgs as GetPostageStampArgs,
-                this.bee
+                this.server.server.transport,
+                this.taskManager,
+                createTaskModel
               );
             }
 
@@ -270,7 +165,9 @@ export class SwarmMCPServer {
               const validArgs = createPostageStampSchema.parse(args);
               return createPostageStamp(
                 validArgs as CreatePostageStampArgs,
-                this.bee
+                this.bee,
+                this.taskManager,
+                createTaskModel
               );
             }
 
@@ -278,16 +175,9 @@ export class SwarmMCPServer {
               const validArgs = extendPostageStampSchema.parse(args);
               return extendPostageStamp(
                 validArgs as ExtendPostageStampArgs,
-                this.bee
-              );
-            }
-
-            case "query_upload_progress": {
-              const validArgs = queryUploadProgressSchema.parse(args);
-              return queryUploadProgress(
-                validArgs as QueryUploadProgressArgs,
                 this.bee,
-                this.server.server.transport
+                this.taskManager,
+                createTaskModel
               );
             }
 
@@ -297,6 +187,99 @@ export class SwarmMCPServer {
                 `Unknown tool: ${request.params.name}`
               );
           }
+        }
+
+        switch (request.params.name) {
+          case "upload_data": {
+            const validArgs = uploadDataSchema.parse(args);
+            return uploadData(validArgs as UploadDataArgs, this.bee);
+          }
+
+          case "download_data": {
+            const validArgs = downloadDataSchema.parse(args);
+            return downloadData(validArgs as DownloadDataArgs, this.bee);
+          }
+
+          case "update_feed": {
+            const validArgs = updateFeedSchema.parse(args);
+            return updateFeed(validArgs as UpdateFeedArgs, this.bee);
+          }
+
+          case "read_feed": {
+            const validArgs = readFeedSchema.parse(args);
+            return readFeed(validArgs as ReadFeedArgs, this.bee);
+          }
+
+          case "upload_file": {
+            const validArgs = uploadFileSchema.parse(args);
+            return uploadFile(
+              validArgs as unknown as UploadFileArgs,
+              this.bee,
+              this.server.server.transport
+            );
+          }
+
+          case "upload_folder": {
+            const validArgs = uploadFolderSchema.parse(args);
+            return uploadFolder(
+              validArgs as unknown as UploadFolderArgs,
+              this.bee,
+              this.server.server.transport
+            );
+          }
+
+          case "download_files": {
+            const validArgs = downloadFilesSchema.parse(args);
+            return downloadFiles(
+              validArgs as DownloadFilesArgs,
+              this.bee,
+              this.server.server.transport
+            );
+          }
+
+          case "list_postage_stamps": {
+            const validArgs = listPostageStampsSchema.parse(args);
+            return listPostageStamps(
+              validArgs as ListPostageStampsArgs,
+              this.bee
+            );
+          }
+
+          case "get_postage_stamp": {
+            const validArgs = getPostageStampSchema.parse(args);
+            return getPostageStamp(validArgs as GetPostageStampArgs, this.bee);
+          }
+
+          case "create_postage_stamp": {
+            const validArgs = createPostageStampSchema.parse(args);
+            return createPostageStamp(
+              validArgs as CreatePostageStampArgs,
+              this.bee
+            );
+          }
+
+          case "extend_postage_stamp": {
+            const validArgs = extendPostageStampSchema.parse(args);
+            return extendPostageStamp(
+              validArgs as ExtendPostageStampArgs,
+              this.bee
+            );
+          }
+
+          case "query_upload_progress": {
+            const validArgs = queryUploadProgressSchema.parse(args);
+            return queryUploadProgress(
+              validArgs as QueryUploadProgressArgs,
+              this.bee,
+              this.server.server.transport
+            );
+          }
+
+          default:
+            throw new McpError(
+              ErrorCode.MethodNotFound,
+              `Unknown tool: ${request.params.name}`
+            );
         }
       }
     );

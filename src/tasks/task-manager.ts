@@ -44,7 +44,7 @@ export class TaskManager {
   async createTask(
     createTaskModel: CreateTaskModel,
     updateStatus: UpdateStatusFunction | null,
-    result?: unknown
+    result?: Result
   ): Promise<Task> {
     const task = await this.store.createTask(
       createTaskModel.taskOptions,
@@ -88,12 +88,7 @@ export class TaskManager {
       if (isTerminal(task.status)) {
         const result = await this.store.getTaskResult(taskId);
 
-        return {
-          result,
-          _meta: {
-            ...result._meta,
-          },
-        };
+        return result;
       }
     }
   }
@@ -107,28 +102,26 @@ export class TaskManager {
 
   async setTaskResult(
     taskId: string,
-    result: unknown,
+    result: Result,
     isDeferredStoreUpdate: boolean = false
   ): Promise<void> {
     const extendedTask = this.extendedTasks.get(taskId);
     if (extendedTask) {
-      extendedTask.result = {
-        result,
-      };
+      extendedTask.result = result;
     }
     if (!isDeferredStoreUpdate) {
-      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, {
-        result,
-      });
+      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, result);
     }
   }
 
   async syncStoreCompletedResult(taskId: string): Promise<void> {
     const extendedTask = this.extendedTasks.get(taskId);
-    if (extendedTask) {
-      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, {
-        result: extendedTask.result,
-      });
+    if (extendedTask?.result) {
+      await this.store.storeTaskResult(
+        taskId,
+        TaskState.COMPLETED,
+        extendedTask.result
+      );
     }
   }
 

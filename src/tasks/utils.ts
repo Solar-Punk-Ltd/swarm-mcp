@@ -10,12 +10,3 @@ export const isTaskTerminal = (status: string): status is TaskState => {
     status as TaskState
   );
 };
-
-export const isTask = (data: Task | ToolResponse): data is Task => {
-  return (
-    data &&
-    typeof data === "object" &&
-    "taskId" in data &&
-    typeof data.taskId === "string"
-  );
-};

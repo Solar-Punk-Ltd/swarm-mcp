@@ -1,4 +1,8 @@
-import { McpError, ErrorCode, Task } from "@modelcontextprotocol/sdk/types.js";
+import {
+  McpError,
+  ErrorCode,
+  CreateTaskResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
@@ -24,7 +28,7 @@ export async function uploadFolder(
   transport: any,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
-): Promise<ToolResponse | Task> {
+): Promise<ToolResponse | CreateTaskResult> {
   if (!args.folderPath) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -92,7 +96,7 @@ export async function uploadFolder(
         const responseWithStructuredContent = getResponseWithStructuredContent({
           reference: result.reference.toString(),
           url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
-          message,
+          message: "Folder upload complete.",
           tagId,
         });
         await taskManager.setTaskResult(
@@ -113,7 +117,9 @@ export async function uploadFolder(
         );
       });
 
-    return task;
+    return {
+      task,
+    };
   }
 
   let result;
@@ -133,12 +139,10 @@ export async function uploadFolder(
     }
   }
 
-  const responseWithStructuredContent = getResponseWithStructuredContent({
+  return getResponseWithStructuredContent({
     reference: result.reference.toString(),
     url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
     message,
     tagId,
   });
-
-  return responseWithStructuredContent;
 }

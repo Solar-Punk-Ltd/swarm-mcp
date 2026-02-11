@@ -1,5 +1,5 @@
 import { Bee } from "@ethersphere/bee-js";
-import { RequestId, Task } from "@modelcontextprotocol/sdk/types.js";
+import { RequestId, Result, Task } from "@modelcontextprotocol/sdk/types.js";
 import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 import { TaskManager } from "./task-manager";
 
@@ -11,7 +11,7 @@ export type UpdateStatusFunction = (
 
 export interface ExtendedTask {
   task: Task;
-  result?: unknown;
+  result?: Result;
   updateStatus: UpdateStatusFunction | null;
 }
 

@@ -5,7 +5,6 @@ import {
   UpdateStatusFunction,
 } from "../../tasks/models";
 import { getResponseWithStructuredContent } from "../../utils";
-import { UploadDeferredResult } from "../upload_file/models";
 import { TaskManager } from "../../tasks/task-manager";
 
 export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
@@ -15,7 +14,7 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
 ): Promise<void> => {
   try {
     if (!extendedTask.result) return;
-    const uploadDeferredResult = extendedTask.result as UploadDeferredResult;
+    const uploadDeferredResult = extendedTask.result;
     const tagUid = Number(uploadDeferredResult.tagId);
     const tag = await bee.retrieveTag(tagUid);
 

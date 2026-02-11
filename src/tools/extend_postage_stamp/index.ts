@@ -2,7 +2,11 @@
  * MCP Tool: extend_postage_stamp
  * Increase the duration and size of a postage stamp.
  */
-import { McpError, ErrorCode, Task } from "@modelcontextprotocol/sdk/types.js";
+import {
+  McpError,
+  ErrorCode,
+  CreateTaskResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
@@ -26,7 +30,7 @@ export async function extendPostageStamp(
   bee: Bee,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
-): Promise<ToolResponse | Task> {
+): Promise<ToolResponse | CreateTaskResult> {
   const { postageBatchId, duration, size } = args;
 
   if (!postageBatchId) {
@@ -63,16 +67,13 @@ export async function extendPostageStamp(
         const extendStorageResponse = result as BatchId;
         const responseWithStructuredContent = getResponseWithStructuredContent({
           postageBatchId: extendStorageResponse.toHex(),
+          message: "Postage batch extension succeeded.",
         });
 
         await taskManager!.setTaskResult(
           task.taskId,
           responseWithStructuredContent
         );
-
-        return getResponseWithStructuredContent({
-          postageBatchId: extendStorageResponse.toHex(),
-        });
       })
       .catch((error) => {
         let errorMessage = "Extend failed.";
@@ -87,7 +88,9 @@ export async function extendPostageStamp(
         );
       });
 
-    return task;
+    return {
+      task,
+    };
   }
 
   let extendStorageResponse;
@@ -126,5 +129,6 @@ export async function extendPostageStamp(
 
   return getResponseWithStructuredContent({
     postageBatchId: extendStorageResponse.toHex(),
+    message: "Postage batch extension succeeded.",
   });
 }
