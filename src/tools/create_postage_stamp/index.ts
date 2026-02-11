@@ -69,7 +69,7 @@ export async function createPostageStamp(
         const buyStorageResponse = result as BatchId;
         const responseWithStructuredContent = getResponseWithStructuredContent({
           postageBatchId: buyStorageResponse.toHex(),
-          message: "Postage batch creation succeeded.",
+          message: "Postage batch creation succeeded. You can list postage batches to find the newly crated one.",
         });
 
         await taskManager!.setTaskResult(
