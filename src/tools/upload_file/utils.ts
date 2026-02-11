@@ -6,6 +6,7 @@ import {
 } from "../../tasks/models";
 import { getResponseWithStructuredContent } from "../../utils";
 import { TaskManager } from "../../tasks/task-manager";
+import { UploadDeferredResult } from "./models";
 
 export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
   extendedTask: ExtendedTask,
@@ -13,9 +14,11 @@ export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
   taskManager: TaskManager
 ): Promise<void> => {
   try {
-    if (!extendedTask.result) return;
-    const uploadDeferredResult = extendedTask.result;
-    const tagUid = Number(uploadDeferredResult.tagId);
+    if (!extendedTask?._meta?.tagId) {
+      return;
+    }
+
+    const tagUid = Number(extendedTask._meta.tagId);
     const tag = await bee.retrieveTag(tagUid);
 
     const synced = tag.synced ?? 0;
@@ -30,7 +33,10 @@ export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
     const now = new Date().toISOString();
     extendedTask.task.lastUpdatedAt = now;
 
-    if (isComplete) {
+    if (isComplete && extendedTask?.result?.structuredContent) {
+      const uploadDeferredResult = extendedTask.result
+        .structuredContent as UploadDeferredResult;
+
       taskManager.setTaskResult(
         extendedTask.task.taskId,
         getResponseWithStructuredContent({
@@ -39,6 +45,7 @@ export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
           message: "Upload completed successfully.",
         })
       );
+
       // Clean up tag (fire and forget)
       bee.deleteTag(tagUid).catch((error) => {
         console.error(`Failed to delete tag ${tagUid}:`, error);
@@ -47,7 +54,7 @@ export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
       await taskManager.updateTaskStatus(
         extendedTask.task.taskId,
         TaskState.WORKING,
-        `Processing: ${processedPercentage}% (${processed}/${total} chunks)`
+        `Processing: ${processedPercentage}% (${processed}/${total} chunks). You can also use query_upload_progress for tag id ${tagUid} to track progress.`
       );
     }
   } catch (error) {

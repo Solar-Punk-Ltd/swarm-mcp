@@ -55,7 +55,7 @@ export async function createPostageStamp(
 
   const isRunningAsTask = taskManager && createTaskModel;
   if (isRunningAsTask) {
-    const task = await taskManager.createTask(createTaskModel, null);
+    const task = await taskManager.createTask(createTaskModel, null, null);
 
     bee
       .buyStorage(

@@ -11,8 +11,11 @@ export type UpdateStatusFunction = (
 
 export interface ExtendedTask {
   task: Task;
-  result?: Result;
+  result: Result | null;
   updateStatus: UpdateStatusFunction | null;
+  _meta?: {
+    [x: string]: string | null;
+  };
 }
 
 export interface CreateTaskModel {

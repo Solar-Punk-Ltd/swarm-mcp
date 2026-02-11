@@ -1,6 +1,5 @@
 import { PostageBatch } from "@ethersphere/bee-js";
 import { TaskManager } from "./tasks/task-manager";
-import { TaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 
 export type PostageBatchCurated = Omit<PostageBatch, "batchID"> & {
   batchID: string;

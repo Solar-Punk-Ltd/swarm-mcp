@@ -14,7 +14,6 @@ import {
   ListTasksRequestSchema,
   ListToolsRequestSchema,
   McpError,
-  Task,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";

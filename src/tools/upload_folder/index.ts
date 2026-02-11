@@ -87,7 +87,11 @@ export async function uploadFolder(
   if (isRunningAsTask) {
     const task = await taskManager.createTask(
       createTaskModel,
-      updateUploadFolderTaskStatus
+      updateUploadFolderTaskStatus,
+      null,
+      {
+        tagId: tagId ?? null,
+      }
     );
 
     bee
@@ -101,7 +105,8 @@ export async function uploadFolder(
         });
         await taskManager.setTaskResult(
           task.taskId,
-          responseWithStructuredContent
+          responseWithStructuredContent,
+          deferred
         );
       })
       .catch((error) => {

@@ -44,18 +44,20 @@ export class TaskManager {
   async createTask(
     createTaskModel: CreateTaskModel,
     updateStatus: UpdateStatusFunction | null,
-    result?: Result
+    result: Result | null,
+    _meta?: Record<string, string | null>
   ): Promise<Task> {
     const task = await this.store.createTask(
       createTaskModel.taskOptions,
       createTaskModel.requestId,
-      createTaskModel.request as any,
+      createTaskModel.request as unknown as Request,
       createTaskModel.sessionId
     );
     const extendedTask: ExtendedTask = {
       task,
       updateStatus,
       result,
+      _meta,
     };
 
     this.extendedTasks.set(task.taskId, extendedTask);
