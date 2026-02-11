@@ -210,30 +210,8 @@ export const SwarmToolsSchema = [
       required: ["data"],
     },
     execution: {
-      taskSupport: "required",
+      taskSupport: "optional",
     },
-    // outputSchema: {
-    //   type: "object",
-    //   properties: {
-    //     reference: {
-    //       type: "string",
-    //       description: "Swarm reference hash for uploaded file.",
-    //     },
-    //     url: {
-    //       type: "string",
-    //       description: "The URL to access the uploaded file.",
-    //     },
-    //     message: {
-    //       type: "string",
-    //       description: "Upload file response message.",
-    //     },
-    //     tagId: {
-    //       type: "string",
-    //       description: "The tag ID for deferred uploads.",
-    //     },
-    //   },
-    //   required: ["reference", "url"],
-    // },
   },
   {
     name: "upload_folder",
@@ -267,30 +245,8 @@ export const SwarmToolsSchema = [
       required: ["folderPath"],
     },
     execution: {
-      taskSupport: "required",
+      taskSupport: "optional",
     },
-    // outputSchema: {
-    //   type: "object",
-    //   properties: {
-    //     reference: {
-    //       type: "string",
-    //       description: "Swarm reference hash for uploaded folder.",
-    //     },
-    //     url: {
-    //       type: "string",
-    //       description: "The URL to access the uploaded folder.",
-    //     },
-    //     message: {
-    //       type: "string",
-    //       description: "Upload folder response message.",
-    //     },
-    //     tagId: {
-    //       type: "string",
-    //       description: "The tag ID for deferred uploads.",
-    //     },
-    //   },
-    //   required: ["reference", "url"],
-    // },
   },
   {
     name: "download_files",

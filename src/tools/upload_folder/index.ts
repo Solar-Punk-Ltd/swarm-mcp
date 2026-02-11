@@ -82,7 +82,7 @@ export async function uploadFolder(
     }
   }
 
-  const isRunningAsTask = deferred && taskManager && createTaskModel;
+  const isRunningAsTask = taskManager && createTaskModel;
 
   if (isRunningAsTask) {
     const task = await taskManager.createTask(

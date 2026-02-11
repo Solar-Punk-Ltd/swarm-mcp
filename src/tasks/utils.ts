@@ -1,6 +1,4 @@
-import { Task } from "@modelcontextprotocol/sdk/types.js";
 import { TaskState } from "./models";
-import { ToolResponse } from "../utils";
 
 /**
  * Checks if a task status is in a terminal state

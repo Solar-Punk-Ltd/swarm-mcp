@@ -286,7 +286,6 @@ export class SwarmMCPServer {
 
     this.registerTaskHandlers();
 
-    // // Setup regular sync tools
     this.registerSyncTools();
 
     this.server.server.onerror = (error: Error) =>
