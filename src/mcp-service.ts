@@ -160,6 +160,17 @@ export class SwarmMCPServer {
               );
             }
 
+            case "download_files": {
+              const validArgs = downloadFilesSchema.parse(args);
+              return downloadFiles(
+                validArgs as DownloadFilesArgs,
+                this.bee,
+                this.server.server.transport,
+                this.taskManager,
+                createTaskModel
+              );
+            }
+
             case "create_postage_stamp": {
               const validArgs = createPostageStampSchema.parse(args);
               return createPostageStamp(

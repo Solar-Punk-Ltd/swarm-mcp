@@ -16,9 +16,8 @@ import {
   TASK_STATUS_UPDATE_INTERVAL_MS,
   TASK_TTL_MS,
 } from "./constants";
-import { isTaskTerminal } from "./utils";
 import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
-import { isTerminal } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
+import { isTerminal as isTaskTerminal } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 
 export class TaskManager {
   private bee: Bee;
@@ -87,7 +86,7 @@ export class TaskManager {
         );
       }
 
-      if (isTerminal(task.status)) {
+      if (isTaskTerminal(task.status)) {
         const result = await this.store.getTaskResult(taskId);
 
         return result;

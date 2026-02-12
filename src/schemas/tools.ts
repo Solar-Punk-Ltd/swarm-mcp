@@ -270,7 +270,7 @@ export const SwarmToolsSchema = [
       required: ["reference"],
     },
     execution: {
-      taskSupport: "forbidden",
+      taskSupport: "optional",
     },
   },
   {

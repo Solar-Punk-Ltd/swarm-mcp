@@ -7,7 +7,6 @@ import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
 import { promisify } from "util";
-import config from "../../config";
 import {
   errorHasStatus,
   getErrorMessage,
