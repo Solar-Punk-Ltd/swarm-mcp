@@ -101,6 +101,13 @@ export async function uploadFolder(
           message: "Folder upload complete.",
           tagId,
         });
+
+        taskManager.addExtendedTaskMetadata(
+          task.taskId,
+          "reference",
+          result.reference.toString()
+        );
+
         await taskManager.setTaskResult(
           task.taskId,
           responseWithStructuredContent,

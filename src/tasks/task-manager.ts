@@ -76,6 +76,23 @@ export class TaskManager {
     this.store.updateTaskStatus(taskId, status, message);
   }
 
+  async addExtendedTaskMetadata(taskId: string, key: string, value: string) {
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (!extendedTask) {
+      return;
+    }
+    if (!extendedTask._meta) {
+      extendedTask._meta = {
+        [key]: value,
+      };
+    } else {
+      extendedTask._meta = {
+        ...extendedTask._meta,
+        [key]: value,
+      };
+    }
+  }
+
   async getTaskResult(taskId: string, _sessionId: string): Promise<Result> {
     while (true) {
       const task = await this.store.getTask(taskId);

@@ -115,6 +115,12 @@ export async function uploadFile(
           tagId,
         });
 
+        taskManager.addExtendedTaskMetadata(
+          task.taskId,
+          "reference",
+          result.reference.toString()
+        );
+
         await taskManager.setTaskResult(
           task.taskId,
           responseWithStructuredContent,
