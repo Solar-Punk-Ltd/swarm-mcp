@@ -30,6 +30,6 @@ export interface TaskInformation {
 
 export interface UploadDeferredResult {
   reference: string;
-  url: string;
+  url?: string;
   tagId: string;
 }

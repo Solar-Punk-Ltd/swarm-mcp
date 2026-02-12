@@ -99,7 +99,6 @@ export async function uploadFolder(
       .then(async (result) => {
         const responseWithStructuredContent = getResponseWithStructuredContent({
           reference: result.reference.toString(),
-          url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
           message: "Folder upload complete.",
           tagId,
         });
@@ -146,7 +145,6 @@ export async function uploadFolder(
 
   return getResponseWithStructuredContent({
     reference: result.reference.toString(),
-    url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
     message,
     tagId,
   });

@@ -41,7 +41,6 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
         extendedTask.task.taskId,
         getResponseWithStructuredContent({
           reference: uploadDeferredResult.reference,
-          url: uploadDeferredResult.url,
           message: "Folder upload completed successfully.",
         })
       );
