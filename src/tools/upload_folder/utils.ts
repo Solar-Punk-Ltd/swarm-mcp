@@ -54,10 +54,7 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
       await taskManager.updateTaskStatus(
         extendedTask.task.taskId,
         TaskState.WORKING,
-        `
-        Processing: ${processedPercentage}% (${processed}/${total} chunks)${reference ? ` for reference ${reference}` : ""}.
-        You can also use query_upload_progress for tag id ${tagUid} to track progress.
-        `
+        `Processing: ${processedPercentage}% (${processed}/${total} chunks)${reference ? ` for reference ${reference}` : ""}. You can also use query_upload_progress for tag id ${tagUid} to track progress.`
       );
     }
   } catch (error) {
