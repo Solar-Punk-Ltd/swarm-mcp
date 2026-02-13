@@ -2,9 +2,12 @@
  * MCP Tool: query_upload_progress
  * Query upload progress for a specific upload session identified with the Tag ID
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
-import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
+import {
+  getResponseWithStructuredContent,
+  getToolErrorResponse,
+  ToolResponse,
+} from "../../utils";
 import { QueryUploadProgressArgs } from "./models";
 
 // The third argument (transport) is accepted for parity with other tools but unused here
@@ -14,16 +17,12 @@ export async function queryUploadProgress(
   _transport?: unknown
 ): Promise<ToolResponse> {
   if (!args?.tagId) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: tagId"
-    );
+    return getToolErrorResponse("Missing required parameter: tagId.");
   }
 
   const tagUid = Number.parseInt(args.tagId, 10);
   if (Number.isNaN(tagUid)) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
+    return getToolErrorResponse(
       "Invalid tagId format. Expected a numeric string."
     );
   }
@@ -58,9 +57,8 @@ export async function queryUploadProgress(
       tagAddress: tag.address,
     });
   } catch (error: any) {
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to retrieve upload progress: ${error?.message ?? "Unknown error"}`
+    return getToolErrorResponse(
+      `Failed to retrieve upload progress: ${error?.message ?? "Unknown error"}.`
     );
   }
 }
