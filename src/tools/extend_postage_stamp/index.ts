@@ -105,14 +105,10 @@ export async function extendPostageStamp(
     );
 
     if (hasTimedOut) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: EXTEND_POSTAGE_TIMEOUT_MESSAGE,
-          },
-        ],
-      };
+      return getResponseWithStructuredContent({
+        postageBatchId: postageBatchId,
+        message: EXTEND_POSTAGE_TIMEOUT_MESSAGE,
+      });
     }
 
     extendStorageResponse = response as BatchId;

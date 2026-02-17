@@ -2,7 +2,6 @@
  * MCP Tool: download_files
  * Download folder, files from a Swarm reference
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, MantarayNode } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
