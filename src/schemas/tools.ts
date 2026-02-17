@@ -454,4 +454,18 @@ export const SwarmToolsSchema = [
       required: ["processedPercentage", "tagAddress"],
     },
   },
+  {
+    name: "swarm_dashboard",
+    description: "Launch the Swarm interactive dashboard",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    _meta: {
+      ui: {
+        resourceUri: "ui://dashboard/index.html",
+      },
+    },
+  },
 ];
+

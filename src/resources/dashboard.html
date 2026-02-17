@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swarm MCP Dashboard</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    .card {
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 10px 15px;
+      cursor: pointer;
+    }
+
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Swarm MCP Dashboard</h1>
+  <div class="card">
+    <h2>Upload Status</h2>
+    <p>Check the progress of your uploads.</p>
+    <button id="check-status">Check Status</button>
+    <div id="status-result"></div>
+  </div>
+
+  <script type="module">
+    import { App } from "https://esm.sh/@modelcontextprotocol/ext-apps";
+
+    const app = new App({ name: "Swarm Dashboard", version: "1.0.0" });
+    const checkStatusBtn = document.getElementById('check-status');
+    const statusResult = document.getElementById('status-result');
+
+    app.ontoolresult = (result) => {
+      console.log("Tool result:", result);
+      if (result.content && result.content[0].type === 'text') {
+        statusResult.innerHTML = `<pre>${result.content[0].text}</pre>`;
+      }
+    };
+
+    checkStatusBtn.addEventListener('click', async () => {
+      statusResult.textContent = "Checking...";
+      try {
+        // Example call - in reality, you'd probably need input or list recent uploads
+        // For now, listing postage stamps as a demo
+        const result = await app.callServerTool({
+          name: "list_postage_stamps",
+          arguments: { limit: 5 }
+        });
+        const content = result.content.find(c => c.type === 'text')?.text;
+        statusResult.innerHTML = `<pre>${content}</pre>`;
+      } catch (err) {
+        console.error(err);
+        statusResult.textContent = "Error: " + err.message;
+      }
+    });
+
+    app.connect();
+  </script>
+</body>
+
+</html>

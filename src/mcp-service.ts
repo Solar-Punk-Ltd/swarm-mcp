@@ -9,6 +9,11 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
+import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
 import config from "./config";
 // Import refactored tool modules
 import { uploadData } from "./tools/upload_data";
@@ -41,6 +46,8 @@ import { UploadFolderArgs } from "./tools/upload_folder/models";
 import { DownloadFilesArgs } from "./tools/download_files/models";
 import { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
 import { determineIfGateway } from "./utils";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 /**
  * Swarm MCP Server class
@@ -67,6 +74,7 @@ export class SwarmMCPServer {
     );
 
     this.setupToolHandlers();
+    this.setupResourceHandlers();
 
     this.server.server.onerror = (error: Error) =>
       console.error("[Error]", error);
@@ -75,6 +83,45 @@ export class SwarmMCPServer {
       await this.server.close();
       process.exit(0);
     });
+  }
+
+  private setupResourceHandlers() {
+    const resourceUri = "ui://dashboard/index.html";
+    
+    registerAppTool(
+       this.server,
+      "dashboard",
+      {
+        title: "Dashboard",
+        description: "Dashboard.",
+        inputSchema: {},
+        _meta: { ui: { resourceUri } }, // Links this tool to its UI resource
+      },
+      async () => {
+        const time = new Date().toISOString();
+        return { content: [{ type: "text", text: time }] };
+      },
+    );
+    
+    registerAppResource(
+      this.server,
+      resourceUri,
+      resourceUri,
+      { mimeType: RESOURCE_MIME_TYPE },
+      async () => {
+        try {
+          const html = await fs.readFile(path.join(process.cwd(), "src", "resources", "dashboard.html"), "utf-8");
+
+          return {
+            contents: [
+              { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },
+            ],
+          };
+        } catch (error) {
+           throw new McpError(ErrorCode.InternalError, String(error));
+        }
+      }
+    );
   }
 
   private setupToolHandlers() {
