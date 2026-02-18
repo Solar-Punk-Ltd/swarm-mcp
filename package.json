@@ -6,7 +6,9 @@
     "swarm-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:server && npm run build:ui",
+    "build:server": "tsc",
+    "build:ui": "cd public/get-time && INPUT=mcp-app.html vite build",
     "start": "npm run start:stdio",
     "start:stdio": "node dist/index.js",
     "start:web": "node dist/web.js",
@@ -22,19 +24,23 @@
   "dependencies": {
     "@ethereumjs/wallet": "^10.0.0",
     "@ethersphere/bee-js": "^10.1.1",
-    "@modelcontextprotocol/sdk": "^1.13.2",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0"
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
+    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "jest": "^30.0.3",
     "nodemon": "^3.1.10",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.3.0"
   }
 }

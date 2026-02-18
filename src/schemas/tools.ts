@@ -454,4 +454,28 @@ export const SwarmToolsSchema = [
       required: ["processedPercentage", "tagAddress"],
     },
   },
+  {
+    name: "get-time",
+    description: "Returns the current server time in ISO 8601 format.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        time: {
+          type: "string",
+          description: "Current server time in ISO 8601 format.",
+        },
+      },
+      required: ["time"],
+    },
+    _meta: {
+      ui: {
+        resourceUri: "content://get-time-ui",
+      },
+    },
+  },
 ];
