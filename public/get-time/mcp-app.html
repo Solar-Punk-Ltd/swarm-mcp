@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm MCP Interface</title>
+    <style>
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+        padding: 2rem; 
+        max-width: 1200px; 
+        margin: 0 auto; 
+        background: #f9fafb; 
+        color: #1f2937; 
+      }
+      .card { 
+        background: white; 
+        padding: 2rem; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+        border: 1px solid #e5e7eb; 
+        margin-bottom: 1.5rem; 
+      }
+      h1 { 
+        margin-top: 0; 
+        color: #111827; 
+        font-size: 1.5rem; 
+      }
+      h2 { 
+        color: #374151; 
+        font-size: 1.2rem; 
+        margin-top: 1.5rem; 
+      }
+      p { 
+        color: #6b7280; 
+      }
+      button { 
+        background-color: #ea580c; 
+        color: white; 
+        border: none; 
+        padding: 0.75rem 1.5rem; 
+        border-radius: 0.5rem; 
+        font-weight: 600; 
+        cursor: pointer; 
+        transition: background 0.2s; 
+        font-size: 1rem; 
+        margin-right: 0.5rem; 
+      }
+      button:hover { 
+        background-color: #c2410c; 
+      }
+      button:disabled { 
+        opacity: 0.7; 
+        cursor: not-allowed; 
+      }
+      #result { 
+        margin-top: 1.5rem; 
+        padding: 1rem; 
+        background: #f3f4f6; 
+        border-radius: 0.5rem; 
+        font-family: monospace; 
+        white-space: pre-wrap; 
+        min-height: 40px; 
+        border: 1px solid #e5e7eb; 
+      }
+      .timestamp { 
+        color: #059669; 
+        font-weight: bold; 
+      }
+      table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin-top: 1rem; 
+      }
+      th, td { 
+        padding: 0.75rem; 
+        text-align: left; 
+        border-bottom: 1px solid #e5e7eb; 
+      }
+      th { 
+        background-color: #f9fafb; 
+        font-weight: 600; 
+        color: #374151; 
+      }
+      tr:hover { 
+        background-color: #f9fafb; 
+      }
+      .batch-id { 
+        font-family: monospace; 
+        font-size: 0.85rem; 
+        color: #6b7280; 
+        word-break: break-all; 
+      }
+      .usable-yes { 
+        color: #059669; 
+        font-weight: 600; 
+      }
+      .usable-no { 
+        color: #dc2626; 
+        font-weight: 600; 
+      }
+      .loading { 
+        color: #6b7280; 
+        font-style: italic; 
+      }
+      .error { 
+        color: #dc2626; 
+        padding: 1rem; 
+        background: #fef2f2; 
+        border-radius: 0.5rem; 
+        margin-top: 1rem; 
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>🐝 Swarm MCP Interface</h1>
+      <p>Swarm Bee node admin tools</p>
+
+      <div>
+        <button id="time-btn">Get Time</button>
+        <button id="stamps-btn">List Postage Stamps</button>
+      </div>
+
+      <div id="result">Choose an operation...</div>
+    </div>
+
+    <div class="card" id="stamps-card" style="display: none;">
+      <h2>📋 Postage Stamps</h2>
+      <div id="stamps-table"></div>
+    </div>
+
+    <script type="module" src="./src/mcp-app.ts"></script>
+  </body>
+</html>
