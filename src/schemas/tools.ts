@@ -317,6 +317,7 @@ export const SwarmToolsSchema = [
       required: ["reference"],
     },
     outputSchema: {
+      type: "object",
       oneOf: [
         {
           type: "object",
@@ -427,11 +428,11 @@ export const SwarmToolsSchema = [
       properties: {
         raw: {
           type: "array",
-          raw: PostageBatchCuratedSchema,
+          items: PostageBatchCuratedSchema,
         },
         summary: {
           type: "array",
-          summary: PostageBatchSummarySchema,
+          items: PostageBatchSummarySchema,
         },
       },
       required: ["summary"],

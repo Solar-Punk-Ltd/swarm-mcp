@@ -1,7 +1,3 @@
-/**
- * MCP Tool: query_upload_progress
- * Query upload progress for a specific upload session identified with the Tag ID
- */
 import { Bee } from "@ethersphere/bee-js";
 import {
   getResponseWithStructuredContent,
@@ -9,12 +5,11 @@ import {
   ToolResponse,
 } from "../../utils";
 import { QueryUploadProgressArgs } from "./models";
+import { getUploadProgress } from "../../utils/polling";
 
-// The third argument (transport) is accepted for parity with other tools but unused here
 export async function queryUploadProgress(
   args: QueryUploadProgressArgs,
-  bee: Bee,
-  _transport?: unknown
+  bee: Bee
 ): Promise<ToolResponse> {
   if (!args?.tagId) {
     return getToolErrorResponse("Missing required parameter: tagId.");
@@ -28,19 +23,9 @@ export async function queryUploadProgress(
   }
 
   try {
-    const tag = await bee.retrieveTag(tagUid);
+    const progress = await getUploadProgress(bee, tagUid);
 
-    const synced = tag.synced ?? 0;
-    const seen = tag.seen ?? 0;
-    const processed = synced + seen;
-    const total = tag.split ?? 0;
-    const startedAt = tag.startedAt;
-
-    const processedPercentage =
-      total > 0 ? Math.round((processed / total) * 100) : 0;
-    const isComplete = processedPercentage === 100;
-
-    if (isComplete) {
+    if (progress.isComplete) {
       try {
         await bee.deleteTag(tagUid);
       } catch {
@@ -49,12 +34,12 @@ export async function queryUploadProgress(
     }
 
     return getResponseWithStructuredContent({
-      processedPercentage,
-      message: isComplete
+      processedPercentage: progress.processedPercentage,
+      message: progress.isComplete
         ? "Upload completed successfully."
-        : `Upload progress: ${processedPercentage}% processed`,
-      startedAt,
-      tagAddress: tag.address,
+        : `Upload progress: ${progress.processedPercentage}% processed`,
+      startedAt: progress.startedAt,
+      tagAddress: progress.tagAddress,
     });
   } catch (error: any) {
     return getToolErrorResponse(

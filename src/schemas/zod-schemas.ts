@@ -63,5 +63,7 @@ export const extendPostageStampSchema = z.object({
 });
 
 export const queryUploadProgressSchema = z.object({
-  tagId: z.string(),
+  tagId: z
+    .string()
+    .regex(/^\d+$/, "Tag ID must be a numeric string representing an integer"),
 });
