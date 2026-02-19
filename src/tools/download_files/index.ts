@@ -2,7 +2,6 @@
  * MCP Tool: download_files
  * Download folder, files from a Swarm reference
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, MantarayNode } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
@@ -12,6 +11,7 @@ import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
 import { DownloadFilesArgs } from "./models";
@@ -27,15 +27,11 @@ export async function downloadFiles(
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse> {
   if (!args.reference) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: reference"
-    );
+    return getToolErrorResponse("Missing required parameter: reference.");
   }
   if (args.filePath && !(transport instanceof StdioServerTransport)) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Saving to file path is only supported in stdio mode"
+    return getToolErrorResponse(
+      "Saving to file path is only supported in stdio mode."
     );
   }
 
@@ -52,9 +48,8 @@ export async function downloadFiles(
   }
 
   if (!isManifest) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      "try download_data tool instead since the given reference is not a manifest"
+    return getToolErrorResponse(
+      "Try download_data tool instead since the given reference is not a manifest."
     );
   }
 

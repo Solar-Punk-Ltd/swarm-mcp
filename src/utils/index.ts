@@ -40,6 +40,16 @@ export const getResponseWithStructuredContent = <T>(data: T): ToolResponse => ({
   structuredContent: data,
 });
 
+export const getToolErrorResponse = (text: string): ToolResponse => ({
+  content: [
+    {
+      type: "text",
+      text,
+    },
+  ],
+  isError: true,
+});
+
 export const errorHasStatus = (error: unknown, status: number) => {
   if (typeof error === "object" && error !== null && "status" in error) {
     return error.status === status;

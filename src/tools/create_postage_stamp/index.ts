@@ -12,6 +12,7 @@ import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   makeDate,
   runWithTimeout,
   ToolResponse,
@@ -34,15 +35,9 @@ export async function createPostageStamp(
   const { size, duration, label } = args;
 
   if (!size) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: size."
-    );
+    return getToolErrorResponse("Missing required parameter: size.");
   } else if (!duration) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: duration."
-    );
+    return getToolErrorResponse("Missing required parameter: duration.");
   }
 
   let durationMs;
@@ -50,7 +45,7 @@ export async function createPostageStamp(
   try {
     durationMs = makeDate(duration);
   } catch (makeDateError) {
-    throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");
+    return getToolErrorResponse("Invalid parameter: duration.");
   }
 
   const isRunningAsTask = taskManager && createTaskModel;
@@ -124,11 +119,11 @@ export async function createPostageStamp(
 
     buyStorageResponse = response as BatchId;
   } catch (error) {
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
-    } else {
-      throw new McpError(ErrorCode.InvalidParams, "Unable to buy storage.");
-    }
+    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
+      ? getErrorMessage(error)
+      : "Unable to buy storage.";
+
+    return getToolErrorResponse(errorMsg);
   }
 
   return getResponseWithStructuredContent({

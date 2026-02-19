@@ -7,6 +7,7 @@ import {
 import { getResponseWithStructuredContent } from "../../utils";
 import { TaskManager } from "../../tasks/task-manager";
 import { UploadDeferredResult } from "../../models";
+import { getUploadProgress } from "../../utils/polling";
 
 export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
   extendedTask: ExtendedTask,
@@ -19,21 +20,12 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
     }
 
     const tagUid = Number(extendedTask._meta.tagId);
-    const tag = await bee.retrieveTag(tagUid);
-
-    const synced = tag.synced ?? 0;
-    const seen = tag.seen ?? 0;
-    const processed = synced + seen;
-    const total = tag.split ?? 0;
-
-    const processedPercentage =
-      total > 0 ? Math.round((processed / total) * 100) : 0;
-    const isComplete = processedPercentage === 100;
+    const progress = await getUploadProgress(bee, tagUid);
 
     const now = new Date().toISOString();
     extendedTask.task.lastUpdatedAt = now;
 
-    if (isComplete && extendedTask?.result?.structuredContent) {
+    if (progress.isComplete && extendedTask?.result?.structuredContent) {
       const uploadDeferredResult = extendedTask.result
         .structuredContent as UploadDeferredResult;
 
@@ -54,7 +46,7 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
       await taskManager.updateTaskStatus(
         extendedTask.task.taskId,
         TaskState.WORKING,
-        `Processing: ${processedPercentage}% (${processed}/${total} chunks)${reference ? ` for reference ${reference}` : ""}. You can also use query_upload_progress for tag id ${tagUid} to track progress.`
+        `Processing: ${progress.processedPercentage}% (${progress.processed}/${progress.total} chunks)${reference ? ` for reference ${reference}` : ""}. You can also use query_upload_progress for tag id ${tagUid} to track progress.`
       );
     }
   } catch (error) {

@@ -11,6 +11,7 @@ import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
@@ -29,33 +30,32 @@ export async function uploadFolder(
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
   if (!args.folderPath) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: folderPath"
-    );
+    return getToolErrorResponse("Missing required parameter: folderPath.");
   }
 
   // Check if in stdio mode for folder path uploads
   if (!(transport instanceof StdioServerTransport)) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Folder path uploads are only supported in stdio mode"
+    return getToolErrorResponse(
+      "Folder path uploads are only supported in stdio mode."
     );
   }
 
   // Check if folder exists
   const stats = await promisify(fs.stat)(args.folderPath);
   if (!stats.isDirectory()) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Path is not a directory: ${args.folderPath}`
-    );
+    return getToolErrorResponse(`Path is not a directory: ${args.folderPath}.`);
   }
 
-  const postageBatchId = await getUploadPostageBatchId(
+  const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
   );
+
+  if (error !== null) {
+    return getToolErrorResponse(error);
+  } else if (postageBatchId === null) {
+    return getToolErrorResponse("No postage batch id.");
+  }
 
   const redundancyLevel = args.redundancyLevel;
   const options: CollectionUploadOptions = {};
@@ -142,11 +142,11 @@ export async function uploadFolder(
       options
     );
   } catch (error) {
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
-    } else {
-      throw new McpError(ErrorCode.InvalidParams, "Unable to upload folder.");
-    }
+    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
+      ? getErrorMessage(error)
+      : "Unable to upload folder.";
+
+    return getToolErrorResponse(errorMsg);
   }
 
   return getResponseWithStructuredContent({

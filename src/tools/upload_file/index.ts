@@ -16,6 +16,7 @@ import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
@@ -33,16 +34,19 @@ export async function uploadFile(
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
   if (!args.data) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: data"
-    );
+    return getToolErrorResponse("Missing required parameter: data.");
   }
 
-  const postageBatchId = await getUploadPostageBatchId(
+  const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
   );
+
+  if (error !== null) {
+    return getToolErrorResponse(error);
+  } else if (postageBatchId === null) {
+    return getToolErrorResponse("No postage batch id.");
+  }
 
   let binaryData: Buffer;
   let name: string | undefined;
@@ -50,9 +54,8 @@ export async function uploadFile(
   if (args.isPath) {
     // Check if in stdio mode for file path uploads
     if (!(transport instanceof StdioServerTransport)) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        "File path uploads are only supported in stdio mode"
+      return getToolErrorResponse(
+        "File path uploads are only supported in stdio mode."
       );
     }
 
@@ -60,10 +63,7 @@ export async function uploadFile(
     try {
       binaryData = await promisify(fs.readFile)(args.data);
     } catch (fileError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Unable to read file at path: ${args.data}`
-      );
+      return getToolErrorResponse(`Unable to read file at path: ${args.data}.`);
     }
     name = args.data.split("/").pop();
   } else {
@@ -151,11 +151,11 @@ export async function uploadFile(
     // Start the deferred upload
     result = await bee.uploadFile(postageBatchId, binaryData, name, options);
   } catch (error) {
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
-    } else {
-      throw new McpError(ErrorCode.InvalidParams, "Unable to upload file.");
-    }
+    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
+      ? getErrorMessage(error)
+      : "Unable to upload file.";
+
+    return getToolErrorResponse(errorMsg);
   }
 
   return getResponseWithStructuredContent({

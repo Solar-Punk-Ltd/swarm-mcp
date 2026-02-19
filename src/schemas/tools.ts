@@ -6,6 +6,7 @@ import {
 export const SwarmToolsSchema = [
   {
     name: "upload_data",
+    title: "Upload data",
     description:
       "Upload text data to Swarm. Optional options (ignore if they are not requested): " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
@@ -307,11 +308,11 @@ export const SwarmToolsSchema = [
       properties: {
         raw: {
           type: "array",
-          raw: PostageBatchCuratedSchema,
+          items: PostageBatchCuratedSchema,
         },
         summary: {
           type: "array",
-          summary: PostageBatchSummarySchema,
+          items: PostageBatchSummarySchema,
         },
       },
       required: ["summary"],

@@ -280,8 +280,7 @@ export class SwarmMCPServer {
             const validArgs = queryUploadProgressSchema.parse(args);
             return queryUploadProgress(
               validArgs as QueryUploadProgressArgs,
-              this.bee,
-              this.server.server.transport
+              this.bee
             );
           }
 

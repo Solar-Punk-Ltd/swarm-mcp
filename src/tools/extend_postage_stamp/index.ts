@@ -12,6 +12,7 @@ import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   makeDate,
   runWithTimeout,
   ToolResponse,
@@ -34,13 +35,9 @@ export async function extendPostageStamp(
   const { postageBatchId, duration, size } = args;
 
   if (!postageBatchId) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: postageBatchId"
-    );
+    return getToolErrorResponse("Missing required parameter: postageBatchId.");
   } else if (!duration && !size) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
+    return getToolErrorResponse(
       "You need at least one parameter from duration and size."
     );
   }
@@ -53,7 +50,7 @@ export async function extendPostageStamp(
       extendDuration = Duration.fromMilliseconds(makeDate(duration));
     }
   } catch (makeDateError) {
-    throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");
+    return getToolErrorResponse("Invalid parameter: duration.");
   }
 
   const isRunningAsTask = taskManager && createTaskModel;
@@ -108,23 +105,19 @@ export async function extendPostageStamp(
     );
 
     if (hasTimedOut) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: EXTEND_POSTAGE_TIMEOUT_MESSAGE,
-          },
-        ],
-      };
+      return getResponseWithStructuredContent({
+        postageBatchId: postageBatchId,
+        message: EXTEND_POSTAGE_TIMEOUT_MESSAGE,
+      });
     }
 
     extendStorageResponse = response as BatchId;
   } catch (error) {
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
-    } else {
-      throw new McpError(ErrorCode.InvalidParams, "Extend failed.");
-    }
+    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
+      ? getErrorMessage(error)
+      : "Extend failed.";
+
+    return getToolErrorResponse(errorMsg);
   }
 
   return getResponseWithStructuredContent({
