@@ -46,7 +46,8 @@ export const PostageBatchCuratedSchema = {
       properties: {
         seconds: {
           type: "number",
-          description: "The estimated number of seconds until the batch expires.",
+          description:
+            "The estimated number of seconds until the batch expires.",
         },
       },
     },

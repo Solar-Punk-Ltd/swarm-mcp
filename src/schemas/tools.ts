@@ -210,31 +210,6 @@ export const SwarmToolsSchema = [
       },
       required: ["data"],
     },
-    outputSchema: {
-      type: "object",
-      properties: {
-        reference: {
-          type: "string",
-          description: "The Swarm reference hash of the uploaded file.",
-        },
-        url: {
-          type: "string",
-          description: "Direct access URL to the uploaded file on Swarm.",
-        },
-        message: {
-          type: "string",
-          description: "Status message about the upload result.",
-        },
-        tagId: {
-          type: "string",
-          description:
-            "Tag ID for deferred uploads (null/undefined if not deferred).",
-          nullable: true,
-        },
-      },
-      required: ["reference", "url", "message"],
-      additionalProperties: false,
-    },
     execution: {
       taskSupport: "optional",
     },
@@ -270,27 +245,6 @@ export const SwarmToolsSchema = [
       },
       required: ["folderPath"],
     },
-    outputSchema: {
-      type: "object",
-      properties: {
-        reference: {
-          type: "string",
-          description: "The Swarm reference hash of the uploaded folder.",
-        },
-        message: {
-          type: "string",
-          description: "Status message about the folder upload result.",
-        },
-        tagId: {
-          type: "string",
-          description:
-            "Tag ID for deferred uploads (null/undefined if not deferred).",
-          nullable: true,
-        },
-      },
-      required: ["reference", "message"],
-      additionalProperties: false,
-    },
     execution: {
       taskSupport: "optional",
     },
@@ -315,80 +269,6 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["reference"],
-    },
-    outputSchema: {
-      type: "object",
-      oneOf: [
-        {
-          type: "object",
-          properties: {
-            reference: {
-              type: "string",
-              description: "Original Swarm reference hash.",
-            },
-            manifestNodeCount: {
-              type: "integer",
-              description: "Number of files in the manifest.",
-            },
-            savedTo: {
-              type: "string",
-              description: "Local folder path where files were saved.",
-            },
-            message: {
-              type: "string",
-              description: "Confirmation of successful download.",
-            },
-          },
-          required: ["reference", "manifestNodeCount", "savedTo", "message"],
-          additionalProperties: false,
-          description: "Response when files are saved to filePath",
-        },
-        {
-          type: "object",
-          properties: {
-            reference: {
-              type: "string",
-              description: "Original Swarm reference hash.",
-            },
-            type: {
-              type: "string",
-              const: "manifest",
-              description: "Indicates this is a manifest listing.",
-            },
-            files: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  path: {
-                    type: "string",
-                    description: "File path within the manifest.",
-                  },
-                  targetAddress: {
-                    type: "string",
-                    description: "Hex address of the file content.",
-                  },
-                  metadata: {
-                    type: "object",
-                    description: "File metadata (optional).",
-                    additionalProperties: true,
-                  },
-                },
-                required: ["path", "targetAddress"],
-                additionalProperties: false,
-              },
-              description: "List of files in the manifest.",
-            },
-            message: {
-              type: "string",
-              description: "Instructions for downloading individual files.",
-            },
-          },
-          required: ["reference", "type", "files", "message"],
-          additionalProperties: false,
-          description: "Response when no filePath provided (file list)",
-        },
-      ],
     },
     execution: {
       taskSupport: "optional",
@@ -492,22 +372,6 @@ export const SwarmToolsSchema = [
       },
       required: ["size", "duration"],
     },
-    outputSchema: {
-      type: "object",
-      properties: {
-        postageBatchId: {
-          type: "string",
-          description: "Hex string of the newly created postage batch ID.",
-          nullable: true,
-        },
-        message: {
-          type: "string",
-          description: "Status message.",
-        },
-      },
-      required: ["message"],
-      additionalProperties: false,
-    },
     execution: {
       taskSupport: "optional",
     },
@@ -537,21 +401,6 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["postageBatchId"],
-    },
-    outputSchema: {
-      type: "object",
-      properties: {
-        postageBatchId: {
-          type: "string",
-          description: "The extended postage batch ID (hex string).",
-        },
-        message: {
-          type: "string",
-          description: "Status message indicating success or details.",
-        },
-      },
-      required: ["postageBatchId", "message"],
-      additionalProperties: false,
     },
     execution: {
       taskSupport: "optional",
