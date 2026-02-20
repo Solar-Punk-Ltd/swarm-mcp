@@ -1,71 +1,90 @@
 import { App } from "@modelcontextprotocol/ext-apps";
 
 // Get element references
-const timeBtn = document.getElementById("time-btn")! as HTMLButtonElement;
 const stampsBtn = document.getElementById("stamps-btn")! as HTMLButtonElement;
-const result = document.getElementById("result")!;
-const stampsCard = document.getElementById("stamps-card")!;
 const stampsTable = document.getElementById("stamps-table")!;
+const fileInput = document.getElementById("file-input")! as HTMLInputElement;
+const uploadBtn = document.getElementById("upload-btn")! as HTMLButtonElement;
+const uploadResult = document.getElementById("upload-result")!;
+const previewArea = document.getElementById("preview-area")!;
+
+// Tab elements
+const tabs = document.querySelectorAll(".tab");
+const tabContents = document.querySelectorAll(".tab-content");
+
+// Tab switching
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const tabName = (tab as HTMLElement).dataset.tab;
+    
+    // Remove active class from all tabs and contents
+    tabs.forEach((t) => t.classList.remove("active"));
+    tabContents.forEach((content) => content.classList.remove("active"));
+    
+    // Add active class to clicked tab and corresponding content
+    tab.classList.add("active");
+    document.getElementById(`${tabName}-tab`)?.classList.add("active");
+  });
+});
 
 // Create app instance
 const app = new App({ name: "Swarm MCP Interface", version: "1.0.0" });
 
-// Handle Get Time button
-timeBtn.addEventListener("click", async () => {
-  timeBtn.disabled = true;
-  timeBtn.textContent = "Loading...";
-  result.textContent = "Communicating with Swarm...";
-  stampsCard.style.display = "none";
+// File selection handler
+let selectedFile: File | null = null;
+let fileBase64: string | null = null;
 
-  try {
-    const response = await app.callServerTool({ name: "get-time", arguments: {} });
-    
-    // Display structured response
-    let html = '<div style="margin-bottom: 1rem;">';
-    html += `<h3 style="margin: 0 0 0.5rem 0; color: #059669;">✓ Response received</h3>`;
-    
-    // Display timestamp if available
-    const time = response.content?.find((c) => c.type === "text")?.text;
-    if (time) {
-      html += `<p style="margin: 0 0 1rem 0;"><strong>Server Time:</strong> <span class="timestamp">${time}</span></p>`;
-    }
-    
-    // Display structured content
-    if (response.structuredContent) {
-      html += `<details open><summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5rem;">Structured Content</summary>`;
-      html += `<pre style="background: #1f2937; color: #10b981; padding: 1rem; border-radius: 0.5rem; overflow-x: auto;">${JSON.stringify(response.structuredContent, null, 2)}</pre>`;
-      html += `</details>`;
-    }
-    
-    // Display full response
-    html += `<details style="margin-top: 1rem;"><summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5rem;">Full Response</summary>`;
-    html += `<pre style="background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto;">${JSON.stringify(response, null, 2)}</pre>`;
-    html += `</details>`;
-    html += '</div>';
-    
-    result.innerHTML = html;
-  } catch (error: any) {
-    result.innerHTML = `<div class="error">ERROR: ${error.message}</div>`;
-    console.error(error);
-  } finally {
-    timeBtn.disabled = false;
-    timeBtn.textContent = "Get Time";
+fileInput.addEventListener("change", async (e) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) {
+    uploadBtn.disabled = true;
+    selectedFile = null;
+    fileBase64 = null;
+    return;
   }
+
+  selectedFile = file;
+  uploadBtn.disabled = false;
+  
+  // Read file as base64
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64String = (e.target?.result as string).split(',')[1];
+    fileBase64 = base64String;
+  };
+  reader.readAsDataURL(file);
+  
+  uploadResult.innerHTML = `<p style="color: #6b7280;">Selected: <strong>${file.name}</strong> (${(file.size / 1024).toFixed(2)} KB)</p>`;
+  previewArea.style.display = "none";
 });
 
 // Handle List Stamps button
 stampsBtn.addEventListener("click", async () => {
   stampsBtn.disabled = true;
-  stampsBtn.textContent = "Loading...";
-  result.textContent = "Loading postage stamps...";
+  stampsBtn.innerHTML = "<span>Loading...</span>";
   stampsTable.innerHTML = '<div class="loading">Loading...</div>';
-  stampsCard.style.display = "block";
 
   try {
     const response = await app.callServerTool({ 
       name: "list_postage_stamps", 
       arguments: {} 
     });
+
+    // Get selected stamps first
+    let selectedStampsResponse;
+    let selectedLabels: string[] = [];
+    try {
+      selectedStampsResponse = await app.callServerTool({
+        name: "list_selected_stamps",
+        arguments: {}
+      });
+      if (selectedStampsResponse.content && selectedStampsResponse.content[0]) {
+        const parsed = JSON.parse(selectedStampsResponse.content[0].text);
+        selectedLabels = parsed.selectedStamps || [];
+      }
+    } catch (error) {
+      console.error('Failed to load selected stamps:', error);
+    }
 
     // Extract structured data
     let stamps: any[] = [];
@@ -86,50 +105,184 @@ stampsBtn.addEventListener("click", async () => {
 
     if (stamps.length === 0) {
       stampsTable.innerHTML = '<p class="loading">No postage stamps available.</p>';
-      result.textContent = "No results.";
     } else {
       // Build table from raw data (more detailed)
       let tableHTML = '<table><thead><tr>';
+      tableHTML += '<th style="width: 40px;"></th>';
       tableHTML += '<th>Label</th>';
       tableHTML += '<th>Batch ID</th>';
-      tableHTML += '<th>Usable</th>';
-      tableHTML += '<th>Usage</th>';
       tableHTML += '<th>Depth</th>';
-      tableHTML += '<th>Bucket Depth</th>';
-      tableHTML += '<th>Immutable</th>';
       tableHTML += '</tr></thead><tbody>';
 
-      (rawData.length > 0 ? rawData : stamps).forEach((stamp: any) => {
+      (rawData.length > 0 ? rawData : stamps).forEach((stamp: any, index: number) => {
+        const label = stamp.label || '-';
+        const isSelected = selectedLabels.includes(label);
+        const batchId = stamp.batchID || stamp.stampID || 'N/A';
+        const displayBatchId = batchId !== 'N/A' && batchId.length > 8 
+          ? `${batchId.slice(0, 4)}...${batchId.slice(-4)}` 
+          : batchId;
         tableHTML += '<tr>';
-        tableHTML += `<td><strong>${stamp.label || '-'}</strong></td>`;
-        tableHTML += `<td class="batch-id">${stamp.batchID || stamp.stampID || 'N/A'}</td>`;
-        tableHTML += `<td class="${stamp.usable ? 'usable-yes' : 'usable-no'}">${stamp.usable ? 'Yes' : 'No'}</td>`;
-        tableHTML += `<td>${stamp.usageText || stamp.usage || 'N/A'}</td>`;
+        tableHTML += `<td><input type="checkbox" class="stamp-checkbox" data-batch-id="${batchId}" ${isSelected ? 'checked' : ''} /></td>`;
+        tableHTML += `<td><strong>${label}</strong></td>`;
+        tableHTML += `<td class="batch-id">${displayBatchId}</td>`;
         tableHTML += `<td>${stamp.depth || 'N/A'}</td>`;
-        tableHTML += `<td>${stamp.bucketDepth || 'N/A'}</td>`;
-        tableHTML += `<td>${stamp.immutable !== undefined ? (stamp.immutable || stamp.immutableFlag ? '✓' : '✗') : 'N/A'}</td>`;
         tableHTML += '</tr>';
       });
 
       tableHTML += '</tbody></table>';
       stampsTable.innerHTML = tableHTML;
-      
-      // Display structured response summary
-      let html = '<div style="margin-bottom: 1rem;">';
-      html += `<p style="margin: 0;"><span class="timestamp">${stamps.length} postage stamps found</span></p>`;
-      html += `<details style="margin-top: 1rem;"><summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5rem;">Full Response</summary>`;
-      html += `<pre style="background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem;">${JSON.stringify(response, null, 2)}</pre>`;
-      html += `</details>`;
-      html += '</div>';
-      result.innerHTML = html;
+
+      // Add checkbox event listeners
+      const checkboxes = document.querySelectorAll('.stamp-checkbox') as NodeListOf<HTMLInputElement>;
+      checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', async (e) => {
+          const target = e.target as HTMLInputElement;
+          const batchId = target.dataset.batchId || '';
+          const isChecked = target.checked;
+          
+          // Find the label from the stamps data
+          const stamp = (rawData.length > 0 ? rawData : stamps).find((s: any) => 
+            (s.batchID || s.stampID) === batchId
+          );
+          const label = stamp?.label || batchId;
+          
+          try {
+            await app.callServerTool({
+              name: "select_postage_stamp",
+              arguments: {
+                label: label,
+                selected: isChecked
+              }
+            });
+          } catch (error) {
+            console.error('Failed to update stamp selection:', error);
+            // Revert checkbox state on error
+            target.checked = !isChecked;
+          }
+        });
+      });
     }
   } catch (error: any) {
     stampsTable.innerHTML = `<div class="error">Error loading stamps: ${error.message}</div>`;
-    result.innerHTML = `<div class="error">ERROR: ${error.message}</div>`;
     console.error(error);
   } finally {
     stampsBtn.disabled = false;
-    stampsBtn.textContent = "List Postage Stamps";
+    stampsBtn.innerHTML = "<span>Load Postage Stamps</span>";
+  }
+});
+
+// Handle Upload File button
+uploadBtn.addEventListener("click", async () => {
+  if (!selectedFile || !fileBase64) {
+    uploadResult.innerHTML = '<div class="error">No file selected</div>';
+    return;
+  }
+
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = "<span>Uploading...</span>";
+  uploadResult.innerHTML = '<p class="loading">Uploading to Swarm...</p>';
+  previewArea.style.display = "none";
+
+  try {
+    const response = await app.callServerTool({
+      name: "upload_file",
+      arguments: {
+        data: fileBase64,
+        isPath: false
+      }
+    });
+
+    // Extract upload result
+    let reference = "";
+    let url = "";
+    let message = "";
+
+    if (response.structuredContent) {
+      reference = response.structuredContent.reference || "";
+      url = response.structuredContent.url || "";
+      message = response.structuredContent.message || "Upload successful";
+    } else if (response.content && response.content[0]) {
+      const parsed = JSON.parse(response.content[0].text);
+      reference = parsed.reference || "";
+      url = parsed.url || "";
+      message = parsed.message || "Upload successful";
+    }
+
+    // Display result
+    let html = '<div class="file-info">';
+    html += `<p style="margin: 0 0 0.5rem 0; color: #059669; font-weight: 600;">✓ ${message}</p>`;
+    html += `<p style="margin: 0 0 0.5rem 0;"><strong>File:</strong> ${selectedFile.name}</p>`;
+    html += `<p style="margin: 0 0 0.5rem 0;"><strong>Reference:</strong> <code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.85rem;">${reference}</code></p>`;
+    html += `<p style="margin: 0;"><strong>URL:</strong> <a href="${url}" target="_blank" class="swarm-link">${url}</a></p>`;
+    html += '</div>';
+
+    // Display full response
+    html += `<details style="margin-top: 1rem;"><summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5rem;">Full Response</summary>`;
+    html += `<pre style="background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem;">${JSON.stringify(response, null, 2)}</pre>`;
+    html += `</details>`;
+
+    uploadResult.innerHTML = html;
+
+    // Preview - try to display as image (check file type OR extension)
+    const fileName = selectedFile.name.toLowerCase();
+    const isImageExtension = fileName.endsWith('.png') || fileName.endsWith('.jpg') || 
+                             fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || 
+                             fileName.endsWith('.webp') || fileName.endsWith('.svg') ||
+                             fileName.endsWith('.bmp');
+    
+    const isProbablyImage = selectedFile.type.startsWith("image/") || isImageExtension;
+    
+    previewArea.style.display = "block";
+    
+    if (isProbablyImage && fileBase64) {
+      // Show image preview from base64 (more reliable than Swarm URL immediately)
+      const dataUrl = `data:${selectedFile.type || 'image/png'};base64,${fileBase64}`;
+      
+      let previewHtml = '<div style="width: 100%;">';
+      previewHtml += '<h3 style="margin: 0 0 1rem 0; color: #374151;">Preview:</h3>';
+      previewHtml += `<img src="${dataUrl}" alt="${selectedFile.name}" style="max-width: 100%; max-height: 400px; border-radius: 0.5rem; margin-bottom: 1rem;" />`;
+      previewHtml += '<div style="display: flex; gap: 0.5rem; justify-content: center;">';
+      previewHtml += `<button id="open-btn" style="display: inline-block; padding: 0.5rem 1rem; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer;"><span>Open in Browser</span></button>`;
+      previewHtml += '</div>';
+      previewHtml += '</div>';;
+      
+      previewArea.innerHTML = previewHtml;
+      
+      // Add click handler
+      document.getElementById('open-btn')?.addEventListener('click', async () => {
+        try {
+          await app.callServerTool({ name: "open_url", arguments: { url } });
+        } catch (error) {
+          console.error('Failed to open URL:', error);
+        }
+      });
+    } else {
+      // Non-image file - just show open option
+      let previewHtml = '<div style="width: 100%; text-align: center;">';
+      previewHtml += '<p style="color: #6b7280; margin-bottom: 1rem;">✓ File uploaded successfully</p>';
+      previewHtml += '<div style="display: flex; gap: 0.5rem; justify-content: center;">';
+      previewHtml += `<button id="open-btn" style="display: inline-block; padding: 0.5rem 1rem; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer;"><span>Open in Browser</span></button>`;
+      previewHtml += '</div>';
+      previewHtml += '</div>';
+      
+      previewArea.innerHTML = previewHtml;
+      
+      // Add click handler
+      document.getElementById('open-btn')?.addEventListener('click', async () => {
+        try {
+          await app.callServerTool({ name: "open_url", arguments: { url } });
+        } catch (error) {
+          console.error('Failed to open URL:', error);
+        }
+      });
+    }
+
+  } catch (error: any) {
+    uploadResult.innerHTML = `<div class="error">Upload failed: ${error.message}</div>`;
+    console.error(error);
+  } finally {
+    uploadBtn.disabled = fileBase64 === null;
+    uploadBtn.innerHTML = "<span>Upload to Swarm</span>";
   }
 });
 

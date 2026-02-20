@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP APPs - The Future of Model Context Protocol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+        .section-scroll {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4rem 2rem;
+            border-bottom: 1px solid #1e293b;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #38bdf8;
+        }
+        nav {
+            backdrop-filter: blur(10px);
+            background: rgba(15, 23, 42, 0.8);
+        }
+        .flow-box {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(51, 65, 85, 1);
+            border-radius: 1rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 180px; /* Fixed uniform width */
+            height: 130px; /* Fixed uniform height */
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .highlight-box {
+            background: rgba(12, 74, 110, 0.2); /* sky-900/20 */
+            border: 1px solid rgba(14, 165, 233, 0.3); /* sky-500/30 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 p-4 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <span class="font-bold text-xl gradient-text">MCP APPs</span>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="section-scroll text-center">
+        <h1 class="text-6xl md:text-8xl font-extrabold mb-6"><span class="gradient-text">MCP APPs</span></h1>
+        <p class="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+            The next evolution of the Model Context Protocol.
+        </p>
+    </header>
+
+    <!-- Section: Limitations -->
+    <section id="limitations" class="section-scroll bg-slate-900/50">
+        <div class="max-w-6xl mx-auto text-center">
+            <h2 class="text-4xl font-bold mb-[50px] text-slate-200">
+                MCP Server limitations without MCP APPs
+            </h2>
+            
+            <!-- Wrapper to ensure equal width for box and diagram -->
+            <div class="inline-flex flex-col items-center max-w-full mx-auto">
+                <!-- Styled Box: w-full ensures it matches the diagram's width -->
+                <div class="highlight-box p-8 rounded-3xl mb-[50px] w-full">
+                    <p class="text-2xl italic leading-relaxed text-slate-300">
+                        Only text interaction
+                    </p>
+                </div>
+
+                <!-- Flow Diagram: Traditional -->
+                <div class="flex flex-wrap justify-center items-center gap-4 w-full">
+                    <div class="flow-box">
+                        <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span class="text-sm font-semibold">User</span>
+                    </div>
+
+                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+
+                    <div class="flow-box">
+                        <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="text-sm font-semibold">Ask question</span>
+                    </div>
+
+                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+
+                    <div class="flow-box">
+                        <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path></svg>
+                        <span class="text-sm font-semibold">MCP Tool</span>
+                    </div>
+
+                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+
+                    <div class="flow-box">
+                        <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="text-sm font-semibold">Text response</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Concept & Capabilities -->
+    <section id="concept" class="section-scroll">
+        <div class="max-w-6xl mx-auto text-center">
+            <h2 class="text-4xl font-bold mb-[50px] text-slate-200">The MCP APP solution</h2>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="highlight-box p-8 rounded-3xl mb-[50px] w-full box-border">
+                    <p class="text-2xl italic leading-relaxed text-slate-300">
+                        Renders an interactive UI inside the conversation
+                    </p>
+                </div>
+
+                <!-- Key Capabilities List (Replacing Flow Diagram) -->
+                <div class="text-left bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50">
+                    <h3 class="text-2xl font-bold mb-8 text-slate-200 text-center">Key Capabilities</h3>
+                    <ul class="space-y-6">
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">Context switching elimination</h4>
+                                <p class="text-slate-400">Elimination of "context switching" by anchoring functional tools directly within the flow of a conversation.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">Bidirectional data flow</h4>
+                                <p class="text-slate-400">Apps use existing MCP patterns for bidirectional communication, eliminating the need for custom APIs, authentication, or complex state management.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">Security guarentees</h4>
+                                <p class="text-slate-400">Hosts can safely render third-party apps.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            
+        </div>
+    </section>
+
+    <!-- Section: Security & Isolation -->
+    <section id="security" class="section-scroll bg-slate-900/50">
+        <div class="max-w-6xl mx-auto text-center">
+            <h2 class="text-4xl font-bold mb-[50px] text-slate-200">MCP Apps: Security & Isolation Model</h2>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="text-left bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50">
+                    <ul class="space-y-6">
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">Strong Iframe Sandboxing</h4>
+                                <p class="text-slate-400">All UI components run in a strictly isolated environment. This "glass wall" prevents the app from accessing the host's DOM, cookies, local storage, or executing unauthorized scripts.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">Auditable Communication</h4>
+                                <p class="text-slate-400">The app and host communicate exclusively via the postMessage API using JSON-RPC. Every interaction is structured, loggable, and can be inspected for suspicious activity.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">Granular Host Control</h4>
+                                <p class="text-slate-400">The host acts as a gatekeeper, with the power to restrict specific capabilities (e.g., disabling link opening or limiting which tools the app can call).</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">Pre-declared Templates</h4>
+                                <p class="text-slate-400">Hosts can review and vet HTML content before it is even rendered, allowing for the proactive blocking of malicious code.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <div class="bg-sky-500 p-2 rounded-lg mr-4 mt-1 shrink-0">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold text-slate-200">User Consent & Transparency</h4>
+                                <p class="text-slate-400">Sensitive actions—such as UI-initiated tool calls—require explicit user approval, ensuring that no critical operations happen without human oversight.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- New Section: When to use -->
+    <section id="when-to-use" class="section-scroll">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold mb-12 text-slate-200 text-center">When to use MCP Apps</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Card 1: Data Exploration -->
+                <div class="card p-8 rounded-2xl">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-sky-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                            <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-sky-400">Data Exploration</h3>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">
+                        It’s about transforming the AI from a simple "messenger" into a fully functional analytics cockpit where the user can manipulate data visually and intuitively.
+                    </p>
+                </div>
+
+                <!-- Card 2: Configuration Wizards -->
+                <div class="card p-8 rounded-2xl">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-sky-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                            <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-sky-400">Configuration Wizards</h3>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">
+                        It’s about shifting from a "chat-based" configuration to a "structured, dynamic form" approach to increase efficiency and reduce errors in complex deployments.
+                    </p>
+                </div>
+
+                <!-- Card 3: Document Review -->
+                <div class="card p-8 rounded-2xl">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-sky-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                            <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-sky-400">Document Review</h3>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">
+                        It is about "Direct Manipulation," where the AI workspace becomes a functional dashboard, allowing users to interact with files and media natively rather than just talking about them.
+                    </p>
+                </div>
+
+                <!-- Card 4: Real-time Monitoring -->
+                <div class="card p-8 rounded-2xl">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-sky-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                            <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-sky-400">Real-time Monitoring</h3>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">
+                        It is about "Live Observability," where the system provides a constant pulse of information, allowing users to monitor health and performance without any extra effort.
+                    </p>
+                </div>
+
+                <!-- Card 5: Multi-step Workflows -->
+                <div class="card p-8 rounded-2xl">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-sky-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                            <svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-sky-400">Multi-step Workflows</h3>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed">
+                        It is about "Workflow Automation," turning a conversational AI into a structured productivity tool that handles high-volume, repetitive tasks through a dedicated, stateful interface.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: How it Works -->
+    <section id="how-it-works" class="section-scroll">
+        <div class="max-w-full mx-auto px-4">
+            <h2 class="text-4xl font-bold mb-12 text-slate-200 text-center">How it Works</h2>
+            
+            <!-- Communication Diagram Container -->
+            <div class="bg-slate-900/80 p-2 md:p-4 rounded-3xl border border-slate-700 overflow-x-auto flex justify-center">
+                <!-- Recreated Diagram as SVG to ensure visibility without external image files -->
+                <svg viewBox="0 0 1100 650" class="w-full max-w-[1800px] h-auto" style="min-height: 700px;" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrow-head" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#94a3b8" />
+                        </marker>
+                    </defs>
+
+                    <!-- Connections (Lines) -->
+                    <!-- User <-> Agent (Top Row) -->
+                    <line x1="220" y1="120" x2="430" y2="120" stroke="#475569" stroke-width="2" marker-end="url(#arrow-head)" />
+                    <line x1="430" y1="160" x2="220" y2="160" stroke="#475569" stroke-width="2" marker-end="url(#arrow-head)" />
+                    
+                    <!-- Agent <-> Server (Top Row) -->
+                    <line x1="630" y1="120" x2="840" y2="120" stroke="#475569" stroke-width="2" marker-end="url(#arrow-head)" />
+                    <line x1="840" y1="160" x2="630" y2="160" stroke="#475569" stroke-width="2" marker-end="url(#arrow-head)" />
+
+                    <!-- Agent <-> App (Vertical) -->
+                    <line x1="510" y1="220" x2="510" y2="480" stroke="#475569" stroke-width="2" marker-end="url(#arrow-head)" />
+                    <line x1="550" y1="480" x2="550" y2="220" stroke="#475569" stroke-width="2" marker-end="url(#arrow-head)" />
+
+                    <!-- User -> App (Diagonal Interaction) -->
+                    <line x1="180" y1="220" x2="430" y2="520" stroke="#475569" stroke-width="2" marker-end="url(#arrow-head)" />
+
+                    <!-- Labels on Lines -->
+                    <text x="325" y="110" text-anchor="middle" fill="#94a3b8" font-size="14">1. prompt / 13. question</text>
+                    <text x="325" y="150" text-anchor="middle" fill="#94a3b8" font-size="14">16. text answer</text>
+
+                    <text x="735" y="110" text-anchor="middle" fill="#94a3b8" font-size="14">2. / 7. / 12. / 14. tool calls</text>
+                    <text x="735" y="150" text-anchor="middle" fill="#94a3b8" font-size="14">3. / 15. response / 8. fresh data</text>
+
+                    <text x="495" y="350" text-anchor="middle" fill="#94a3b8" font-size="14" transform="rotate(-90, 495, 350)">4. app rendering / 9. fresh data</text>
+                    <text x="565" y="350" text-anchor="middle" fill="#94a3b8" font-size="14" transform="rotate(-90, 565, 350)">6. / 11. tool call request</text>
+
+                    <text x="280" y="380" text-anchor="middle" fill="#94a3b8" font-size="14" transform="rotate(48, 280, 380)">5. / 10. user interaction</text>
+
+
+                    <!-- NODES (Styled like 'Limitations' boxes) -->
+                    
+                    <!-- User Node -->
+                    <g transform="translate(20, 70)">
+                        <rect x="0" y="0" width="200" height="150" rx="24" fill="#1e293b" stroke="#334155" stroke-width="2" />
+                        <path transform="translate(76, 35) scale(2)" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <text x="100" y="120" text-anchor="middle" fill="#e2e8f0" font-size="24" font-weight="bold">User</text>
+                    </g>
+
+                    <!-- Agent Node -->
+                    <g transform="translate(430, 70)">
+                        <rect x="0" y="0" width="200" height="150" rx="24" fill="#1e293b" stroke="#334155" stroke-width="2" />
+                        <path transform="translate(76, 35) scale(2)" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <text x="100" y="120" text-anchor="middle" fill="#e2e8f0" font-size="24" font-weight="bold">Agent</text>
+                    </g>
+
+                    <!-- Server Node -->
+                    <g transform="translate(840, 70)">
+                        <rect x="0" y="0" width="200" height="150" rx="24" fill="#1e293b" stroke="#334155" stroke-width="2" />
+                        <path transform="translate(76, 35) scale(2)" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <text x="100" y="120" text-anchor="middle" fill="#e2e8f0" font-size="24" font-weight="bold">MCP Server</text>
+                    </g>
+
+                    <!-- App Node -->
+                    <g transform="translate(430, 480)">
+                        <rect x="0" y="0" width="200" height="150" rx="24" fill="#1e293b" stroke="#334155" stroke-width="2" />
+                        <path transform="translate(76, 35) scale(2)" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <text x="100" y="120" text-anchor="middle" fill="#e2e8f0" font-size="24" font-weight="bold">MCP App</text>
+                    </g>
+
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Creation -->
+    <section id="creation" class="section-scroll bg-slate-900/50">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-4xl font-bold mb-12 text-slate-200 text-center">How to Build an MCP App</h2>
+            
+            <!-- Client Support Box -->
+            <div class="bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50 mb-12">
+                <h3 class="text-2xl font-bold mb-6 text-slate-200">Client Support</h3>
+                <p class="text-slate-400 mb-4">MCP Apps are supported in:</p>
+                <ul class="text-slate-300 space-y-2">
+                    <li>• <span class="font-semibold">Claude</span></li>
+                    <li>• <span class="font-semibold">Goose</span></li>
+                    <li>• <span class="font-semibold">Visual Studio Code</span> - available in Visual Studio Code Insiders</li>
+                    <li>• <span class="font-semibold">ChatGPT</span></li>
+                </ul>
+            </div>
+
+            <!-- Getting Started Box -->
+            <div class="bg-sky-500/10 border border-sky-500/20 p-8 rounded-xl">
+                <h3 class="text-2xl font-bold mb-6 text-slate-200">Getting Started with MCP Apps</h3>
+                <div class="space-y-4 text-slate-300">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-sky-400 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        <div>
+                            <a href="https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/" class="text-sky-400 hover:text-sky-300 hover:underline transition-colors font-semibold" target="_blank" rel="noopener noreferrer">MCP Apps Announcement Blog Post</a>
+                            <p class="text-sm text-slate-500 mt-1">https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-sky-400 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        <div>
+                            <a href="https://modelcontextprotocol.io/docs/extensions/apps" class="text-sky-400 hover:text-sky-300 hover:underline transition-colors font-semibold" target="_blank" rel="noopener noreferrer">Official MCP Apps Documentation</a>
+                            <p class="text-sm text-slate-500 mt-1">https://modelcontextprotocol.io/docs/extensions/apps</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-sky-400 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        <div>
+                            <a href="https://modelcontextprotocol.github.io/ext-apps/api/documents/Quickstart.html" class="text-sky-400 hover:text-sky-300 hover:underline transition-colors font-semibold" target="_blank" rel="noopener noreferrer">MCP Apps Quickstart Guide</a>
+                            <p class="text-sm text-slate-500 mt-1">https://modelcontextprotocol.github.io/ext-apps/api/documents/Quickstart.html</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="p-12 text-center text-slate-500 border-t border-slate-800">
+    </footer>
+</body>
+</html>
