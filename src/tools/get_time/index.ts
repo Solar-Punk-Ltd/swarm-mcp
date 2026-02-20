@@ -1,21 +1,20 @@
 /**
- * MCP Tool: get-time
- * Returns the current server time in ISO 8601 format.
+ * MCP Tool: swarm-mcp-app-tool (formerly get-time)
+ * Triggers the Swarm MCP App UI interface.
  */
 import { ToolResponse } from "../../utils";
-import { GetTimeArgs, GetTimeResult } from "./models";
+import { GetTimeArgs } from "./models";
 
 export async function getTime(_args: GetTimeArgs): Promise<ToolResponse> {
-  const time = new Date().toISOString();
-  const result: GetTimeResult = { time };
-
   return {
     content: [
       {
         type: "text",
-        text: time,
+        text: "Swarm MCP App UI interface",
       },
     ],
-    structuredContent: result,
+    structuredContent: {
+      message: "UI interface available",
+    },
   };
 }

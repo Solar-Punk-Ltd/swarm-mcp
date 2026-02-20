@@ -455,8 +455,8 @@ export const SwarmToolsSchema = [
     },
   },
   {
-    name: "get-time",
-    description: "Returns the current server time in ISO 8601 format.",
+    name: "swarm-mcp-app-tool",
+    description: "Opens the Swarm MCP App UI interface for managing stamps and uploading files.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -465,17 +465,114 @@ export const SwarmToolsSchema = [
     outputSchema: {
       type: "object",
       properties: {
-        time: {
+        message: {
           type: "string",
-          description: "Current server time in ISO 8601 format.",
+          description: "Status message.",
         },
       },
-      required: ["time"],
+      required: ["message"],
     },
     _meta: {
       ui: {
         resourceUri: "content://get-time-ui",
       },
+    },
+  },
+  {
+    name: "open_url",
+    description: "Opens a URL in the default browser on the server machine.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "The URL to open in the browser.",
+        },
+      },
+      required: ["url"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        success: {
+          type: "boolean",
+          description: "Whether the URL was successfully opened.",
+        },
+        message: {
+          type: "string",
+          description: "Success or error message.",
+        },
+        url: {
+          type: "string",
+          description: "The URL that was opened.",
+        },
+      },
+      required: ["success", "message"],
+    },
+  },
+  {
+    name: "select_postage_stamp",
+    description: "Toggle selection of a postage stamp. Called when user checks/unchecks a stamp in the UI.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        label: {
+          type: "string",
+          description: "The label of the postage stamp to select/deselect.",
+        },
+        selected: {
+          type: "boolean",
+          description: "Whether the stamp should be selected (true) or deselected (false).",
+        },
+      },
+      required: ["label", "selected"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        success: {
+          type: "boolean",
+          description: "Whether the selection was successful.",
+        },
+        label: {
+          type: "string",
+          description: "The label that was selected/deselected.",
+        },
+        selected: {
+          type: "boolean",
+          description: "The new selection state.",
+        },
+        selectedStamps: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of all currently selected stamp labels.",
+        },
+      },
+      required: ["success", "label", "selected", "selectedStamps"],
+    },
+  },
+  {
+    name: "list_selected_stamps",
+    description: "Get the list of currently selected postage stamp labels.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        selectedStamps: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of all currently selected stamp labels.",
+        },
+        count: {
+          type: "number",
+          description: "Number of selected stamps.",
+        },
+      },
+      required: ["selectedStamps", "count"],
     },
   },
 ];

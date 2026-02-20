@@ -26,7 +26,8 @@
     "@ethersphere/bee-js": "^10.1.1",
     "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "open": "^11.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

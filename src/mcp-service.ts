@@ -24,6 +24,7 @@ import { queryUploadProgress } from "./tools/query_upload_progress";
 import { listPostageStamps } from "./tools/list-postage-stamps";
 import { getPostageStamp } from "./tools/get_postage_stamp";
 import { getTime } from "./tools/get_time";
+import { openUrl } from "./tools/open_url";
 import { ListPostageStampsArgs } from "./tools/list-postage-stamps/models";
 import { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
 import { extendPostageStamp } from "./tools/extend_postage_stamp";
@@ -46,10 +47,17 @@ import { UploadFolderArgs } from "./tools/upload_folder/models";
 import { DownloadFilesArgs } from "./tools/download_files/models";
 import { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
 import { GetTimeArgs } from "./tools/get_time/models";
+import { OpenUrlArgs } from "./tools/open_url/models";
+import { selectPostageStamp, getSelectedStamps } from "./tools/select_postage_stamp";
+import { SelectPostageStampArgs } from "./tools/select_postage_stamp/models";
+import { listSelectedStamps } from "./tools/list_selected_stamps";
+import { ListSelectedStampsArgs } from "./tools/list_selected_stamps/models";
 import { determineIfGateway } from "./utils";
 
 const GET_TIME_RESOURCE_URI = "content://get-time-ui";
 const GET_TIME_RESOURCE_MIME_TYPE = "text/html";
+const SELECTED_STAMPS_RESOURCE_URI = "selected-stamps://list";
+const SELECTED_STAMPS_RESOURCE_MIME_TYPE = "application/json";
 // CommonJS környezetben (mivel a tsconfig szerint ez az) a __dirname használatos
 const GET_TIME_RESOURCE_DIST_PATH = path.join(
   process.cwd(),
@@ -190,8 +198,17 @@ export class SwarmMCPServer {
               this.bee,
             );
 
-          case "get-time":
+          case "swarm-mcp-app-tool":
             return getTime(args as unknown as GetTimeArgs);
+
+          case "open_url":
+            return openUrl(args as unknown as OpenUrlArgs);
+
+          case "select_postage_stamp":
+            return selectPostageStamp(args as unknown as SelectPostageStampArgs);
+
+          case "list_selected_stamps":
+            return listSelectedStamps(args as unknown as ListSelectedStampsArgs);
         }
 
         throw new McpError(
@@ -202,67 +219,22 @@ export class SwarmMCPServer {
     );
   }
 
-  // private registerResources() {
-  //   this.server.registerResource(
-  //     "get-time-ui",
-  //     GET_TIME_RESOURCE_URI,
-  //     {
-  //       title: "Get Time UI",
-  //       description: "Static HTML interface for the get-time tool.",
-  //       mimeType: GET_TIME_RESOURCE_MIME_TYPE,
-  //     },
-  //     async () => {
-  //       try {
-  //         // 1. Beolvassuk a buildelt fájlt
-  //         const html = await readFile(GET_TIME_RESOURCE_DIST_PATH, "utf-8");
-
-  //         // 2. BIZTONSÁGI ELLENŐRZÉS: Ha a fájlban src="/src/..." van, akkor az nem a buildelt fájl!
-  //         if (html.includes('src="/src/')) {
-  //           throw new McpError(
-  //             ErrorCode.InternalError,
-  //             "CRITICAL: The server loaded the raw source HTML instead of the bundled build. Please run 'npm run build' again.",
-  //           );
-  //         }
-  //         return {
-  //           contents: [
-  //             {
-  //               uri: GET_TIME_RESOURCE_URI,
-  //               mimeType: GET_TIME_RESOURCE_MIME_TYPE,
-  //               text: html,
-  //             },
-  //           ],
-  //         };
-  //       } catch (error) {
-  //         if (error instanceof McpError) {
-  //           throw error;
-  //         }
-
-  //         const message =
-  //           error instanceof Error ? error.message : "unknown error";
-
-  //         throw new McpError(
-  //           ErrorCode.InternalError,
-  //           `Unable to load resource at ${GET_TIME_RESOURCE_URI}: ${message}`,
-  //         );
-  //       }
-  //     },
-  //   );
-  // }
+  
   private registerResources() {
     this.server.registerResource(
       "get-time-ui",
       GET_TIME_RESOURCE_URI,
       {
-        title: "Get Time UI",
-        description: "Static HTML interface for the get-time tool.",
+        title: "Swarm MCP App UI",
+        description: "Static HTML interface for the swarm-mcp-app-tool.",
         mimeType: GET_TIME_RESOURCE_MIME_TYPE,
       },
       async () => {
         try {
-          // 1. Beolvassuk a buildelt fájlt
+         
           const html = await readFile(GET_TIME_RESOURCE_DIST_PATH, "utf-8");
 
-          // 2. BIZTONSÁGI ELLENŐRZÉS: Ha a fájlban src="/src/..." van, akkor az nem a buildelt fájl!
+          
           if (html.includes('src="/src/')) {
             throw new McpError(
               ErrorCode.InternalError,
@@ -291,6 +263,29 @@ export class SwarmMCPServer {
             `Unable to load resource at ${GET_TIME_RESOURCE_URI}: ${message}`,
           );
         }
+      },
+    );
+
+    // Register selected stamps resource
+    this.server.registerResource(
+      "selected-stamps-list",
+      SELECTED_STAMPS_RESOURCE_URI,
+      {
+        title: "Selected Postage Stamps",
+        description: "List of currently selected postage stamp labels.",
+        mimeType: SELECTED_STAMPS_RESOURCE_MIME_TYPE,
+      },
+      async () => {
+        const selectedStamps = getSelectedStamps();
+        return {
+          contents: [
+            {
+              uri: SELECTED_STAMPS_RESOURCE_URI,
+              mimeType: SELECTED_STAMPS_RESOURCE_MIME_TYPE,
+              text: JSON.stringify({ selectedStamps }, null, 2),
+            },
+          ],
+        };
       },
     );
   }
