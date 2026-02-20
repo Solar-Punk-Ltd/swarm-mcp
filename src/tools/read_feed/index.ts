@@ -13,6 +13,7 @@ import {
   ToolResponse,
 } from "../../utils";
 import { ReadFeedArgs } from "./models";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types";
 
 export async function readFeed(
   args: ReadFeedArgs,
@@ -47,10 +48,7 @@ export async function readFeed(
   try {
     topicBytes = hexToBytes(topic);
   } catch (error) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid topic: ${error instanceof Error ? error.message : String(error)}`
-    );
+    return getToolErrorResponse("Invalid topic");
   }
 
   let feedOwner = owner;

@@ -17,6 +17,7 @@ import {
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UpdateFeedArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types";
 
 export async function updateFeed(
   args: UpdateFeedArgs,
@@ -69,10 +70,7 @@ export async function updateFeed(
   try {
     topicBytes = hexToBytes(topic);
   } catch (error) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid topic: ${error instanceof Error ? error.message : String(error)}`
-    );
+    return getToolErrorResponse("Invalid topic");
   }
 
   let feedPrivateKey: Uint8Array;

@@ -124,3 +124,11 @@ export const determineIfGateway = async (bee: Bee) => {
 
   return isGateway;
 };
+
+export const getToolsWithTaskSupport = () => {
+  return SwarmToolsSchema.filter((schema) => {
+    const taskSupport = schema.execution?.taskSupport;
+
+    return taskSupport === "optional" || taskSupport === "required";
+  }).map((schema) => schema.name);
+};
