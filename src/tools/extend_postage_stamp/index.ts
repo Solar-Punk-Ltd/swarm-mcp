@@ -9,7 +9,6 @@ import {
   getErrorMessage,
   getResponseWithStructuredContent,
   getToolErrorResponse,
-  makeDate,
   runWithTimeout,
   ToolResponse,
 } from "../../utils";
@@ -43,7 +42,7 @@ export async function extendPostageStamp(
 
   try {
     if (duration) {
-      extendDuration = Duration.fromMilliseconds(makeDate(duration));
+      extendDuration = Duration.parseFromString(duration);
     }
   } catch (makeDateError) {
     return getToolErrorResponse("Invalid parameter: duration.");

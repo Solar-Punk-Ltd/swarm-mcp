@@ -1,7 +1,10 @@
 import { PostageBatch } from "@ethersphere/bee-js";
 import { TaskManager } from "./tasks/task-manager";
 
-export type PostageBatchCurated = Omit<PostageBatch, "batchID"> & {
+export type PostageBatchCurated = Omit<
+  PostageBatch,
+  "batchID" | "utilization"
+> & {
   batchID: string;
 };
 

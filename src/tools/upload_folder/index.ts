@@ -1,8 +1,7 @@
 import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import fs from "fs";
-import { promisify } from "util";
+import { stat } from "fs/promises";
 import {
   errorHasStatus,
   getErrorMessage,
@@ -37,7 +36,7 @@ export async function uploadFolder(
   }
 
   // Check if folder exists
-  const stats = await promisify(fs.stat)(args.folderPath);
+  const stats = await stat(args.folderPath);
   if (!stats.isDirectory()) {
     return getToolErrorResponse(`Path is not a directory: ${args.folderPath}.`);
   }

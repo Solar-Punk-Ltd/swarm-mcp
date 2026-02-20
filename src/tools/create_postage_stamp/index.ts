@@ -9,7 +9,6 @@ import {
   getErrorMessage,
   getResponseWithStructuredContent,
   getToolErrorResponse,
-  makeDate,
   runWithTimeout,
   ToolResponse,
 } from "../../utils";
@@ -36,14 +35,6 @@ export async function createPostageStamp(
     return getToolErrorResponse("Missing required parameter: duration.");
   }
 
-  let durationMs;
-
-  try {
-    durationMs = makeDate(duration);
-  } catch (makeDateError) {
-    return getToolErrorResponse("Invalid parameter: duration.");
-  }
-
   const isRunningAsTask = taskManager && createTaskModel;
   if (isRunningAsTask) {
     const task = await taskManager.createTask(createTaskModel, null, null);
@@ -51,7 +42,7 @@ export async function createPostageStamp(
     bee
       .buyStorage(
         Size.fromMegabytes(size),
-        Duration.fromMilliseconds(durationMs),
+        Duration.parseFromString(duration),
         {
           label,
         }
@@ -92,7 +83,7 @@ export async function createPostageStamp(
   try {
     const buyStoragePromise = bee.buyStorage(
       Size.fromMegabytes(size),
-      Duration.fromMilliseconds(durationMs),
+      Duration.parseFromString(duration),
       {
         label,
       }

@@ -5,7 +5,7 @@
 import { Bee, MantarayNode } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
-import { promisify } from "util";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import {
   errorHasStatus,
@@ -92,7 +92,7 @@ const downloadFilesHelper = async (
     const destinationFolder = args.filePath;
 
     if (!fs.existsSync(destinationFolder)) {
-      await promisify(fs.mkdir)(destinationFolder, { recursive: true });
+      await mkdir(destinationFolder, { recursive: true });
     }
 
     const nodes = node!.collect();
@@ -100,11 +100,8 @@ const downloadFilesHelper = async (
     if (nodes.length === 1) {
       const node = nodes[0];
       const data = await bee.downloadData(node.targetAddress);
-      await promisify(fs.writeFile)(
-        path.join(
-          destinationFolder,
-          node.fullPathString.split("\\").slice(-1)[0]
-        ),
+      await writeFile(
+        path.join(destinationFolder, path.basename(node.fullPathString)),
         data.toUint8Array()
       );
     } else {
@@ -114,11 +111,11 @@ const downloadFilesHelper = async (
         const nodeDestFolder = path.join(destinationFolder, parsedPath.dir);
         // Create subdirectories if necessary
         if (!fs.existsSync(nodeDestFolder)) {
-          await promisify(fs.mkdir)(nodeDestFolder, { recursive: true });
+          await mkdir(nodeDestFolder, { recursive: true });
         }
 
         const data = await bee.downloadData(node.targetAddress);
-        await promisify(fs.writeFile)(
+        await writeFile(
           path.join(destinationFolder, node.fullPathString),
           data.toUint8Array()
         );

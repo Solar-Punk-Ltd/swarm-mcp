@@ -30,10 +30,12 @@ export async function listPostageStamps(
     return getToolErrorResponse("Retrieval of postage batches failed.");
   }
 
-  const batches: PostageBatchCurated[] = rawPostageBatches.map((batch) => ({
-    ...batch,
-    batchID: batch.batchID.toHex(),
-  }));
+  const batches: PostageBatchCurated[] = rawPostageBatches.map(
+    ({ utilization, ...batch }) => ({
+      ...batch,
+      batchID: batch.batchID.toHex(),
+    })
+  );
   let filteredPostageBatches = batches.filter((batch) => {
     if (!batch.usable) {
       return false;
