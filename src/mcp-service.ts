@@ -15,12 +15,14 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
+import { ZodError } from "zod";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
 import { SwarmToolsSchema } from "./schemas";
 import {
   determineIfGateway,
   getToolsWithTaskSupport,
+  getToolErrorResponse,
   ToolResponse,
 } from "./utils";
 
@@ -116,36 +118,117 @@ export class SwarmMCPServer {
     server.setRequestHandler(
       CallToolRequestSchema,
       async (request, ctx): Promise<ToolResponse | CreateTaskResult> => {
-        const { name, arguments: args } = request.params;
-        const taskParams = (request.params._meta?.task ||
-          request.params.task) as
-          | { ttl?: number; pollInterval?: number }
-          | undefined;
+        try {
+          const { name, arguments: args } = request.params;
+          const taskParams = (request.params._meta?.task ||
+            request.params.task) as
+            | { ttl?: number; pollInterval?: number }
+            | undefined;
 
-        const shouldExecuteAsTask =
-          taskParams && taskSupportTools.includes(name);
+          const shouldExecuteAsTask =
+            taskParams && taskSupportTools.includes(name);
 
-        if (shouldExecuteAsTask) {
-          const taskOptions: CreateTaskOptions = {
-            ttl: Math.max(TASK_TTL_MS, taskParams.ttl || 0),
-            pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
-          };
-          const createTaskModel: CreateTaskModel = {
-            taskOptions,
-            requestId: ctx.requestId,
-            request,
-            sessionId: ctx.sessionId,
-          };
+          if (shouldExecuteAsTask) {
+            const taskOptions: CreateTaskOptions = {
+              ttl: Math.max(TASK_TTL_MS, taskParams.ttl || 0),
+              pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
+            };
+            const createTaskModel: CreateTaskModel = {
+              taskOptions,
+              requestId: ctx.requestId,
+              request,
+              sessionId: ctx.sessionId,
+            };
+
+            switch (request.params.name) {
+              case "upload_file": {
+                const validArgs = uploadFileSchema.parse(args);
+                return uploadFile(
+                  validArgs as unknown as UploadFileArgs,
+                  this.bee,
+                  this.server.server.transport,
+                  this.taskManager,
+                  createTaskModel
+                );
+              }
+
+              case "upload_folder": {
+                const validArgs = uploadFolderSchema.parse(args);
+                return uploadFolder(
+                  validArgs as unknown as UploadFolderArgs,
+                  this.bee,
+                  this.server.server.transport,
+                  this.taskManager,
+                  createTaskModel
+                );
+              }
+
+              case "download_files": {
+                const validArgs = downloadFilesSchema.parse(args);
+                return downloadFiles(
+                  validArgs as DownloadFilesArgs,
+                  this.bee,
+                  this.server.server.transport,
+                  this.taskManager,
+                  createTaskModel
+                );
+              }
+
+              case "create_postage_stamp": {
+                const validArgs = createPostageStampSchema.parse(args);
+                return createPostageStamp(
+                  validArgs as CreatePostageStampArgs,
+                  this.bee,
+                  this.taskManager,
+                  createTaskModel
+                );
+              }
+
+              case "extend_postage_stamp": {
+                const validArgs = extendPostageStampSchema.parse(args);
+                return extendPostageStamp(
+                  validArgs as ExtendPostageStampArgs,
+                  this.bee,
+                  this.taskManager,
+                  createTaskModel
+                );
+              }
+
+              default:
+                throw new McpError(
+                  ErrorCode.MethodNotFound,
+                  `Unknown tool: ${request.params.name}`
+                );
+            }
+          }
 
           switch (request.params.name) {
+            case "upload_data": {
+              const validArgs = uploadDataSchema.parse(args);
+              return uploadData(validArgs as UploadDataArgs, this.bee);
+            }
+
+            case "download_data": {
+              const validArgs = downloadDataSchema.parse(args);
+              return downloadData(validArgs as DownloadDataArgs, this.bee);
+            }
+
+            case "update_feed": {
+              const validArgs = updateFeedSchema.parse(args);
+              return updateFeed(validArgs as UpdateFeedArgs, this.bee);
+            }
+
+            case "read_feed": {
+              const validArgs = readFeedSchema.parse(args);
+              return readFeed(validArgs as ReadFeedArgs, this.bee);
+            }
+
             case "upload_file": {
               const validArgs = uploadFileSchema.parse(args);
               return uploadFile(
                 validArgs as unknown as UploadFileArgs,
                 this.bee,
-                this.server.server.transport,
-                this.taskManager,
-                createTaskModel
+                this.server.server.transport
               );
             }
 
@@ -154,9 +237,7 @@ export class SwarmMCPServer {
               return uploadFolder(
                 validArgs as unknown as UploadFolderArgs,
                 this.bee,
-                this.server.server.transport,
-                this.taskManager,
-                createTaskModel
+                this.server.server.transport
               );
             }
 
@@ -165,9 +246,23 @@ export class SwarmMCPServer {
               return downloadFiles(
                 validArgs as DownloadFilesArgs,
                 this.bee,
-                this.server.server.transport,
-                this.taskManager,
-                createTaskModel
+                this.server.server.transport
+              );
+            }
+
+            case "list_postage_stamps": {
+              const validArgs = listPostageStampsSchema.parse(args);
+              return listPostageStamps(
+                validArgs as ListPostageStampsArgs,
+                this.bee
+              );
+            }
+
+            case "get_postage_stamp": {
+              const validArgs = getPostageStampSchema.parse(args);
+              return getPostageStamp(
+                validArgs as GetPostageStampArgs,
+                this.bee
               );
             }
 
@@ -175,9 +270,7 @@ export class SwarmMCPServer {
               const validArgs = createPostageStampSchema.parse(args);
               return createPostageStamp(
                 validArgs as CreatePostageStampArgs,
-                this.bee,
-                this.taskManager,
-                createTaskModel
+                this.bee
               );
             }
 
@@ -185,9 +278,15 @@ export class SwarmMCPServer {
               const validArgs = extendPostageStampSchema.parse(args);
               return extendPostageStamp(
                 validArgs as ExtendPostageStampArgs,
-                this.bee,
-                this.taskManager,
-                createTaskModel
+                this.bee
+              );
+            }
+
+            case "query_upload_progress": {
+              const validArgs = queryUploadProgressSchema.parse(args);
+              return queryUploadProgress(
+                validArgs as QueryUploadProgressArgs,
+                this.bee
               );
             }
 
@@ -197,98 +296,11 @@ export class SwarmMCPServer {
                 `Unknown tool: ${request.params.name}`
               );
           }
-        }
-
-        switch (request.params.name) {
-          case "upload_data": {
-            const validArgs = uploadDataSchema.parse(args);
-            return uploadData(validArgs as UploadDataArgs, this.bee);
+        } catch (error) {
+          if (error instanceof ZodError) {
+            return getToolErrorResponse(error.errors[0].message);
           }
-
-          case "download_data": {
-            const validArgs = downloadDataSchema.parse(args);
-            return downloadData(validArgs as DownloadDataArgs, this.bee);
-          }
-
-          case "update_feed": {
-            const validArgs = updateFeedSchema.parse(args);
-            return updateFeed(validArgs as UpdateFeedArgs, this.bee);
-          }
-
-          case "read_feed": {
-            const validArgs = readFeedSchema.parse(args);
-            return readFeed(validArgs as ReadFeedArgs, this.bee);
-          }
-
-          case "upload_file": {
-            const validArgs = uploadFileSchema.parse(args);
-            return uploadFile(
-              validArgs as unknown as UploadFileArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          case "upload_folder": {
-            const validArgs = uploadFolderSchema.parse(args);
-            return uploadFolder(
-              validArgs as unknown as UploadFolderArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          case "download_files": {
-            const validArgs = downloadFilesSchema.parse(args);
-            return downloadFiles(
-              validArgs as DownloadFilesArgs,
-              this.bee,
-              this.server.server.transport
-            );
-          }
-
-          case "list_postage_stamps": {
-            const validArgs = listPostageStampsSchema.parse(args);
-            return listPostageStamps(
-              validArgs as ListPostageStampsArgs,
-              this.bee
-            );
-          }
-
-          case "get_postage_stamp": {
-            const validArgs = getPostageStampSchema.parse(args);
-            return getPostageStamp(validArgs as GetPostageStampArgs, this.bee);
-          }
-
-          case "create_postage_stamp": {
-            const validArgs = createPostageStampSchema.parse(args);
-            return createPostageStamp(
-              validArgs as CreatePostageStampArgs,
-              this.bee
-            );
-          }
-
-          case "extend_postage_stamp": {
-            const validArgs = extendPostageStampSchema.parse(args);
-            return extendPostageStamp(
-              validArgs as ExtendPostageStampArgs,
-              this.bee
-            );
-          }
-
-          case "query_upload_progress": {
-            const validArgs = queryUploadProgressSchema.parse(args);
-            return queryUploadProgress(
-              validArgs as QueryUploadProgressArgs,
-              this.bee
-            );
-          }
-
-          default:
-            throw new McpError(
-              ErrorCode.MethodNotFound,
-              `Unknown tool: ${request.params.name}`
-            );
+          throw error;
         }
       }
     );

@@ -1,41 +1,51 @@
 import { z } from "zod";
 
 export const uploadDataSchema = z.object({
-  data: z.string(),
+  data: z.string().min(1, { message: "Missing required parameter: data." }),
   redundancyLevel: z.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
 
 export const updateFeedSchema = z.object({
-  data: z.string(),
-  memoryTopic: z.string(),
+  data: z.string().min(1, { message: "Missing required parameter: data." }),
+  memoryTopic: z
+    .string()
+    .min(1, { message: "Missing required parameter: topic." }),
   postageBatchId: z.string().optional(),
 });
 
 export const downloadDataSchema = z.object({
-  reference: z.string(),
+  reference: z
+    .string()
+    .min(1, { message: "Missing required parameter: reference." }),
 });
 
 export const readFeedSchema = z.object({
-  memoryTopic: z.string(),
+  memoryTopic: z
+    .string()
+    .min(1, { message: "Missing required parameter: memoryTopic." }),
   owner: z.string().optional(),
 });
 
 export const uploadFileSchema = z.object({
-  data: z.string(),
+  data: z.string().min(1, { message: "Missing required parameter: data." }),
   isPath: z.boolean().optional(),
   redundancyLevel: z.number().optional(),
   postageBatchId: z.string().optional(),
 });
 
 export const uploadFolderSchema = z.object({
-  folderPath: z.string(),
+  folderPath: z
+    .string()
+    .min(1, { message: "Missing required parameter: data." }),
   redundancyLevel: z.number().optional(),
   postageBatchId: z.string().optional(),
 });
 
 export const downloadFilesSchema = z.object({
-  reference: z.string(),
+  reference: z
+    .string()
+    .min(1, { message: "Missing required parameter: reference." }),
   filePath: z.string().optional(),
 });
 
@@ -47,17 +57,25 @@ export const listPostageStampsSchema = z.object({
 });
 
 export const getPostageStampSchema = z.object({
-  postageBatchId: z.string(),
+  postageBatchId: z
+    .string()
+    .min(1, { message: "Missing required parameter: postageBatchId." }),
 });
 
 export const createPostageStampSchema = z.object({
-  size: z.number(),
-  duration: z.string(),
+  size: z.number({
+    required_error: "Missing required parameter: size.",
+  }),
+  duration: z
+    .string()
+    .min(1, { message: "Missing required parameter: duration." }),
   label: z.string().optional(),
 });
 
 export const extendPostageStampSchema = z.object({
-  postageBatchId: z.string(),
+  postageBatchId: z
+    .string()
+    .min(1, { message: "Missing required parameter: postageBatchId." }),
   size: z.number().optional(),
   duration: z.string().optional(),
 });

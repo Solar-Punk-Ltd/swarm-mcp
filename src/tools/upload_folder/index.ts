@@ -1,8 +1,4 @@
-import {
-  McpError,
-  ErrorCode,
-  CreateTaskResult,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";

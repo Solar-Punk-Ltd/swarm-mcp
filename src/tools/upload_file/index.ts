@@ -2,11 +2,7 @@
  * MCP Tool: upload_file
  * Upload a file to Swarm
  */
-import {
-  McpError,
-  ErrorCode,
-  CreateTaskResult,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
@@ -34,7 +30,7 @@ export async function uploadFile(
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
   if (!args.data) {
-    return getToolErrorResponse("Missing required parameter: data.");
+    return getToolErrorResponse("Missing required parameter: data.22");
   }
 
   const { postageBatchId, error } = await getUploadPostageBatchId(

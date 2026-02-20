@@ -2,7 +2,6 @@
  * MCP Tool: update_feed
  * Update the feed of a given topic with new data.
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import { Wallet } from "@ethereumjs/wallet";
 import crypto from "crypto";

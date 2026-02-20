@@ -2,7 +2,6 @@
  * MCP Tool: upload_data
  * Uploads text data to Swarm.
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee } from "@ethersphere/bee-js";
 import config from "../../config";
 import {
