@@ -13,7 +13,7 @@ import {
   ToolResponse,
 } from "../../utils";
 import { ReadFeedArgs } from "./models";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 
 export async function readFeed(
   args: ReadFeedArgs,

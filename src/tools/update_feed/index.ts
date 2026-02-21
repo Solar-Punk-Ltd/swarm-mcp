@@ -17,7 +17,7 @@ import {
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UpdateFeedArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 
 export async function updateFeed(
   args: UpdateFeedArgs,
