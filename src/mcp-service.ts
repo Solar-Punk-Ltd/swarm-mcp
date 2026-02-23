@@ -118,18 +118,18 @@ export class SwarmMCPServer {
     server.setRequestHandler(
       CallToolRequestSchema,
       async (request, ctx): Promise<ToolResponse | CreateTaskResult> => {
+        const { name, arguments: args } = request.params;
+        const taskParams = (request.params._meta?.task ||
+          request.params.task) as
+          | { ttl?: number; pollInterval?: number }
+          | undefined;
+
+        const isGateway = await determineIfGateway(this.bee);
+
+        const shouldExecuteAsTask =
+          !isGateway && taskParams && taskSupportTools.includes(name);
+
         try {
-          const { name, arguments: args } = request.params;
-          const taskParams = (request.params._meta?.task ||
-            request.params.task) as
-            | { ttl?: number; pollInterval?: number }
-            | undefined;
-
-          const isGateway = await determineIfGateway(this.bee);
-
-          const shouldExecuteAsTask =
-            !isGateway && taskParams && taskSupportTools.includes(name);
-
           if (shouldExecuteAsTask) {
             const taskOptions: CreateTaskOptions = {
               ttl: Math.max(TASK_TTL_MS, taskParams.ttl || 0),
@@ -203,7 +203,14 @@ export class SwarmMCPServer {
                 );
             }
           }
+        } catch (error) {
+          if (error instanceof ZodError) {
+            throw new Error(error.errors[0].message);
+          }
+          throw error;
+        }
 
+        try {
           switch (request.params.name) {
             case "upload_data": {
               const validArgs = uploadDataSchema.parse(args);
