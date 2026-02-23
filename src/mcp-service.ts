@@ -125,8 +125,10 @@ export class SwarmMCPServer {
             | { ttl?: number; pollInterval?: number }
             | undefined;
 
+          const isGateway = await determineIfGateway(this.bee);
+
           const shouldExecuteAsTask =
-            taskParams && taskSupportTools.includes(name);
+            !isGateway && taskParams && taskSupportTools.includes(name);
 
           if (shouldExecuteAsTask) {
             const taskOptions: CreateTaskOptions = {
