@@ -21,6 +21,12 @@ export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
 
     const tagUid = Number(extendedTask._meta.tagId);
     const progress = await getUploadProgress(bee, tagUid);
+    const reference = extendedTask?._meta?.reference;
+    await taskManager.updateTaskStatus(
+      extendedTask.task.taskId,
+      TaskState.WORKING,
+      `Processing: ${progress.processedPercentage}% (${progress.processed}/${progress.total} chunks)${reference ? ` for reference ${reference}` : ""}. You can also use query_upload_progress for tag id ${tagUid} to track progress.`
+    );
 
     const now = new Date().toISOString();
     extendedTask.task.lastUpdatedAt = now;
@@ -42,13 +48,6 @@ export const updateUploadFileTaskStatus: UpdateStatusFunction = async (
       bee.deleteTag(tagUid).catch((error) => {
         console.error(`Failed to delete tag ${tagUid}:`, error);
       });
-    } else {
-      const reference = extendedTask?._meta?.reference;
-      await taskManager.updateTaskStatus(
-        extendedTask.task.taskId,
-        TaskState.WORKING,
-        `Processing: ${progress.processedPercentage}% (${progress.processed}/${progress.total} chunks)${reference ? ` for reference ${reference}` : ""}. You can also use query_upload_progress for tag id ${tagUid} to track progress.`
-      );
     }
   } catch (error) {
     await taskManager.updateTaskStatus(
