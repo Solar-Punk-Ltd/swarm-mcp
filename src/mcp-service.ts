@@ -205,7 +205,10 @@ export class SwarmMCPServer {
           }
         } catch (error) {
           if (error instanceof ZodError) {
-            throw new Error(error.errors[0].message);
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              error.errors[0].message
+            );
           }
           throw error;
         }
