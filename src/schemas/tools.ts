@@ -16,7 +16,7 @@ export const SwarmToolsSchema = [
       properties: {
         data: {
           type: "string",
-          description: "arbitrary string to upload",
+          description: "Arbitrary string to upload.",
         },
         redundancyLevel: {
           type: "number",
@@ -366,6 +366,7 @@ export const SwarmToolsSchema = [
         },
         label: {
           type: "string",
+          maxLength: 100,
           description:
             "Sets label for the postage batch (omit if the user didn't ask for one). Do not set a label with with specific capacity values because they can get misleading.",
         },

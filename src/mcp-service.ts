@@ -7,10 +7,14 @@ import {
   CallToolRequestSchema,
   CreateTaskResult,
   ErrorCode,
+  GetPromptRequest,
+  GetPromptRequestSchema,
   GetTaskPayloadRequestSchema,
   GetTaskPayloadResult,
   GetTaskRequestSchema,
   GetTaskResult,
+  ListPromptsRequestSchema,
+  ListPromptsResult,
   ListTasksRequestSchema,
   ListToolsRequestSchema,
   McpError,
@@ -74,6 +78,20 @@ import { TaskManager } from "./tasks/task-manager";
 import { CreateTaskModel } from "./tasks/models";
 import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
 import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/index.js";
+import {
+  getCreatePostageStampPrompt,
+  getDownloadDataPrompt,
+  getDownloadFilesPrompt,
+  getExtendPostageStampPrompt,
+  getGetPostageStampPrompt,
+  getListPostageStampsPrompt,
+  getQueryUploadProgressPrompt,
+  getReadFeedPrompt,
+  getSwarmPromptsSchema,
+  getUpdateFeedPrompt,
+  getUploadDataPrompt,
+  getUploadFolderPrompt,
+} from "./utils/prompts";
 
 /**
  * Swarm MCP Server class using Experimental Tasks API
@@ -96,6 +114,7 @@ export class SwarmMCPServer {
       },
       {
         capabilities: {
+          prompts: {},
           tools: {},
           tasks: {
             list: {},
@@ -317,6 +336,8 @@ export class SwarmMCPServer {
       }
     );
 
+    this.registerPrompts();
+
     this.registerTaskHandlers();
 
     this.registerSyncTools();
@@ -329,6 +350,149 @@ export class SwarmMCPServer {
       await this.server.close();
       process.exit(0);
     });
+  }
+
+  private registerPrompts() {
+    const server = this.server.server;
+
+    server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+      ...getSwarmPromptsSchema(),
+    }));
+
+    server.setRequestHandler(
+      GetPromptRequestSchema,
+      async (request: GetPromptRequest) => {
+        const { name, arguments: args = {} } = request.params ?? {};
+
+        try {
+          let prompt = "";
+          let description = "";
+
+          switch (name) {
+            case "upload_data": {
+              const validArgs = uploadDataSchema.parse(args);
+              prompt = getUploadDataPrompt(validArgs as UploadDataArgs);
+              description = "Upload data prompt";
+              break;
+            }
+
+            case "download_data": {
+              const validArgs = downloadDataSchema.parse(args);
+              prompt = getDownloadDataPrompt(validArgs as DownloadDataArgs);
+              description = "Download data prompt";
+              break;
+            }
+
+            case "update_feed": {
+              const validArgs = updateFeedSchema.parse(args);
+              prompt = getUpdateFeedPrompt(validArgs as UpdateFeedArgs);
+              description = "Update feed prompt";
+              break;
+            }
+
+            case "read_feed": {
+              const validArgs = readFeedSchema.parse(args);
+              prompt = getReadFeedPrompt(validArgs as ReadFeedArgs);
+              description = "Read feed prompt";
+              break;
+            }
+
+            case "upload_file": {
+              const validArgs = uploadFileSchema.parse(args);
+              prompt = getUploadFilePrompt(validArgs as UploadFileArgs);
+              description = "Upload file prompt";
+              break;
+            }
+
+            case "upload_folder": {
+              const validArgs = uploadFolderSchema.parse(args);
+              prompt = getUploadFolderPrompt(validArgs as UploadFolderArgs);
+              description = "Upload folder prompt";
+              break;
+            }
+
+            case "download_files": {
+              const validArgs = downloadFilesSchema.parse(args);
+              prompt = getDownloadFilesPrompt(validArgs as DownloadFilesArgs);
+              description = "Download files prompt";
+              break;
+            }
+
+            case "list_postage_stamps": {
+              const validArgs = listPostageStampsSchema.parse(args);
+              prompt = getListPostageStampsPrompt(
+                validArgs as ListPostageStampsArgs
+              );
+              description = "List postage stamps prompt";
+              break;
+            }
+
+            case "get_postage_stamp": {
+              const validArgs = getPostageStampSchema.parse(args);
+              prompt = getGetPostageStampPrompt(
+                validArgs as GetPostageStampArgs
+              );
+              description = "Get postage stamp prompt";
+              break;
+            }
+
+            case "create_postage_stamp": {
+              const validArgs = createPostageStampSchema.parse(args);
+              prompt = getCreatePostageStampPrompt(
+                validArgs as CreatePostageStampArgs
+              );
+              description = "Create postage stamp prompt";
+              break;
+            }
+
+            case "extend_postage_stamp": {
+              const validArgs = extendPostageStampSchema.parse(args);
+              prompt = getExtendPostageStampPrompt(
+                validArgs as ExtendPostageStampArgs
+              );
+              description = "Extend postage stamp prompt";
+              break;
+            }
+
+            case "query_upload_progress": {
+              const validArgs = queryUploadProgressSchema.parse(args);
+              prompt = getQueryUploadProgressPrompt(
+                validArgs as QueryUploadProgressArgs
+              );
+              description = "Query upload progress prompt";
+              break;
+            }
+
+            default:
+              throw new McpError(
+                ErrorCode.MethodNotFound,
+                `Unknown tool: ${request.params.name}`
+              );
+          }
+
+          return {
+            description,
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: prompt,
+                },
+              },
+            ],
+          };
+        } catch (error) {
+          if (error instanceof ZodError) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              error.errors[0].message
+            );
+          }
+          throw error;
+        }
+      }
+    );
   }
 
   private registerTaskHandlers() {
@@ -382,4 +546,7 @@ export class SwarmMCPServer {
       return { tools };
     });
   }
+}
+function getUploadFilePrompt(arg0: UploadFileArgs): string {
+  throw new Error("Function not implemented.");
 }
