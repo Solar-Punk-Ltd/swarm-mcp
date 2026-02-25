@@ -369,56 +369,56 @@ export class SwarmMCPServer {
           let description = "";
 
           switch (name) {
-            case "upload_data": {
+            case "upload_data_prompt": {
               const validArgs = uploadDataSchema.parse(args);
               prompt = getUploadDataPrompt(validArgs as UploadDataArgs);
               description = "Upload data prompt";
               break;
             }
 
-            case "download_data": {
+            case "download_data_prompt": {
               const validArgs = downloadDataSchema.parse(args);
               prompt = getDownloadDataPrompt(validArgs as DownloadDataArgs);
               description = "Download data prompt";
               break;
             }
 
-            case "update_feed": {
+            case "update_feed_prompt": {
               const validArgs = updateFeedSchema.parse(args);
               prompt = getUpdateFeedPrompt(validArgs as UpdateFeedArgs);
               description = "Update feed prompt";
               break;
             }
 
-            case "read_feed": {
+            case "read_feed_prompt": {
               const validArgs = readFeedSchema.parse(args);
               prompt = getReadFeedPrompt(validArgs as ReadFeedArgs);
               description = "Read feed prompt";
               break;
             }
 
-            case "upload_file": {
+            case "upload_file_prompt": {
               const validArgs = uploadFileSchema.parse(args);
               prompt = getUploadFilePrompt(validArgs as UploadFileArgs);
               description = "Upload file prompt";
               break;
             }
 
-            case "upload_folder": {
+            case "upload_folder_prompt": {
               const validArgs = uploadFolderSchema.parse(args);
               prompt = getUploadFolderPrompt(validArgs as UploadFolderArgs);
               description = "Upload folder prompt";
               break;
             }
 
-            case "download_files": {
+            case "download_files_prompt": {
               const validArgs = downloadFilesSchema.parse(args);
               prompt = getDownloadFilesPrompt(validArgs as DownloadFilesArgs);
               description = "Download files prompt";
               break;
             }
 
-            case "list_postage_stamps": {
+            case "list_postage_stamps_prompt": {
               const validArgs = listPostageStampsSchema.parse(args);
               prompt = getListPostageStampsPrompt(
                 validArgs as ListPostageStampsArgs
@@ -427,7 +427,7 @@ export class SwarmMCPServer {
               break;
             }
 
-            case "get_postage_stamp": {
+            case "get_postage_stamp_prompt": {
               const validArgs = getPostageStampSchema.parse(args);
               prompt = getGetPostageStampPrompt(
                 validArgs as GetPostageStampArgs
@@ -436,7 +436,7 @@ export class SwarmMCPServer {
               break;
             }
 
-            case "create_postage_stamp": {
+            case "create_postage_stamp_prompt": {
               const validArgs = createPostageStampSchema.parse(args);
               prompt = getCreatePostageStampPrompt(
                 validArgs as CreatePostageStampArgs
@@ -445,7 +445,7 @@ export class SwarmMCPServer {
               break;
             }
 
-            case "extend_postage_stamp": {
+            case "extend_postage_stamp_prompt": {
               const validArgs = extendPostageStampSchema.parse(args);
               prompt = getExtendPostageStampPrompt(
                 validArgs as ExtendPostageStampArgs
@@ -454,7 +454,7 @@ export class SwarmMCPServer {
               break;
             }
 
-            case "query_upload_progress": {
+            case "query_upload_progress_prompt": {
               const validArgs = queryUploadProgressSchema.parse(args);
               prompt = getQueryUploadProgressPrompt(
                 validArgs as QueryUploadProgressArgs
@@ -465,7 +465,7 @@ export class SwarmMCPServer {
 
             default:
               throw new McpError(
-                ErrorCode.MethodNotFound,
+                ErrorCode.InvalidParams,
                 `Unknown tool: ${request.params.name}`
               );
           }

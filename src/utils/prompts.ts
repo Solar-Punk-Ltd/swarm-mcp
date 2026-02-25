@@ -17,7 +17,7 @@ export const getSwarmPromptsSchema = () => {
     prompts: SwarmToolsSchema.map(
       ({ name, title, description, inputSchema }) => {
         return {
-          name,
+          name: `${name}_prompt`,
           title,
           description,
           arguments: Object.entries(inputSchema.properties).map(
