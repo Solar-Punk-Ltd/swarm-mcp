@@ -26,9 +26,6 @@ export const getSwarmPromptsSchema = () => {
                 name: key,
                 description: value.description,
                 required: inputSchema.required?.includes(key),
-                schema: {
-                  type: value.type,
-                },
               };
             }
           ),
@@ -88,7 +85,7 @@ export const getDownloadFilesPrompt = (args: DownloadFilesArgs) => {
   return prompt;
 };
 
-export const getUploadFilesPrompt = (args: UploadFileArgs) => {
+export const getUploadFilePrompt = (args: UploadFileArgs) => {
   let prompt = `Upload to Swarm the file ${args.isPath ? "at path" : "with content"}: ${args.data}`;
 
   if (args.postageBatchId) {

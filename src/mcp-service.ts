@@ -90,6 +90,7 @@ import {
   getSwarmPromptsSchema,
   getUpdateFeedPrompt,
   getUploadDataPrompt,
+  getUploadFilePrompt,
   getUploadFolderPrompt,
 } from "./utils/prompts";
 
@@ -546,7 +547,4 @@ export class SwarmMCPServer {
       return { tools };
     });
   }
-}
-function getUploadFilePrompt(arg0: UploadFileArgs): string {
-  throw new Error("Function not implemented.");
 }

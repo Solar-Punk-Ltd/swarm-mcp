@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const uploadDataSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
-  redundancyLevel: z.number().optional().default(0),
+  redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
 
@@ -29,8 +29,8 @@ export const readFeedSchema = z.object({
 
 export const uploadFileSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
-  isPath: z.boolean().optional(),
-  redundancyLevel: z.number().optional(),
+  isPath: z.coerce.boolean().optional().default(false),
+  redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
 
@@ -38,7 +38,7 @@ export const uploadFolderSchema = z.object({
   folderPath: z
     .string()
     .min(1, { message: "Missing required parameter: data." }),
-  redundancyLevel: z.number().optional(),
+  redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
 
@@ -50,10 +50,10 @@ export const downloadFilesSchema = z.object({
 });
 
 export const listPostageStampsSchema = z.object({
-  leastUsed: z.boolean().optional().default(false),
-  limit: z.number().optional(),
-  minUsage: z.number().optional(),
-  maxUsage: z.number().optional(),
+  leastUsed: z.coerce.boolean().optional().default(false),
+  limit: z.coerce.number().optional(),
+  minUsage: z.coerce.number().optional(),
+  maxUsage: z.coerce.number().optional(),
 });
 
 export const getPostageStampSchema = z.object({
@@ -76,7 +76,7 @@ export const extendPostageStampSchema = z.object({
   postageBatchId: z
     .string()
     .min(1, { message: "Missing required parameter: postageBatchId." }),
-  size: z.number().optional(),
+  size: z.coerce.number().optional().default(0),
   duration: z.string().optional(),
 });
 
