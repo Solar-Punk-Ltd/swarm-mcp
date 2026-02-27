@@ -29,7 +29,21 @@ export const readFeedSchema = z.object({
 
 export const uploadFileSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
-  isPath: z.coerce.boolean().optional().default(false),
+  isPath: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === "true") {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      return value;
+    }, z.boolean())
+    .optional()
+    .default(false),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
@@ -50,7 +64,21 @@ export const downloadFilesSchema = z.object({
 });
 
 export const listPostageStampsSchema = z.object({
-  leastUsed: z.coerce.boolean().optional().default(false),
+  leastUsed: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === "true") {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      return value;
+    }, z.boolean())
+    .optional()
+    .default(false),
   limit: z.coerce.number().optional(),
   minUsage: z.coerce.number().optional(),
   maxUsage: z.coerce.number().optional(),

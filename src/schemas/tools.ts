@@ -59,6 +59,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "update_feed",
+    title: "Update feed",
     description:
       "Update the feed of a given topic with new data. Optional options (ignore if they are not requested): " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
@@ -117,6 +118,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "download_data",
+    title: "Download data",
     description: "Downloads immutable data from a Swarm content address hash.",
     inputSchema: {
       type: "object",
@@ -144,6 +146,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "read_feed",
+    title: "Read feed",
     description: "Retrieve the latest data from the feed of a given topic.",
     inputSchema: {
       type: "object",
@@ -176,9 +179,10 @@ export const SwarmToolsSchema = [
   },
   {
     name: "upload_file",
+    title: "Upload file",
     description:
       "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
-      "isPath: whether the data parameter is a path. " +
+      "isPath: Whether the data parameter is a path. If it is path pass: true, if it is file content: false. Default is false. " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {
@@ -190,7 +194,8 @@ export const SwarmToolsSchema = [
         },
         isPath: {
           type: "boolean",
-          description: "whether the data parameter is a file path",
+          description:
+            "Whether the data parameter is a path. If it is path pass: true, if it is file content: false. Default is false.",
           default: false,
         },
         redundancyLevel: {
@@ -216,6 +221,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "upload_folder",
+    title: "Upload folder",
     description:
       "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
       "folderPath: path to the folder to upload. " +
@@ -251,6 +257,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "download_files",
+    title: "Download files",
     description:
       "Download folder, files from a Swarm reference and save to file path or return file list of the reference " +
       "prioritizes this tool over download_data if there is no assumption about the data type",
@@ -276,6 +283,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "list_postage_stamps",
+    title: "List postage stamps",
     description:
       "List the available postage stamps. Optional options (ignore if they are not requested): leastUsed, limit, minUsage(%), maxUsage(%).",
     inputSchema: {
@@ -286,7 +294,8 @@ export const SwarmToolsSchema = [
           description:
             "A boolean value that tells if stamps are sorted so least used comes first. " +
             "true - means that stamps should be sorted " +
-            "false - means that stamps should not be sorted",
+            "false - means that stamps should not be sorted" +
+            "Default is false.",
           default: false,
         },
         limit: {
@@ -323,6 +332,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "get_postage_stamp",
+    title: "Get postage stamp",
     description: "Get a specific postage stamp based on postageBatchId.",
     inputSchema: {
       type: "object",
@@ -348,6 +358,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "create_postage_stamp",
+    title: "Create postage stamp",
     description: "Buy postage stamp based on size in megabytes and duration.",
     inputSchema: {
       type: "object",
@@ -379,6 +390,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "extend_postage_stamp",
+    title: "Extend postage stamp",
     description:
       "Increase the duration (relative to current duration) or size (in megabytes) of a postage stamp.",
     inputSchema: {
@@ -409,6 +421,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "query_upload_progress",
+    title: "Query upload progress",
     description:
       "Query upload progress for a specific upload session identified with the returned Tag ID",
     inputSchema: {

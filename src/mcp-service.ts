@@ -14,7 +14,6 @@ import {
   GetTaskRequestSchema,
   GetTaskResult,
   ListPromptsRequestSchema,
-  ListPromptsResult,
   ListTasksRequestSchema,
   ListToolsRequestSchema,
   McpError,
@@ -125,7 +124,6 @@ export class SwarmMCPServer {
               },
             },
           },
-          resources: {},
         },
       }
     );

@@ -33,6 +33,8 @@ export async function uploadFile(
     return getToolErrorResponse("Missing required parameter: data.22");
   }
 
+  // return getToolErrorResponse(`args.data: ${args.data}`);
+
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
