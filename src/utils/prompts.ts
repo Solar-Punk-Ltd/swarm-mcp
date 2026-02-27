@@ -25,7 +25,6 @@ export const getSwarmPromptsSchema = () => {
               return {
                 name: key,
                 description: value.description,
-                value: "true",
                 required: inputSchema.required?.includes(key),
               };
             }
