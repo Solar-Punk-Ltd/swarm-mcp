@@ -114,6 +114,7 @@ export class SwarmMCPServer {
       },
       {
         capabilities: {
+          logging: {},
           prompts: {},
           tools: {},
           tasks: {
