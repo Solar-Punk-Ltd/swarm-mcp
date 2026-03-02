@@ -293,8 +293,8 @@ export const SwarmToolsSchema = [
           type: "boolean",
           description:
             "A boolean value that tells if stamps are sorted so least used comes first. " +
-            "true - means that stamps should be sorted " +
-            "false - means that stamps should not be sorted" +
+            "true - means that stamps should be sorted. " +
+            "false - means that stamps should not be sorted. " +
             "Default is false.",
           default: false,
         },
