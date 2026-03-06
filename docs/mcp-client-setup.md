@@ -21,7 +21,7 @@ Before you can use the Swarm MCP client, you'll need to build the project to gen
 steps:
 
 1. **Prerequisites**:
-   - Node.js (v16 or later recommended)
+   - Node.js (v18 or later recommended)
    - npm (comes with Node.js)
    - Git (for cloning the repository)
 
