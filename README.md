@@ -240,14 +240,7 @@ npm ci
 
 ### Configuration
 
-The server configuration is located in `src/config.ts`:
-
-You can customize:
-
-- **Bee API endpoint**: Set to any Swarm Bee node or gateway
-- **Postage Batch ID**: Required for uploading data to Swarm (the default ID is a placeholder for testing)
-
-Modify these values as needed for your environment.
+You need to create a `.env` file with the content from `.env.example`. Update the environment variables with the desired values.
 
 ## Running the Server Locally
 
@@ -337,6 +330,8 @@ To configure the server, pass environment variables to the container using the `
 docker run -p 3000:3000 \
   -e BEE_API_URL="http://localhost:1633" \
   -e BEE_FEED_PK="your_private_key_here" \
+  -e AUTO_ASSIGN_STAMP="true" \
+  -e DEFERRED_UPLOAD_SIZE_THRESHOLD_MB="5" \
   swarm-mcp
 ```
 
@@ -369,9 +364,7 @@ The server supports two connection methods:
 
 ### 1. Web Connection (Docker)
 
-When running the server in Docker, it operates as a web service with HTTP endpoint. To connect your MCP client, you must use one that supports connecting to a remote server via URL.
-
-- **HTTP Server URL**: `http://localhost:3000/mcp`
+When running the server in Docker, it operates as a web service with HTTP endpoint. To connect your MCP client, you must use: `http://localhost:3000/mcp`.
 
 In your client's settings, add a new remote/custom connector and provide the appropriate URL.
 
