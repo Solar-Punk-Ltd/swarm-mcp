@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
-import { DEFAULT_GATEWAY_URL, DEFAULT_TASK_TTL_MS, DEFERRED_UPLOAD_SIZE_THRESHOLD_MB } from "./constants";
+import {
+  DEFAULT_GATEWAY_URL,
+  DEFAULT_TASK_TTL_MS,
+  DEFERRED_UPLOAD_SIZE_THRESHOLD_MB,
+} from "./constants";
 
 dotenv.config({ quiet: true });
 
@@ -45,4 +49,3 @@ const config: Config = {
 };
 
 export default config;
-

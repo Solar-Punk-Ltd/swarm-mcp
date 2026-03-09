@@ -360,6 +360,7 @@ export class SwarmMCPServer {
     server.setRequestHandler(ListTasksRequestSchema, async (request) => {
       return this.taskManager.listTasks(request.params?.cursor);
     });
+  }
 
   private registerSyncTools() {
     // List tools
