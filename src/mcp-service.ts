@@ -70,7 +70,7 @@ import {
   extendPostageStampSchema,
   queryUploadProgressSchema,
 } from "./schemas/zod-schemas";
-import { TASK_POLL_INTERVAL, TASK_TTL_MS } from "./tasks/constants";
+import { TASK_POLL_INTERVAL } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
 import { uploadFolder } from "./tools/upload_folder";
 import { TaskManager } from "./tasks/task-manager";
@@ -151,7 +151,7 @@ export class SwarmMCPServer {
         try {
           if (shouldExecuteAsTask) {
             const taskOptions: CreateTaskOptions = {
-              ttl: Math.max(TASK_TTL_MS, taskParams.ttl || 0),
+              ttl: Math.max(config.bee.taskTtlMs, taskParams.ttl || 0),
               pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
             };
             const createTaskModel: CreateTaskModel = {

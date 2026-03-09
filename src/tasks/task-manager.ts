@@ -14,10 +14,10 @@ import {
 import {
   TASK_CLEANUP_INTERVAL_MS,
   TASK_STATUS_UPDATE_INTERVAL_MS,
-  TASK_TTL_MS,
 } from "./constants";
 import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
 import { isTerminal as isTaskTerminal } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
+import config from "../config";
 
 export class TaskManager {
   private bee: Bee;
@@ -164,7 +164,7 @@ export class TaskManager {
       // Only clean up terminal tasks
       if (isTaskTerminal(extendedTask.task.status)) {
         const lastUpdated = new Date(extendedTask.task.lastUpdatedAt).getTime();
-        if (now - lastUpdated > TASK_TTL_MS) {
+        if (now - lastUpdated > config.bee.taskTtlMs) {
           tasksToDelete.push(taskId);
         }
       }
