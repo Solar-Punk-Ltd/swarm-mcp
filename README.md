@@ -29,7 +29,7 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 | `BEE_FEED_PK`                       | string  | **optional** (cannot update feed without it) | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                      |
 | `AUTO_ASSIGN_STAMP`                 | boolean | **optional**                                 | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.           |
 | `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number  | **optional**                                 | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                   |
-| `TASK_TTL_MS`                       | number  | **optional**                                 | Time to live of a task in milliseconds. Default value is: 12000000 (20 minutes).                                                                          |
+| `TASK_TTL_MS`                       | number  | **optional**                                 | Time to live of a task in milliseconds. Default value is: 1200000 (20 minutes). If the task TTL specified by the MCP client is larger than this value, that one will be used.                                                                          |
 
 ## MCP Tools
 

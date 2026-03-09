@@ -111,6 +111,10 @@ The MCP server configuration is defined in a JSON object with the following stru
    - Size threshold in megabytes for deferred uploads
    - Files larger than this size will be uploaded asynchronously
    - Default: 5 (MB)
+5. **TASK_TTL_MS** (number, optional)
+   - Time to live of a task in milliseconds.
+   - If the task TTL specified by the MCP client is larger than this value, that one will be used. 
+   - Default: 1200000 (20 minutes).
 
 ## Setting up MCP Clients
 
