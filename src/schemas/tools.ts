@@ -6,6 +6,7 @@ import {
 export const SwarmToolsSchema = [
   {
     name: "upload_data",
+    title: "Upload data",
     description:
       "Upload text data to Swarm. Optional options (ignore if they are not requested): " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
@@ -15,7 +16,7 @@ export const SwarmToolsSchema = [
       properties: {
         data: {
           type: "string",
-          description: "arbitrary string to upload",
+          description: "Arbitrary string to upload.",
         },
         redundancyLevel: {
           type: "number",
@@ -52,9 +53,13 @@ export const SwarmToolsSchema = [
       },
       required: ["reference", "url"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "update_feed",
+    title: "Update feed",
     description:
       "Update the feed of a given topic with new data. Optional options (ignore if they are not requested): " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
@@ -107,9 +112,13 @@ export const SwarmToolsSchema = [
       },
       required: ["reference", "topic", "feedUrl"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "download_data",
+    title: "Download data",
     description: "Downloads immutable data from a Swarm content address hash.",
     inputSchema: {
       type: "object",
@@ -131,9 +140,13 @@ export const SwarmToolsSchema = [
       },
       required: ["textData"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "read_feed",
+    title: "Read feed",
     description: "Retrieve the latest data from the feed of a given topic.",
     inputSchema: {
       type: "object",
@@ -160,12 +173,16 @@ export const SwarmToolsSchema = [
       },
       required: ["textData"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "upload_file",
+    title: "Upload file",
     description:
       "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
-      "isPath: whether the data parameter is a path. " +
+      "isPath: Whether the data parameter is a path. If it is path pass: true, if it is file content: false. Default is false. " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {
@@ -177,7 +194,8 @@ export const SwarmToolsSchema = [
         },
         isPath: {
           type: "boolean",
-          description: "whether the data parameter is a file path",
+          description:
+            "Whether the data parameter is a path. If it is path pass: true, if it is file content: false. Default is false.",
           default: false,
         },
         redundancyLevel: {
@@ -197,31 +215,13 @@ export const SwarmToolsSchema = [
       },
       required: ["data"],
     },
-    outputSchema: {
-      type: "object",
-      properties: {
-        reference: {
-          type: "string",
-          description: "Swarm reference hash for uploaded file.",
-        },
-        url: {
-          type: "string",
-          description: "The URL to access the uploaded file.",
-        },
-        message: {
-          type: "string",
-          description: "Upload file response message.",
-        },
-        tagId: {
-          type: "string",
-          description: "The tag ID for deferred uploads.",
-        },
-      },
-      required: ["reference", "url"],
+    execution: {
+      taskSupport: "optional",
     },
   },
   {
     name: "upload_folder",
+    title: "Upload folder",
     description:
       "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
       "folderPath: path to the folder to upload. " +
@@ -251,31 +251,13 @@ export const SwarmToolsSchema = [
       },
       required: ["folderPath"],
     },
-    outputSchema: {
-      type: "object",
-      properties: {
-        reference: {
-          type: "string",
-          description: "Swarm reference hash for uploaded folder.",
-        },
-        url: {
-          type: "string",
-          description: "The URL to access the uploaded folder.",
-        },
-        message: {
-          type: "string",
-          description: "Upload folder response message.",
-        },
-        tagId: {
-          type: "string",
-          description: "The tag ID for deferred uploads.",
-        },
-      },
-      required: ["reference", "url"],
+    execution: {
+      taskSupport: "optional",
     },
   },
   {
     name: "download_files",
+    title: "Download files",
     description:
       "Download folder, files from a Swarm reference and save to file path or return file list of the reference " +
       "prioritizes this tool over download_data if there is no assumption about the data type",
@@ -295,9 +277,13 @@ export const SwarmToolsSchema = [
       },
       required: ["reference"],
     },
+    execution: {
+      taskSupport: "optional",
+    },
   },
   {
     name: "list_postage_stamps",
+    title: "List postage stamps",
     description:
       "List the available postage stamps. Optional options (ignore if they are not requested): leastUsed, limit, minUsage(%), maxUsage(%).",
     inputSchema: {
@@ -307,8 +293,9 @@ export const SwarmToolsSchema = [
           type: "boolean",
           description:
             "A boolean value that tells if stamps are sorted so least used comes first. " +
-            "true - means that stamps should be sorted " +
-            "false - means that stamps should not be sorted",
+            "true - means that stamps should be sorted. " +
+            "false - means that stamps should not be sorted. " +
+            "Default is false.",
           default: false,
         },
         limit: {
@@ -330,18 +317,22 @@ export const SwarmToolsSchema = [
       properties: {
         raw: {
           type: "array",
-          raw: PostageBatchCuratedSchema,
+          items: PostageBatchCuratedSchema,
         },
         summary: {
           type: "array",
-          summary: PostageBatchSummarySchema,
+          items: PostageBatchSummarySchema,
         },
       },
       required: ["summary"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "get_postage_stamp",
+    title: "Get postage stamp",
     description: "Get a specific postage stamp based on postageBatchId.",
     inputSchema: {
       type: "object",
@@ -361,9 +352,13 @@ export const SwarmToolsSchema = [
       },
       required: ["summary"],
     },
+    execution: {
+      taskSupport: "forbidden",
+    },
   },
   {
     name: "create_postage_stamp",
+    title: "Create postage stamp",
     description: "Buy postage stamp based on size in megabytes and duration.",
     inputSchema: {
       type: "object",
@@ -382,15 +377,20 @@ export const SwarmToolsSchema = [
         },
         label: {
           type: "string",
+          maxLength: 100,
           description:
             "Sets label for the postage batch (omit if the user didn't ask for one). Do not set a label with with specific capacity values because they can get misleading.",
         },
       },
       required: ["size", "duration"],
     },
+    execution: {
+      taskSupport: "optional",
+    },
   },
   {
     name: "extend_postage_stamp",
+    title: "Extend postage stamp",
     description:
       "Increase the duration (relative to current duration) or size (in megabytes) of a postage stamp.",
     inputSchema: {
@@ -415,9 +415,13 @@ export const SwarmToolsSchema = [
       },
       required: ["postageBatchId"],
     },
+    execution: {
+      taskSupport: "optional",
+    },
   },
   {
     name: "query_upload_progress",
+    title: "Query upload progress",
     description:
       "Query upload progress for a specific upload session identified with the returned Tag ID",
     inputSchema: {
@@ -452,6 +456,9 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["processedPercentage", "tagAddress"],
+    },
+    execution: {
+      taskSupport: "forbidden",
     },
   },
 ];

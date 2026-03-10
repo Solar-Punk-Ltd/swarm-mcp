@@ -2,10 +2,9 @@
  * MCP Tool: upload_file
  * Upload a file to Swarm
  */
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import fs from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
 import config from "../../config";
@@ -13,32 +12,39 @@ import {
   errorHasStatus,
   getErrorMessage,
   getResponseWithStructuredContent,
+  getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFileArgs } from "./models";
-import {
-  BAD_REQUEST_STATUS,
-  GATEWAY_TAG_ERROR_MESSAGE,
-  NOT_FOUND_STATUS,
-} from "../../constants";
+import { BAD_REQUEST_STATUS } from "../../constants";
+import { updateUploadFileTaskStatus } from "./utils";
+import { TaskManager } from "../../tasks/task-manager";
+import { CreateTaskModel, TaskState } from "../../tasks/models";
 
 export async function uploadFile(
   args: UploadFileArgs,
   bee: Bee,
-  transport: any
-): Promise<ToolResponse> {
+  transport: any,
+  taskManager?: TaskManager,
+  createTaskModel?: CreateTaskModel
+): Promise<ToolResponse | CreateTaskResult> {
   if (!args.data) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      "Missing required parameter: data"
-    );
+    return getToolErrorResponse("Missing required parameter: data.22");
   }
 
-  const postageBatchId = await getUploadPostageBatchId(
+  // return getToolErrorResponse(`args.data: ${args.data}`);
+
+  const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
   );
+
+  if (error !== null) {
+    return getToolErrorResponse(error);
+  } else if (postageBatchId === null) {
+    return getToolErrorResponse("No postage batch id.");
+  }
 
   let binaryData: Buffer;
   let name: string | undefined;
@@ -46,9 +52,8 @@ export async function uploadFile(
   if (args.isPath) {
     // Check if in stdio mode for file path uploads
     if (!(transport instanceof StdioServerTransport)) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        "File path uploads are only supported in stdio mode"
+      return getToolErrorResponse(
+        "File path uploads are only supported in stdio mode."
       );
     }
 
@@ -56,10 +61,7 @@ export async function uploadFile(
     try {
       binaryData = await readFile(args.data);
     } catch (fileError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Unable to read file at path: ${args.data}`
-      );
+      return getToolErrorResponse(`Unable to read file at path: ${args.data}.`);
     }
     name = path.basename(args.data);
   } else {
@@ -84,7 +86,61 @@ export async function uploadFile(
       tagId = tag.uid.toString();
       message =
         "File upload started in deferred mode. Use query_upload_progress to track progress.";
-    } catch (error) {}
+    } catch (error) {
+      /* empty */
+    }
+  }
+
+  const isRunningAsTask = taskManager && createTaskModel;
+
+  if (isRunningAsTask) {
+    const task = await taskManager.createTask(
+      createTaskModel,
+      updateUploadFileTaskStatus,
+      null,
+      {
+        tagId: tagId ?? null,
+      }
+    );
+
+    bee
+      .uploadFile(postageBatchId, binaryData, name, options)
+      .then(async (result) => {
+        const responseWithStructuredContent = getResponseWithStructuredContent({
+          reference: result.reference.toString(),
+          url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
+          message: "File upload complete.",
+          tagId,
+        });
+
+        taskManager.addExtendedTaskMetadata(
+          task.taskId,
+          "reference",
+          result.reference.toString()
+        );
+
+        await taskManager.setTaskResult(
+          task.taskId,
+          responseWithStructuredContent,
+          deferred
+        );
+      })
+      .catch((error) => {
+        let errorMessage = "Unable to upload file.";
+        if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+          errorMessage = getErrorMessage(error);
+        }
+
+        taskManager.updateTaskStatus(
+          task.taskId,
+          TaskState.FAILED,
+          errorMessage
+        );
+      });
+
+    return {
+      task,
+    };
   }
 
   let result;
@@ -93,11 +149,11 @@ export async function uploadFile(
     // Start the deferred upload
     result = await bee.uploadFile(postageBatchId, binaryData, name, options);
   } catch (error) {
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      throw new McpError(ErrorCode.InvalidRequest, getErrorMessage(error));
-    } else {
-      throw new McpError(ErrorCode.InvalidParams, "Unable to upload file.");
-    }
+    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
+      ? getErrorMessage(error)
+      : "Unable to upload file.";
+
+    return getToolErrorResponse(errorMsg);
   }
 
   return getResponseWithStructuredContent({
@@ -107,4 +163,3 @@ export async function uploadFile(
     tagId,
   });
 }
-
