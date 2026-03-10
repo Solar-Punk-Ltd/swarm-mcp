@@ -5,7 +5,6 @@
 import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import fs from "fs";
 import { readFile } from "fs/promises";
 import path from "path";
 import config from "../../config";
@@ -33,6 +32,8 @@ export async function uploadFile(
   if (!args.data) {
     return getToolErrorResponse("Missing required parameter: data.22");
   }
+
+  // return getToolErrorResponse(`args.data: ${args.data}`);
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,

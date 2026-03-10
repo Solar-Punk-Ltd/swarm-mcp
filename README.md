@@ -95,7 +95,7 @@ Increase the duration (relative to current duration) or size (in megabytes) of a
 **Sample prompt:**
 
 ```bash
-Extend 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa to 5 days.
+Extend 3b3881ac37f936a4023a4562c69f1f138df8c1c24994f7b047514fbcbe9388fa by 5 days.
 ```
 
 ### `upload_data`
@@ -241,14 +241,7 @@ npm ci
 
 ### Configuration
 
-The server configuration is located in `src/config.ts`:
-
-You can customize:
-
-- **Bee API endpoint**: Set to any Swarm Bee node or gateway
-- **Postage Batch ID**: Required for uploading data to Swarm (the default ID is a placeholder for testing)
-
-Modify these values as needed for your environment.
+You need to create a `.env` file with the content from `.env.example`. Update the environment variables with the desired values.
 
 ## Running the Server Locally
 
@@ -285,9 +278,9 @@ npm start
 npm run start:stdio
 ```
 
-### Web Server (HTTP + SSE)
+### Web Server (HTTP)
 
-This runs the server as a web service on port 3000, with endpoints for both HTTP and SSE.
+This runs the server as a web service on port 3000, with endpoints for HTTP.
 
 **Development (without building):**
 
@@ -310,7 +303,7 @@ npm run start:web
 
 ## Docker
 
-This project includes a Dockerfile to run the Swarm MCP server as a containerized service, with both HTTP and SSE transports.
+This project includes a Dockerfile to run the Swarm MCP server as a containerized service with HTTP transport.
 
 - `Dockerfile`: Builds a single image for the server, which runs on port 3000.
 
@@ -324,7 +317,7 @@ docker build -t swarm-mcp .
 
 ### Running the Docker Container
 
-To run the server, use the `docker run` command. The container exposes port `3000` for both HTTP and SSE.
+To run the server, use the `docker run` command. The container exposes port `3000` for HTTP.
 
 ```bash
 docker run --name swarm-mcp -p 3000:3000 swarm-mcp
@@ -338,6 +331,8 @@ To configure the server, pass environment variables to the container using the `
 docker run -p 3000:3000 \
   -e BEE_API_URL="http://localhost:1633" \
   -e BEE_FEED_PK="your_private_key_here" \
+  -e AUTO_ASSIGN_STAMP="true" \
+  -e DEFERRED_UPLOAD_SIZE_THRESHOLD_MB="5" \
   swarm-mcp
 ```
 
@@ -364,45 +359,13 @@ _Note:_ `text/event-stream` in the accept header is required for the HTTP server
 
 A successful response will be a JSON object containing a list of the server's tools.
 
-#### SSE Server
-
-Interacting with the SSE server is a two-step process. First, you establish a connection to get a `sessionId`, and then you use that ID to send messages.
-
-**Step 1: Open the SSE connection**
-
-Run the following command in a terminal. It will connect to the server and wait for events. The server will send back a `sessionId` which you will need for the next step.
-
-```bash
-# In Terminal 1
-curl -N -H "Accept:text/event-stream" http://localhost:3000/sse
-```
-
-The output will contain the session ID, for example:
-`id: "<your-session-id>"`
-
-**Step 2: Send a message**
-
-In a second terminal, use the `sessionId` from Step 1 to send a request. Replace `<your-session-id>` with the actual ID.
-
-```bash
-# In Terminal 2
-curl -X POST -H "Content-Type: application/json" \
--d '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":2}' \
-"http://localhost:3000/message?sessionId=<your-session-id>"
-```
-
-The response will appear in Terminal 1.
-
 ## Using with MCP Clients
 
 The server supports two connection methods:
 
 ### 1. Web Connection (Docker)
 
-When running the server in Docker, it operates as a web service with both HTTP and SSE endpoints. To connect your MCP client, you must use one that supports connecting to a remote server via URL.
-
-- **HTTP Server URL**: `http://localhost:3000/mcp`
-- **SSE Server URL**: `http://localhost:3000/sse`
+When running the server in Docker, it operates as a web service with HTTP endpoint. To connect your MCP client, you must use: `http://localhost:3000/mcp`.
 
 In your client's settings, add a new remote/custom connector and provide the appropriate URL.
 
