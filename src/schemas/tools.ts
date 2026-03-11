@@ -365,7 +365,7 @@ export const SwarmToolsSchema = [
       properties: {
         size: {
           type: "number",
-          description: "Size of data, e.g. 1GB, 1MB, 1KB.",
+          description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
         },
         duration: {
           type: "string",
@@ -400,7 +400,7 @@ export const SwarmToolsSchema = [
         },
         size: {
           type: "number",
-          description: "Size of data, e.g. 1GB, 1MB, 1KB.",
+          description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
         },
         duration: {
           type: "string",
