@@ -91,9 +91,7 @@ export const getPostageStampSchema = z.object({
 });
 
 export const createPostageStampSchema = z.object({
-  size: z.number({
-    required_error: "Missing required parameter: size.",
-  }),
+  size: z.string().min(1, { message: "Missing required parameter: size." }),
   duration: z
     .string()
     .min(1, { message: "Missing required parameter: duration." }),
@@ -104,7 +102,7 @@ export const extendPostageStampSchema = z.object({
   postageBatchId: z
     .string()
     .min(1, { message: "Missing required parameter: postageBatchId." }),
-  size: z.coerce.number().optional().default(0),
+  size: z.string().optional(),
   duration: z.string().optional(),
 });
 

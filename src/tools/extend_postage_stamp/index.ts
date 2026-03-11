@@ -37,14 +37,22 @@ export async function extendPostageStamp(
     );
   }
 
-  const extendSize = size ? Size.fromMegabytes(size) : Size.fromBytes(1);
+  let extendSize = Size.fromBytes(1);
   let extendDuration = Duration.ZERO;
+
+  try {
+    if (size) {
+      extendSize = Size.parseFromString(size);
+    }
+  } catch (error) {
+    return getToolErrorResponse("Invalid parameter: size.");
+  }
 
   try {
     if (duration) {
       extendDuration = Duration.parseFromString(duration);
     }
-  } catch (makeDateError) {
+  } catch (error) {
     return getToolErrorResponse("Invalid parameter: duration.");
   }
 

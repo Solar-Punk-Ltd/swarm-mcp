@@ -365,9 +365,7 @@ export const SwarmToolsSchema = [
       properties: {
         size: {
           type: "number",
-          description:
-            "The storage size in MB (Megabytes). " +
-            "These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB",
+          description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
         },
         duration: {
           type: "string",
@@ -402,9 +400,7 @@ export const SwarmToolsSchema = [
         },
         size: {
           type: "number",
-          description:
-            "The storage size in MB (Megabytes). " +
-            "These other size units convert like this to MB: 1 byte = 0.000001 MB, 1  KB = 0.001 MB, 1GB= 1000MB",
+          description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
         },
         duration: {
           type: "string",
