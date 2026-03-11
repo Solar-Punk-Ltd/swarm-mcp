@@ -41,7 +41,7 @@ Buy postage stamp batch based on size in megabytes and duration.
 
 **Parameters:**
 
-- `size`: The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1 KB = 0.001 MB, 1GB= 1000MB.
+- `size`: Size of data, e.g. 1GB, 1MB, 1KB.
 - `duration`: Duration for which the data should be stored. Time to live of the postage stamp batch, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month.
 - `label`: (Optional) Sets label for the postage stamp batch.
 
@@ -89,7 +89,7 @@ Increase the duration (relative to current duration) or size (in megabytes) of a
 **Parameters:**
 
 - `postageBatchId`: The id of the postage stamp batch for which extend is performed.
-- `size`: (Optional) The storage size in MB (Megabytes). These other size units convert like this to MB: 1 byte = 0.000001 MB, 1 KB = 0.001 MB, 1GB= 1000MB.
+- `size`: (Optional) Size of data, e.g. 1GB, 1MB, 1KB.
 - `duration`: (Optional) Duration for which the data should be stored. Time to live of the postage stamp batch, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month.
 
 **Sample prompt:**

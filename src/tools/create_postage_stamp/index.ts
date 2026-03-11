@@ -35,18 +35,28 @@ export async function createPostageStamp(
     return getToolErrorResponse("Missing required parameter: duration.");
   }
 
+  let parsedSize, parsedDuration;
+
+  try {
+    parsedSize = Size.parseFromString(size);
+  } catch (error) {
+    return getToolErrorResponse("Invalid parameter: size.");
+  }
+
+  try {
+    parsedDuration = Duration.parseFromString(duration);
+  } catch (error) {
+    return getToolErrorResponse("Invalid parameter: duration.");
+  }
+
   const isRunningAsTask = taskManager && createTaskModel;
   if (isRunningAsTask) {
     const task = await taskManager.createTask(createTaskModel, null, null);
 
     bee
-      .buyStorage(
-        Size.fromMegabytes(size),
-        Duration.parseFromString(duration),
-        {
-          label,
-        }
-      )
+      .buyStorage(parsedSize, parsedDuration, {
+        label,
+      })
       .then(async (result) => {
         const buyStorageResponse = result as BatchId;
         const postageBatchReference = buyStorageResponse.toHex();
@@ -81,13 +91,9 @@ export async function createPostageStamp(
   let buyStorageResponse: BatchId;
 
   try {
-    const buyStoragePromise = bee.buyStorage(
-      Size.fromMegabytes(size),
-      Duration.parseFromString(duration),
-      {
-        label,
-      }
-    );
+    const buyStoragePromise = bee.buyStorage(parsedSize, parsedDuration, {
+      label,
+    });
     const [response, hasTimedOut] = await runWithTimeout(
       buyStoragePromise,
       CALL_TIMEOUT
