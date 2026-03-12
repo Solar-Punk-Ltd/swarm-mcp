@@ -126,7 +126,7 @@ export const getQueryUploadProgressPrompt = (args: QueryUploadProgressArgs) => {
 };
 
 export const getCreatePostageStampPrompt = (args: CreatePostageStampArgs) => {
-  let prompt = `Create a new postage stamp batch with size: ${args.size} MB and duration: ${args.duration}`;
+  let prompt = `Create a new postage stamp batch with size: ${args.size} and duration: ${args.duration}`;
 
   if (args.label) {
     prompt += ` with label: ${args.label}`;
