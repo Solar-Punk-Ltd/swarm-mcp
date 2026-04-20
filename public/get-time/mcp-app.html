@@ -381,9 +381,89 @@
       .modal-upload-result .success { color: #10b981; }
       .modal-upload-result .error-msg { color: #fca5a5; }
       .modal-upload-result .mono { font-family: monospace; word-break: break-all; color: #94a3b8; }
+      /* Buy stamp form */
+      .buy-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .form-group label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        font-weight: 600;
+      }
+      .form-input {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        border-radius: 10px;
+        padding: 0.65rem 1rem;
+        color: #e2e8f0;
+        font-size: 0.95rem;
+        width: 100%;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: #f97316;
+        box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+      }
+      .form-input::placeholder { color: #475569; }
+      .buy-result-success {
+        padding: 0.85rem 1rem;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 10px;
+        color: #10b981;
+        font-size: 0.9rem;
+      }
+      .buy-result-error {
+        padding: 0.85rem 1rem;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 10px;
+        color: #fca5a5;
+        font-size: 0.9rem;
+      }
+      .btn-green {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+      }
+      .btn-green:hover { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important; }
+      .stamps-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
     </style>
   </head>
   <body>
+    <!-- Buy Stamp Modal -->
+    <div class="modal-overlay" id="buy-stamp-modal">
+      <div class="modal">
+        <button class="modal-close" id="buy-modal-close">✕</button>
+        <h2>Buy Postage Stamp</h2>
+        <div class="buy-form">
+          <div class="form-group">
+            <label for="buy-size">Size (MB)</label>
+            <input type="number" id="buy-size" class="form-input" min="1" step="1" placeholder="e.g. 100" />
+          </div>
+          <div class="form-group">
+            <label for="buy-duration">Duration</label>
+            <input type="text" id="buy-duration" class="form-input" placeholder="1d · 1w · 1month · 1y" />
+          </div>
+          <div class="form-group">
+            <label for="buy-label">Label <span style="opacity:0.5;font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+            <input type="text" id="buy-label" class="form-input" placeholder="My Stamp" />
+          </div>
+          <button id="buy-submit-btn" class="btn-green"><span>Buy Stamp</span></button>
+          <div id="buy-result"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Stamp Detail Modal -->
     <div class="modal-overlay" id="stamp-modal">
       <div class="modal">
@@ -408,7 +488,10 @@
       </div>
 
       <div id="stamps-tab" class="tab-content active">
-        <button id="stamps-btn"><span>Load Postage Stamps</span></button>
+        <div class="stamps-actions">
+          <button id="stamps-btn"><span>Load Postage Stamps</span></button>
+          <button id="buy-stamp-btn" class="btn-green"><span>+ Buy New Stamp</span></button>
+        </div>
         <div id="stamps-table"></div>
       </div>
 

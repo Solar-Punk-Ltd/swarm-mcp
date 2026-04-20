@@ -2,6 +2,7 @@ import { App } from "@modelcontextprotocol/ext-apps";
 
 // Get element references
 const stampsBtn = document.getElementById("stamps-btn")! as HTMLButtonElement;
+const buyStampBtn = document.getElementById("buy-stamp-btn")! as HTMLButtonElement;
 const stampsTable = document.getElementById("stamps-table")!;
 const fileInput = document.getElementById("file-input")! as HTMLInputElement;
 const uploadBtn = document.getElementById("upload-btn")! as HTMLButtonElement;
@@ -584,4 +585,78 @@ document.querySelectorAll(".tab").forEach((tab) => {
       loadHistory();
     }
   });
+});
+
+// --- Buy Postage Stamp Modal ---
+const buyStampModal = document.getElementById("buy-stamp-modal")!;
+const buyModalClose = document.getElementById("buy-modal-close")!;
+const buySizeInput = document.getElementById("buy-size")! as HTMLInputElement;
+const buyDurationInput = document.getElementById("buy-duration")! as HTMLInputElement;
+const buyLabelInput = document.getElementById("buy-label")! as HTMLInputElement;
+const buySubmitBtn = document.getElementById("buy-submit-btn")! as HTMLButtonElement;
+const buyResult = document.getElementById("buy-result")!;
+
+buyStampBtn.addEventListener("click", () => {
+  buySizeInput.value = "";
+  buyDurationInput.value = "";
+  buyLabelInput.value = "";
+  buyResult.innerHTML = "";
+  buyStampModal.classList.add("open");
+});
+
+buyModalClose.addEventListener("click", () => buyStampModal.classList.remove("open"));
+buyStampModal.addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) buyStampModal.classList.remove("open");
+});
+
+buySubmitBtn.addEventListener("click", async () => {
+  const size = parseFloat(buySizeInput.value);
+  const duration = buyDurationInput.value.trim();
+  const label = buyLabelInput.value.trim();
+
+  if (!size || size <= 0) {
+    buyResult.innerHTML = '<div class="buy-result-error">Please enter a valid size in MB.</div>';
+    return;
+  }
+  if (!duration) {
+    buyResult.innerHTML = '<div class="buy-result-error">Please enter a duration (e.g. 1d, 1w, 1month).</div>';
+    return;
+  }
+
+  buySubmitBtn.disabled = true;
+  buySubmitBtn.innerHTML = "<span>Buying…</span>";
+  buyResult.innerHTML = '<div class="loading">Buying postage stamp…</div>';
+
+  try {
+    const args: Record<string, any> = { size, duration };
+    if (label) args.label = label;
+
+    const response = await app.callServerTool({
+      name: "create_postage_stamp",
+      arguments: args,
+    });
+
+    let batchId = "";
+    let message = "";
+    if (response.structuredContent) {
+      batchId = response.structuredContent.batchID || response.structuredContent.stampID || "";
+      message = response.structuredContent.message || "";
+    } else if (response.content?.[0]) {
+      const parsed = JSON.parse(response.content[0].text);
+      batchId = parsed.batchID || parsed.stampID || parsed.reference || "";
+      message = parsed.message || "";
+    }
+
+    buyResult.innerHTML = `
+      <div class="buy-result-success">
+        <strong>✓ Stamp purchased!</strong>
+        ${message ? `<p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">${message}</p>` : ""}
+        ${batchId ? `<p style="margin: 0.5rem 0 0 0; font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Batch ID</p><p style="margin: 0.2rem 0 0 0; font-family: monospace; font-size: 0.82rem; color: #e2e8f0; word-break: break-all;">${batchId}</p>` : ""}
+      </div>`;
+  } catch (err: any) {
+    buyResult.innerHTML = `<div class="buy-result-error">Failed: ${err.message}</div>`;
+  } finally {
+    buySubmitBtn.disabled = false;
+    buySubmitBtn.innerHTML = "<span>Buy Stamp</span>";
+  }
 });
