@@ -48,7 +48,7 @@ export interface PatchFeedAclSuccess {
 
 export async function patchFeedAcl(
   args: PatchFeedAclArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<PatchFeedAclSuccess | { ok: false; error: ToolResponse }> {
   if (!args.feedTopic) {
     return {
@@ -59,23 +59,21 @@ export async function patchFeedAcl(
   if (!args.granteePubKey) {
     return {
       ok: false,
-      error: getToolErrorResponse(
-        "Missing required parameter: granteePubKey.",
-      ),
+      error: getToolErrorResponse("Missing required parameter: granteePubKey."),
     };
   }
   if (!config.bee.feedPrivateKey) {
     return {
       ok: false,
       error: getToolErrorResponse(
-        "Feed private key not configured. Set BEE_FEED_PK.",
+        "Feed private key not configured. Set BEE_FEED_PK."
       ),
     };
   }
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
-    bee,
+    bee
   );
   if (error !== null) return { ok: false, error: getToolErrorResponse(error) };
   if (postageBatchId === null) {
@@ -92,7 +90,7 @@ export async function patchFeedAcl(
     return {
       ok: false,
       error: getToolErrorResponse(
-        `Invalid granteePubKey: ${e instanceof Error ? e.message : String(e)}`,
+        `Invalid granteePubKey: ${e instanceof Error ? e.message : String(e)}`
       ),
     };
   }
@@ -101,7 +99,7 @@ export async function patchFeedAcl(
   const feedPrivateKey = hexToBytes(
     config.bee.feedPrivateKey.startsWith("0x")
       ? config.bee.feedPrivateKey.slice(2)
-      : config.bee.feedPrivateKey,
+      : config.bee.feedPrivateKey
   );
   const owner = feedOwnerFromPrivateKey(config.bee.feedPrivateKey);
 
@@ -114,7 +112,7 @@ export async function patchFeedAcl(
     return {
       ok: false,
       error: getToolErrorResponse(
-        `Unable to read the latest feed entry: ${err instanceof Error ? err.message : String(err)}`,
+        `Unable to read the latest feed entry: ${err instanceof Error ? err.message : String(err)}`
       ),
     };
   }
@@ -127,7 +125,7 @@ export async function patchFeedAcl(
       latestPayload.h,
       args.mode === "add"
         ? { add: [granteePubKey] }
-        : { revoke: [granteePubKey] },
+        : { revoke: [granteePubKey] }
     );
     newHistory = patch.historyref.toString();
   } catch (err) {

@@ -4,16 +4,13 @@
  * advances the feed.
  */
 import { Bee } from "@ethersphere/bee-js";
-import {
-  getResponseWithStructuredContent,
-  ToolResponse,
-} from "../../utils";
+import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
 import { GrantFeedAccessArgs } from "./models";
 import { patchFeedAcl } from "./shared";
 
 export async function grantFeedAccess(
   args: GrantFeedAccessArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<ToolResponse> {
   const outcome = await patchFeedAcl({ ...args, mode: "add" }, bee);
   if (!outcome.ok) return outcome.error;

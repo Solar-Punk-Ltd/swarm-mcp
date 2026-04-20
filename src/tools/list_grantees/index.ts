@@ -12,14 +12,11 @@ import {
 } from "../../utils";
 import { normalizeReferenceHex } from "../../utils/act";
 import { ListGranteesArgs } from "./models";
-import {
-  BAD_REQUEST_STATUS,
-  NOT_FOUND_STATUS,
-} from "../../constants";
+import { BAD_REQUEST_STATUS, NOT_FOUND_STATUS } from "../../constants";
 
 export async function listGrantees(
   args: ListGranteesArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<ToolResponse> {
   if (!args.reference) {
     return getToolErrorResponse("Missing required parameter: reference.");
@@ -42,9 +39,7 @@ export async function listGrantees(
     });
   } catch (err) {
     if (errorHasStatus(err, NOT_FOUND_STATUS)) {
-      return getToolErrorResponse(
-        "No grantees list found at that reference.",
-      );
+      return getToolErrorResponse("No grantees list found at that reference.");
     }
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
       ? getErrorMessage(err)

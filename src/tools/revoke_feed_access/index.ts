@@ -8,16 +8,13 @@
  * revocation requires re-encrypting (new upload).
  */
 import { Bee } from "@ethersphere/bee-js";
-import {
-  getResponseWithStructuredContent,
-  ToolResponse,
-} from "../../utils";
+import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
 import { RevokeFeedAccessArgs } from "./models";
 import { patchFeedAcl } from "../grant_feed_access/shared";
 
 export async function revokeFeedAccess(
   args: RevokeFeedAccessArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<ToolResponse> {
   const outcome = await patchFeedAcl({ ...args, mode: "revoke" }, bee);
   if (!outcome.ok) return outcome.error;

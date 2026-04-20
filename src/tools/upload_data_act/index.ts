@@ -14,16 +14,13 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
-import {
-  normalizeGranteeList,
-  normalizeReferenceHex,
-} from "../../utils/act";
+import { normalizeGranteeList, normalizeReferenceHex } from "../../utils/act";
 import { UploadDataActArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function uploadDataAct(
   args: UploadDataActArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<ToolResponse> {
   if (!args.data) {
     return getToolErrorResponse("Missing required parameter: data.");
@@ -31,7 +28,7 @@ export async function uploadDataAct(
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
-    bee,
+    bee
   );
   if (error !== null) return getToolErrorResponse(error);
   if (postageBatchId === null)
@@ -42,7 +39,7 @@ export async function uploadDataAct(
     grantees = normalizeGranteeList(args.grantees);
   } catch (e) {
     return getToolErrorResponse(
-      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`,
+      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 
@@ -52,7 +49,7 @@ export async function uploadDataAct(
       historyAddress = normalizeReferenceHex(args.historyAddress);
     } catch (e) {
       return getToolErrorResponse(
-        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`,
+        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`
       );
     }
   }
@@ -69,7 +66,7 @@ export async function uploadDataAct(
     uploadResult = await bee.uploadData(
       postageBatchId,
       Buffer.from(args.data),
-      options,
+      options
     );
   } catch (err) {
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
@@ -83,7 +80,7 @@ export async function uploadDataAct(
   if (grantees.length > 0) {
     if (!finalHistory) {
       return getToolErrorResponse(
-        "Upload did not return a historyAddress; cannot patch grantees.",
+        "Upload did not return a historyAddress; cannot patch grantees."
       );
     }
     try {
@@ -91,7 +88,7 @@ export async function uploadDataAct(
         postageBatchId,
         uploadResult.reference,
         finalHistory,
-        { add: grantees },
+        { add: grantees }
       );
       finalHistory = patch.historyref.toString();
     } catch (err) {

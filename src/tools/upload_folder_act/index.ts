@@ -14,17 +14,14 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
-import {
-  normalizeGranteeList,
-  normalizeReferenceHex,
-} from "../../utils/act";
+import { normalizeGranteeList, normalizeReferenceHex } from "../../utils/act";
 import { UploadFolderActArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function uploadFolderAct(
   args: UploadFolderActArgs,
   bee: Bee,
-  transport: unknown,
+  transport: unknown
 ): Promise<ToolResponse> {
   if (!args.folderPath) {
     return getToolErrorResponse("Missing required parameter: folderPath.");
@@ -32,7 +29,7 @@ export async function uploadFolderAct(
 
   if (!(transport instanceof StdioServerTransport)) {
     return getToolErrorResponse(
-      "Folder path uploads are only supported in stdio mode.",
+      "Folder path uploads are only supported in stdio mode."
     );
   }
 
@@ -43,7 +40,7 @@ export async function uploadFolderAct(
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
-    bee,
+    bee
   );
   if (error !== null) return getToolErrorResponse(error);
   if (postageBatchId === null)
@@ -54,7 +51,7 @@ export async function uploadFolderAct(
     grantees = normalizeGranteeList(args.grantees);
   } catch (e) {
     return getToolErrorResponse(
-      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`,
+      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 
@@ -64,7 +61,7 @@ export async function uploadFolderAct(
       historyAddress = normalizeReferenceHex(args.historyAddress);
     } catch (e) {
       return getToolErrorResponse(
-        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`,
+        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`
       );
     }
   }
@@ -80,7 +77,7 @@ export async function uploadFolderAct(
     uploadResult = await bee.uploadFilesFromDirectory(
       postageBatchId,
       args.folderPath,
-      options,
+      options
     );
   } catch (err) {
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
@@ -94,7 +91,7 @@ export async function uploadFolderAct(
   if (grantees.length > 0) {
     if (!finalHistory) {
       return getToolErrorResponse(
-        "Upload did not return a historyAddress; cannot patch grantees.",
+        "Upload did not return a historyAddress; cannot patch grantees."
       );
     }
     try {
@@ -102,7 +99,7 @@ export async function uploadFolderAct(
         postageBatchId,
         uploadResult.reference,
         finalHistory,
-        { add: grantees },
+        { add: grantees }
       );
       finalHistory = patch.historyref.toString();
     } catch (err) {

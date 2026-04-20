@@ -15,17 +15,14 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
-import {
-  normalizeGranteeList,
-  normalizeReferenceHex,
-} from "../../utils/act";
+import { normalizeGranteeList, normalizeReferenceHex } from "../../utils/act";
 import { UploadFileActArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function uploadFileAct(
   args: UploadFileActArgs,
   bee: Bee,
-  transport: unknown,
+  transport: unknown
 ): Promise<ToolResponse> {
   if (!args.data) {
     return getToolErrorResponse("Missing required parameter: data.");
@@ -33,7 +30,7 @@ export async function uploadFileAct(
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
-    bee,
+    bee
   );
   if (error !== null) return getToolErrorResponse(error);
   if (postageBatchId === null)
@@ -44,7 +41,7 @@ export async function uploadFileAct(
     grantees = normalizeGranteeList(args.grantees);
   } catch (e) {
     return getToolErrorResponse(
-      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`,
+      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 
@@ -54,7 +51,7 @@ export async function uploadFileAct(
       historyAddress = normalizeReferenceHex(args.historyAddress);
     } catch (e) {
       return getToolErrorResponse(
-        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`,
+        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`
       );
     }
   }
@@ -65,7 +62,7 @@ export async function uploadFileAct(
   if (args.isPath) {
     if (!(transport instanceof StdioServerTransport)) {
       return getToolErrorResponse(
-        "File path uploads are only supported in stdio mode.",
+        "File path uploads are only supported in stdio mode."
       );
     }
     try {
@@ -86,7 +83,12 @@ export async function uploadFileAct(
 
   let uploadResult;
   try {
-    uploadResult = await bee.uploadFile(postageBatchId, binaryData, name, options);
+    uploadResult = await bee.uploadFile(
+      postageBatchId,
+      binaryData,
+      name,
+      options
+    );
   } catch (err) {
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
       ? getErrorMessage(err)
@@ -99,7 +101,7 @@ export async function uploadFileAct(
   if (grantees.length > 0) {
     if (!finalHistory) {
       return getToolErrorResponse(
-        "Upload did not return a historyAddress; cannot patch grantees.",
+        "Upload did not return a historyAddress; cannot patch grantees."
       );
     }
     try {
@@ -107,7 +109,7 @@ export async function uploadFileAct(
         postageBatchId,
         uploadResult.reference,
         finalHistory,
-        { add: grantees },
+        { add: grantees }
       );
       finalHistory = patch.historyref.toString();
     } catch (err) {

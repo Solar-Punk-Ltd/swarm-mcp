@@ -41,6 +41,24 @@ import { queryUploadProgress } from "./tools/query_upload_progress";
 import { createPostageStamp } from "./tools/create_postage_stamp";
 import { extendPostageStamp } from "./tools/extend_postage_stamp";
 
+// ACT + feed wizard tools + helpers
+import { getNodePublicKey } from "./tools/get_node_public_key";
+import { getWalletAddress } from "./tools/get_wallet_address";
+import { getWalletBalance } from "./tools/get_wallet_balance";
+import { estimateStampCostTool } from "./tools/estimate_stamp_cost";
+import { uploadDataAct } from "./tools/upload_data_act";
+import { uploadFileAct } from "./tools/upload_file_act";
+import { uploadFolderAct } from "./tools/upload_folder_act";
+import { downloadDataAct } from "./tools/download_data_act";
+import { downloadFilesAct } from "./tools/download_files_act";
+import { createGrantees } from "./tools/create_grantees";
+import { listGrantees } from "./tools/list_grantees";
+import { patchGrantees } from "./tools/patch_grantees";
+import { publishToFeedWithAct } from "./tools/publish_to_feed_with_act";
+import { grantFeedAccess } from "./tools/grant_feed_access";
+import { revokeFeedAccess } from "./tools/revoke_feed_access";
+import { fetchFromFeedWithAct } from "./tools/fetch_from_feed_with_act";
+
 // Model types
 import type { UploadFileArgs } from "./tools/upload_file/models";
 import type { UploadFolderArgs } from "./tools/upload_folder/models";
@@ -54,6 +72,19 @@ import type { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
 import type { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
 import type { ExtendPostageStampArgs } from "./tools/extend_postage_stamp/models";
 import type { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
+import type { EstimateStampCostArgs } from "./tools/estimate_stamp_cost/models";
+import type { UploadDataActArgs } from "./tools/upload_data_act/models";
+import type { UploadFileActArgs } from "./tools/upload_file_act/models";
+import type { UploadFolderActArgs } from "./tools/upload_folder_act/models";
+import type { DownloadDataActArgs } from "./tools/download_data_act/models";
+import type { DownloadFilesActArgs } from "./tools/download_files_act/models";
+import type { CreateGranteesArgs } from "./tools/create_grantees/models";
+import type { ListGranteesArgs } from "./tools/list_grantees/models";
+import type { PatchGranteesArgs } from "./tools/patch_grantees/models";
+import type { PublishToFeedWithActArgs } from "./tools/publish_to_feed_with_act/models";
+import type { GrantFeedAccessArgs } from "./tools/grant_feed_access/models";
+import type { RevokeFeedAccessArgs } from "./tools/revoke_feed_access/models";
+import type { FetchFromFeedWithActArgs } from "./tools/fetch_from_feed_with_act/models";
 
 // Zod schemas
 import {
@@ -69,6 +100,22 @@ import {
   createPostageStampSchema,
   extendPostageStampSchema,
   queryUploadProgressSchema,
+  getNodePublicKeySchema,
+  getWalletAddressSchema,
+  getWalletBalanceSchema,
+  estimateStampCostSchema,
+  uploadDataActSchema,
+  uploadFileActSchema,
+  uploadFolderActSchema,
+  downloadDataActSchema,
+  downloadFilesActSchema,
+  createGranteesSchema,
+  listGranteesSchema,
+  patchGranteesSchema,
+  publishToFeedWithActSchema,
+  grantFeedAccessSchema,
+  revokeFeedAccessSchema,
+  fetchFromFeedWithActSchema,
 } from "./schemas/zod-schemas";
 import { TASK_POLL_INTERVAL } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
@@ -321,6 +368,118 @@ export class SwarmMCPServer {
               );
             }
 
+            case "get_node_public_key": {
+              getNodePublicKeySchema.parse(args);
+              return getNodePublicKey(this.bee);
+            }
+
+            case "get_wallet_address": {
+              getWalletAddressSchema.parse(args);
+              return getWalletAddress(this.bee);
+            }
+
+            case "get_wallet_balance": {
+              getWalletBalanceSchema.parse(args);
+              return getWalletBalance(this.bee);
+            }
+
+            case "estimate_stamp_cost": {
+              const validArgs = estimateStampCostSchema.parse(args);
+              return estimateStampCostTool(
+                validArgs as EstimateStampCostArgs,
+                this.bee
+              );
+            }
+
+            case "upload_data_act": {
+              const validArgs = uploadDataActSchema.parse(args);
+              return uploadDataAct(validArgs as UploadDataActArgs, this.bee);
+            }
+
+            case "upload_file_act": {
+              const validArgs = uploadFileActSchema.parse(args);
+              return uploadFileAct(
+                validArgs as unknown as UploadFileActArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "upload_folder_act": {
+              const validArgs = uploadFolderActSchema.parse(args);
+              return uploadFolderAct(
+                validArgs as UploadFolderActArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "download_data_act": {
+              const validArgs = downloadDataActSchema.parse(args);
+              return downloadDataAct(
+                validArgs as DownloadDataActArgs,
+                this.bee
+              );
+            }
+
+            case "download_files_act": {
+              const validArgs = downloadFilesActSchema.parse(args);
+              return downloadFilesAct(
+                validArgs as DownloadFilesActArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "create_grantees": {
+              const validArgs = createGranteesSchema.parse(args);
+              return createGrantees(validArgs as CreateGranteesArgs, this.bee);
+            }
+
+            case "list_grantees": {
+              const validArgs = listGranteesSchema.parse(args);
+              return listGrantees(validArgs as ListGranteesArgs, this.bee);
+            }
+
+            case "patch_grantees": {
+              const validArgs = patchGranteesSchema.parse(args);
+              return patchGrantees(validArgs as PatchGranteesArgs, this.bee);
+            }
+
+            case "publish_to_feed_with_act": {
+              const validArgs = publishToFeedWithActSchema.parse(args);
+              return publishToFeedWithAct(
+                validArgs as unknown as PublishToFeedWithActArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "grant_feed_access": {
+              const validArgs = grantFeedAccessSchema.parse(args);
+              return grantFeedAccess(
+                validArgs as GrantFeedAccessArgs,
+                this.bee
+              );
+            }
+
+            case "revoke_feed_access": {
+              const validArgs = revokeFeedAccessSchema.parse(args);
+              return revokeFeedAccess(
+                validArgs as RevokeFeedAccessArgs,
+                this.bee
+              );
+            }
+
+            case "fetch_from_feed_with_act": {
+              const validArgs = fetchFromFeedWithActSchema.parse(args);
+              return fetchFromFeedWithAct(
+                validArgs as FetchFromFeedWithActArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
             default:
               throw new McpError(
                 ErrorCode.MethodNotFound,
@@ -539,6 +698,22 @@ export class SwarmMCPServer {
           "create_postage_stamp",
           "extend_postage_stamp",
           "query_upload_progress",
+          "get_node_public_key",
+          "get_wallet_address",
+          "get_wallet_balance",
+          "estimate_stamp_cost",
+          "upload_data_act",
+          "upload_file_act",
+          "upload_folder_act",
+          "download_data_act",
+          "download_files_act",
+          "create_grantees",
+          "list_grantees",
+          "patch_grantees",
+          "publish_to_feed_with_act",
+          "grant_feed_access",
+          "revoke_feed_access",
+          "fetch_from_feed_with_act",
         ];
         tools = tools.filter((item) => !nodeOnlyTools.includes(item.name));
       }

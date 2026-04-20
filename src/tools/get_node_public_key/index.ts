@@ -21,8 +21,6 @@ export async function getNodePublicKey(bee: Bee): Promise<ToolResponse> {
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    return getToolErrorResponse(
-      `Unable to read node addresses: ${reason}`,
-    );
+    return getToolErrorResponse(`Unable to read node addresses: ${reason}`);
   }
 }

@@ -50,7 +50,7 @@ export function decodeFeedActPayload(raw: Uint8Array | string): FeedActPayload {
   const parsed = JSON.parse(text) as { r?: unknown; h?: unknown };
   if (typeof parsed.r !== "string" || typeof parsed.h !== "string") {
     throw new Error(
-      'feed payload is not in the expected shape { "r": "<hex>", "h": "<hex>" }',
+      'feed payload is not in the expected shape { "r": "<hex>", "h": "<hex>" }'
     );
   }
   return { r: parsed.r, h: parsed.h };

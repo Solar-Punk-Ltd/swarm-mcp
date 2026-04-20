@@ -44,7 +44,7 @@ export async function estimateStampCost(
   bee: Bee,
   size: Size,
   durationSeconds: number,
-  depthOverride?: number,
+  depthOverride?: number
 ): Promise<StampCostEstimate> {
   const dataSizeBytes = size.toBytes();
   const depth = depthOverride ?? recommendDepthForBytes(dataSizeBytes);

@@ -15,7 +15,7 @@ import { EstimateStampCostArgs } from "./models";
 
 export async function estimateStampCostTool(
   args: EstimateStampCostArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<ToolResponse> {
   if (!args.size) {
     return getToolErrorResponse("Missing required parameter: size.");
@@ -43,7 +43,7 @@ export async function estimateStampCostTool(
       bee,
       size,
       duration.toSeconds(),
-      args.depth,
+      args.depth
     );
     return getResponseWithStructuredContent({
       ...estimate,

@@ -34,25 +34,25 @@ import { BAD_REQUEST_STATUS } from "../../constants";
 export async function publishToFeedWithAct(
   args: PublishToFeedWithActArgs,
   bee: Bee,
-  transport: unknown,
+  transport: unknown
 ): Promise<ToolResponse> {
   if (!args.feedTopic) {
     return getToolErrorResponse("Missing required parameter: feedTopic.");
   }
   if (!args.data && !args.filePath) {
     return getToolErrorResponse(
-      "Provide either `data` (text) or `filePath` (path to a file).",
+      "Provide either `data` (text) or `filePath` (path to a file)."
     );
   }
   if (!config.bee.feedPrivateKey) {
     return getToolErrorResponse(
-      "Feed private key not configured. Set BEE_FEED_PK environment variable (must match the Bee node's wallet so feed owner and ACT publisher are the same identity).",
+      "Feed private key not configured. Set BEE_FEED_PK environment variable (must match the Bee node's wallet so feed owner and ACT publisher are the same identity)."
     );
   }
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
-    bee,
+    bee
   );
   if (error !== null) return getToolErrorResponse(error);
   if (postageBatchId === null)
@@ -63,7 +63,7 @@ export async function publishToFeedWithAct(
     grantees = normalizeGranteeList(args.grantees);
   } catch (e) {
     return getToolErrorResponse(
-      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`,
+      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 
@@ -72,14 +72,14 @@ export async function publishToFeedWithAct(
   if (args.filePath) {
     if (!(transport instanceof StdioServerTransport)) {
       return getToolErrorResponse(
-        "File path uploads are only supported in stdio mode.",
+        "File path uploads are only supported in stdio mode."
       );
     }
     try {
       binaryData = await readFile(args.filePath);
     } catch {
       return getToolErrorResponse(
-        `Unable to read file at path: ${args.filePath}.`,
+        `Unable to read file at path: ${args.filePath}.`
       );
     }
     fileName = path.basename(args.filePath);
@@ -103,13 +103,13 @@ export async function publishToFeedWithAct(
         postageBatchId,
         binaryData,
         fileName,
-        uploadOptions,
+        uploadOptions
       );
     } else {
       uploadResult = await bee.uploadData(
         postageBatchId,
         binaryData,
-        uploadOptions,
+        uploadOptions
       );
     }
   } catch (err) {
@@ -122,7 +122,7 @@ export async function publishToFeedWithAct(
   let historyAddress = uploadResult.historyAddress?.toString();
   if (!historyAddress) {
     return getToolErrorResponse(
-      "ACT upload did not return a historyAddress; cannot publish to feed.",
+      "ACT upload did not return a historyAddress; cannot publish to feed."
     );
   }
 
@@ -132,7 +132,7 @@ export async function publishToFeedWithAct(
         postageBatchId,
         uploadResult.reference,
         historyAddress,
-        { add: grantees },
+        { add: grantees }
       );
       historyAddress = patch.historyref.toString();
     } catch (err) {
@@ -148,7 +148,7 @@ export async function publishToFeedWithAct(
   const feedPrivateKey = hexToBytes(
     config.bee.feedPrivateKey.startsWith("0x")
       ? config.bee.feedPrivateKey.slice(2)
-      : config.bee.feedPrivateKey,
+      : config.bee.feedPrivateKey
   );
   const owner = feedOwnerFromPrivateKey(config.bee.feedPrivateKey);
   const payload = encodeFeedActPayload({

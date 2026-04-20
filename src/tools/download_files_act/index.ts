@@ -16,20 +16,14 @@ import {
   getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
-import {
-  normalizePublicKeyHex,
-  normalizeReferenceHex,
-} from "../../utils/act";
+import { normalizePublicKeyHex, normalizeReferenceHex } from "../../utils/act";
 import { DownloadFilesActArgs } from "./models";
-import {
-  BAD_REQUEST_STATUS,
-  NOT_FOUND_STATUS,
-} from "../../constants";
+import { BAD_REQUEST_STATUS, NOT_FOUND_STATUS } from "../../constants";
 
 export async function downloadFilesAct(
   args: DownloadFilesActArgs,
   bee: Bee,
-  transport: unknown,
+  transport: unknown
 ): Promise<ToolResponse> {
   if (!args.reference) {
     return getToolErrorResponse("Missing required parameter: reference.");
@@ -39,12 +33,12 @@ export async function downloadFilesAct(
   }
   if (!args.actHistoryAddress) {
     return getToolErrorResponse(
-      "Missing required parameter: actHistoryAddress.",
+      "Missing required parameter: actHistoryAddress."
     );
   }
   if (args.filePath && !(transport instanceof StdioServerTransport)) {
     return getToolErrorResponse(
-      "Saving to file path is only supported in stdio mode.",
+      "Saving to file path is only supported in stdio mode."
     );
   }
 
@@ -74,7 +68,7 @@ export async function downloadFilesAct(
   } catch (err) {
     if (errorHasStatus(err, NOT_FOUND_STATUS)) {
       return getToolErrorResponse(
-        "Manifest not found, or this node is not a grantee for the given history.",
+        "Manifest not found, or this node is not a grantee for the given history."
       );
     }
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
@@ -97,7 +91,7 @@ export async function downloadFilesAct(
         const data = await bee.downloadData(n.targetAddress, actOptions);
         await writeFile(
           path.join(destinationFolder, path.basename(n.fullPathString)),
-          data.toUint8Array(),
+          data.toUint8Array()
         );
       } else {
         for (const n of nodes) {
@@ -109,7 +103,7 @@ export async function downloadFilesAct(
           const data = await bee.downloadData(n.targetAddress, actOptions);
           await writeFile(
             path.join(destinationFolder, n.fullPathString),
-            data.toUint8Array(),
+            data.toUint8Array()
           );
         }
       }

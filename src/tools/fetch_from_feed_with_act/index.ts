@@ -11,7 +11,12 @@
  * matching the "align publisher identity with feed owner" convention. Override
  * explicitly only if the feed was signed by a different key.
  */
-import { Bee, DownloadOptions, MantarayNode, PublicKey } from "@ethersphere/bee-js";
+import {
+  Bee,
+  DownloadOptions,
+  MantarayNode,
+  PublicKey,
+} from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
 import { mkdir, writeFile } from "fs/promises";
@@ -23,36 +28,25 @@ import {
   getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
-import {
-  normalizePublicKeyHex,
-  normalizeReferenceHex,
-} from "../../utils/act";
-import {
-  decodeFeedActPayload,
-  normalizeFeedTopic,
-} from "../../utils/feed";
+import { normalizePublicKeyHex, normalizeReferenceHex } from "../../utils/act";
+import { decodeFeedActPayload, normalizeFeedTopic } from "../../utils/feed";
 import { FetchFromFeedWithActArgs } from "./models";
-import {
-  BAD_REQUEST_STATUS,
-  NOT_FOUND_STATUS,
-} from "../../constants";
+import { BAD_REQUEST_STATUS, NOT_FOUND_STATUS } from "../../constants";
 
 export async function fetchFromFeedWithAct(
   args: FetchFromFeedWithActArgs,
   bee: Bee,
-  transport: unknown,
+  transport: unknown
 ): Promise<ToolResponse> {
   if (!args.feedTopic) {
     return getToolErrorResponse("Missing required parameter: feedTopic.");
   }
   if (!args.publisherPubKey) {
-    return getToolErrorResponse(
-      "Missing required parameter: publisherPubKey.",
-    );
+    return getToolErrorResponse("Missing required parameter: publisherPubKey.");
   }
   if (args.filePath && !(transport instanceof StdioServerTransport)) {
     return getToolErrorResponse(
-      "Saving to file path is only supported in stdio mode.",
+      "Saving to file path is only supported in stdio mode."
     );
   }
 
@@ -61,17 +55,20 @@ export async function fetchFromFeedWithAct(
     publisherPubKey = normalizePublicKeyHex(args.publisherPubKey);
   } catch (e) {
     return getToolErrorResponse(
-      `Invalid publisherPubKey: ${e instanceof Error ? e.message : String(e)}`,
+      `Invalid publisherPubKey: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 
   let feedOwner = args.feedOwner;
   if (!feedOwner) {
     try {
-      feedOwner = new PublicKey(publisherPubKey).address().toChecksum().slice(2);
+      feedOwner = new PublicKey(publisherPubKey)
+        .address()
+        .toChecksum()
+        .slice(2);
     } catch (e) {
       return getToolErrorResponse(
-        `Unable to derive feed owner from publisherPubKey: ${e instanceof Error ? e.message : String(e)}`,
+        `Unable to derive feed owner from publisherPubKey: ${e instanceof Error ? e.message : String(e)}`
       );
     }
   } else {
@@ -91,11 +88,11 @@ export async function fetchFromFeedWithAct(
   } catch (err) {
     if (errorHasStatus(err, NOT_FOUND_STATUS)) {
       return getToolErrorResponse(
-        "Feed entry not found. Check the topic and feedOwner (or publisherPubKey) are correct.",
+        "Feed entry not found. Check the topic and feedOwner (or publisherPubKey) are correct."
       );
     }
     return getToolErrorResponse(
-      `Unable to read feed: ${err instanceof Error ? err.message : String(err)}`,
+      `Unable to read feed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -106,7 +103,7 @@ export async function fetchFromFeedWithAct(
     historyAddress = normalizeReferenceHex(payload.h);
   } catch (e) {
     return getToolErrorResponse(
-      `Feed payload is malformed: ${e instanceof Error ? e.message : String(e)}`,
+      `Feed payload is malformed: ${e instanceof Error ? e.message : String(e)}`
     );
   }
 
@@ -132,7 +129,7 @@ export async function fetchFromFeedWithAct(
     } catch (err) {
       if (errorHasStatus(err, NOT_FOUND_STATUS)) {
         return getToolErrorResponse(
-          "Content not found, or this node is not a grantee for the current history.",
+          "Content not found, or this node is not a grantee for the current history."
         );
       }
       const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
@@ -186,7 +183,7 @@ export async function fetchFromFeedWithAct(
       const data = await bee.downloadData(n.targetAddress, actOptions);
       await writeFile(
         path.join(destinationFolder, n.fullPathString),
-        data.toUint8Array(),
+        data.toUint8Array()
       );
     }
   } catch (err) {

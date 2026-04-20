@@ -12,19 +12,13 @@ import {
   getToolErrorResponse,
   ToolResponse,
 } from "../../utils";
-import {
-  normalizePublicKeyHex,
-  normalizeReferenceHex,
-} from "../../utils/act";
+import { normalizePublicKeyHex, normalizeReferenceHex } from "../../utils/act";
 import { DownloadDataActArgs } from "./models";
-import {
-  BAD_REQUEST_STATUS,
-  NOT_FOUND_STATUS,
-} from "../../constants";
+import { BAD_REQUEST_STATUS, NOT_FOUND_STATUS } from "../../constants";
 
 export async function downloadDataAct(
   args: DownloadDataActArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<ToolResponse> {
   if (!args.reference) {
     return getToolErrorResponse("Missing required parameter: reference.");
@@ -34,7 +28,7 @@ export async function downloadDataAct(
   }
   if (!args.actHistoryAddress) {
     return getToolErrorResponse(
-      "Missing required parameter: actHistoryAddress.",
+      "Missing required parameter: actHistoryAddress."
     );
   }
 
@@ -46,9 +40,7 @@ export async function downloadDataAct(
     actPublisher = normalizePublicKeyHex(args.actPublisher);
     actHistoryAddress = normalizeReferenceHex(args.actHistoryAddress);
   } catch (e) {
-    return getToolErrorResponse(
-      e instanceof Error ? e.message : String(e),
-    );
+    return getToolErrorResponse(e instanceof Error ? e.message : String(e));
   }
 
   const options: DownloadOptions = {
@@ -65,7 +57,7 @@ export async function downloadDataAct(
   } catch (err) {
     if (errorHasStatus(err, NOT_FOUND_STATUS)) {
       return getToolErrorResponse(
-        "Reference not found, or this node is not a grantee for the given history.",
+        "Reference not found, or this node is not a grantee for the given history."
       );
     }
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)

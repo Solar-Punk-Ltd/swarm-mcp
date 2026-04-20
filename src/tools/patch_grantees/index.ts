@@ -12,37 +12,32 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
-import {
-  normalizeGranteeList,
-  normalizeReferenceHex,
-} from "../../utils/act";
+import { normalizeGranteeList, normalizeReferenceHex } from "../../utils/act";
 import { PatchGranteesArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function patchGrantees(
   args: PatchGranteesArgs,
-  bee: Bee,
+  bee: Bee
 ): Promise<ToolResponse> {
   if (!args.reference) {
     return getToolErrorResponse("Missing required parameter: reference.");
   }
   if (!args.historyAddress) {
-    return getToolErrorResponse(
-      "Missing required parameter: historyAddress.",
-    );
+    return getToolErrorResponse("Missing required parameter: historyAddress.");
   }
 
   const add = args.add ?? [];
   const revoke = args.revoke ?? [];
   if (add.length === 0 && revoke.length === 0) {
     return getToolErrorResponse(
-      "Provide at least one public key in `add` or `revoke`.",
+      "Provide at least one public key in `add` or `revoke`."
     );
   }
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
-    bee,
+    bee
   );
   if (error !== null) return getToolErrorResponse(error);
   if (postageBatchId === null)
@@ -66,7 +61,7 @@ export async function patchGrantees(
       postageBatchId,
       reference,
       historyAddress,
-      { add: addList, revoke: revokeList },
+      { add: addList, revoke: revokeList }
     );
     return getResponseWithStructuredContent({
       reference: result.ref.toString(),
