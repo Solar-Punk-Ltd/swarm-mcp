@@ -642,9 +642,15 @@ buySubmitBtn.addEventListener("click", async () => {
       batchId = response.structuredContent.batchID || response.structuredContent.stampID || "";
       message = response.structuredContent.message || "";
     } else if (response.content?.[0]) {
-      const parsed = JSON.parse(response.content[0].text);
-      batchId = parsed.batchID || parsed.stampID || parsed.reference || "";
-      message = parsed.message || "";
+      const text = response.content[0].text;
+      try {
+        const parsed = JSON.parse(text);
+        batchId = parsed.batchID || parsed.stampID || parsed.reference || "";
+        message = parsed.message || "";
+      } catch {
+        // plain text response (e.g. "Purchase of postage batch is in progress…")
+        message = text;
+      }
     }
 
     buyResult.innerHTML = `
