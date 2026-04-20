@@ -460,10 +460,16 @@ export const SwarmToolsSchema = [
   },
   {
     name: "swarm-mcp-app-tool",
-    description: "Opens the Swarm MCP App UI interface for managing stamps and uploading files.",
+    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        tab: {
+          type: "string",
+          enum: ["stamps", "upload", "history"],
+          description: "Which tab to open: 'stamps' for Postage Stamps, 'upload' for Upload File, 'history' for Upload History.",
+        },
+      },
       required: [],
     },
     outputSchema: {
