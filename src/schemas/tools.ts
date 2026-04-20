@@ -472,6 +472,10 @@ export const SwarmToolsSchema = [
           enum: ["stamps", "upload", "history"],
           description: "Which tab to open: 'stamps' for Postage Stamps, 'upload' for Upload File, 'history' for Upload History.",
         },
+        stamp: {
+          type: "string",
+          description: "Stamp label or batch ID to open in the detail modal. Automatically switches to the stamps tab and loads stamps if needed.",
+        },
       },
       required: [],
     },

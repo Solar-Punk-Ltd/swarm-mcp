@@ -4,6 +4,7 @@
 
 export interface GetTimeArgs {
   tab?: "stamps" | "upload" | "history";
+  stamp?: string;
 }
 
 export interface GetTimeResult {
