@@ -42,6 +42,12 @@ const modalUploadBtn = document.getElementById("modal-upload-btn")! as HTMLButto
 const modalUploadResult = document.getElementById("modal-upload-result")!;
 let modalActiveBatchId = "";
 
+// Modal extend elements
+const extendSubmitBtn = document.getElementById("extend-submit-btn")! as HTMLButtonElement;
+const extendSizeInput = document.getElementById("extend-size")! as HTMLInputElement;
+const extendDurationInput = document.getElementById("extend-duration")! as HTMLInputElement;
+const extendResult = document.getElementById("extend-result")!;
+
 modalUploadBtn.addEventListener("click", () => {
   modalFileInput.value = "";
   modalFileInput.click();
@@ -145,6 +151,9 @@ function openStampModal(stamp: any) {
 
   modalActiveBatchId = batchId;
   modalUploadResult.innerHTML = "";
+  extendSizeInput.value = "";
+  extendDurationInput.value = "";
+  extendResult.innerHTML = "";
   document.getElementById('modal-title')!.textContent = stamp.label ? `Stamp: ${stamp.label}` : 'Stamp Details';
   document.getElementById('modal-body')!.innerHTML = `
     <div class="detail-row full">
@@ -202,6 +211,55 @@ function openStampModal(stamp: any) {
   `;
   document.getElementById('stamp-modal')!.classList.add('open');
 }
+
+// Extend / top-up stamp
+extendSubmitBtn.addEventListener("click", async () => {
+  const size = parseFloat(extendSizeInput.value);
+  const duration = extendDurationInput.value.trim();
+
+  if ((!size || size <= 0) && !duration) {
+    extendResult.innerHTML = '<div class="buy-result-error">Enter a size (MB) and/or a duration to extend.</div>';
+    return;
+  }
+
+  extendSubmitBtn.disabled = true;
+  extendSubmitBtn.innerHTML = "<span>Extending…</span>";
+  extendResult.innerHTML = '<span class="loading">Extending postage stamp…</span>';
+
+  try {
+    const args: Record<string, any> = { postageBatchId: modalActiveBatchId };
+    if (size > 0) args.size = size;
+    if (duration) args.duration = duration;
+
+    const response = await app.callServerTool({
+      name: "extend_postage_stamp",
+      arguments: args,
+    });
+
+    let message = "";
+    if (response.structuredContent) {
+      message = response.structuredContent.message || "";
+    } else if (response.content?.[0]) {
+      try {
+        const parsed = JSON.parse(response.content[0].text);
+        message = parsed.message || "";
+      } catch {
+        message = response.content[0].text;
+      }
+    }
+
+    extendResult.innerHTML = `
+      <div class="buy-result-success">
+        <strong>✓ Stamp extended!</strong>
+        ${message ? `<p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">${message}</p>` : ""}
+      </div>`;
+  } catch (err: any) {
+    extendResult.innerHTML = `<div class="buy-result-error">Failed: ${err.message}</div>`;
+  } finally {
+    extendSubmitBtn.disabled = false;
+    extendSubmitBtn.innerHTML = "<span>Extend Stamp</span>";
+  }
+});
 
 // Handle List Stamps button
 stampsBtn.addEventListener("click", async () => {
