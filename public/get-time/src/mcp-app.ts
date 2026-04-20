@@ -15,17 +15,20 @@ const tabs = document.querySelectorAll(".tab");
 const tabContents = document.querySelectorAll(".tab-content");
 
 // Tab switching
+function activateTab(tabName: string) {
+  tabs.forEach((t) => t.classList.remove("active"));
+  tabContents.forEach((content) => content.classList.remove("active"));
+  const tabBtn = document.querySelector<HTMLElement>(`[data-tab="${tabName}"]`);
+  if (tabBtn) {
+    tabBtn.classList.add("active");
+    document.getElementById(`${tabName}-tab`)?.classList.add("active");
+  }
+}
+
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     const tabName = (tab as HTMLElement).dataset.tab;
-    
-    // Remove active class from all tabs and contents
-    tabs.forEach((t) => t.classList.remove("active"));
-    tabContents.forEach((content) => content.classList.remove("active"));
-    
-    // Add active class to clicked tab and corresponding content
-    tab.classList.add("active");
-    document.getElementById(`${tabName}-tab`)?.classList.add("active");
+    if (tabName) activateTab(tabName);
   });
 });
 
@@ -454,6 +457,12 @@ uploadBtn.addEventListener("click", async () => {
     uploadBtn.innerHTML = "<span>Upload to Swarm</span>";
   }
 });
+
+// Switch to requested tab when tool is invoked
+app.ontoolinput = (params) => {
+  const tab = (params.arguments as any)?.tab as string | undefined;
+  if (tab) activateTab(tab);
+};
 
 // Connect to host
 app.connect();
