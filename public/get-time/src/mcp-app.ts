@@ -112,6 +112,12 @@ stampsBtn.addEventListener("click", async () => {
       tableHTML += '<th>Label</th>';
       tableHTML += '<th>Batch ID</th>';
       tableHTML += '<th>Depth</th>';
+      tableHTML += '<th>Utilization</th>';
+      tableHTML += '<th>Immutable</th>';
+      tableHTML += '<th>Usage</th>';
+      tableHTML += '<th>Size</th>';
+      tableHTML += '<th>Remaining</th>';
+      tableHTML += '<th>Duration (days)</th>';
       tableHTML += '</tr></thead><tbody>';
 
       (rawData.length > 0 ? rawData : stamps).forEach((stamp: any, index: number) => {
@@ -119,13 +125,23 @@ stampsBtn.addEventListener("click", async () => {
         const isSelected = selectedLabels.includes(label);
         const batchId = stamp.batchID || stamp.stampID || 'N/A';
         const displayBatchId = batchId !== 'N/A' && batchId.length > 8 
-          ? `${batchId.slice(0, 4)}...${batchId.slice(-4)}` 
+          ? `${batchId.slice(0, 8)}…${batchId.slice(-8)}` 
           : batchId;
+        const sizeMB = stamp.size?.bytes ? (stamp.size.bytes / 1_000_000).toFixed(2) + ' MB' : 'N/A';
+        const remainingMB = stamp.remainingSize?.bytes ? (stamp.remainingSize.bytes / 1_000_000).toFixed(2) + ' MB' : 'N/A';
+        const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + 'd' : 'N/A';
+        const immutable = stamp.immutableFlag ? '<span class="usable-yes">Yes</span>' : '<span style="color:#94a3b8">No</span>';
         tableHTML += '<tr>';
         tableHTML += `<td><input type="checkbox" class="stamp-checkbox" data-batch-id="${batchId}" ${isSelected ? 'checked' : ''} /></td>`;
         tableHTML += `<td><strong>${label}</strong></td>`;
-        tableHTML += `<td class="batch-id">${displayBatchId}</td>`;
-        tableHTML += `<td>${stamp.depth || 'N/A'}</td>`;
+        tableHTML += `<td class="batch-id" title="${batchId}">${displayBatchId}</td>`;
+        tableHTML += `<td>${stamp.depth ?? 'N/A'}</td>`;
+        tableHTML += `<td>${stamp.utilization ?? 'N/A'}</td>`;
+        tableHTML += `<td>${immutable}</td>`;
+        tableHTML += `<td>${stamp.usageText ?? 'N/A'}</td>`;
+        tableHTML += `<td>${sizeMB}</td>`;
+        tableHTML += `<td>${remainingMB}</td>`;
+        tableHTML += `<td>${durationDays}</td>`;
         tableHTML += '</tr>';
       });
 
