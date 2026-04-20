@@ -30,6 +30,67 @@ tabs.forEach((tab) => {
 // Create app instance
 const app = new App({ name: "Swarm MCP Interface", version: "1.0.0" });
 
+// Modal upload elements
+const modalFileInput = document.getElementById("modal-file-input")! as HTMLInputElement;
+const modalUploadBtn = document.getElementById("modal-upload-btn")! as HTMLButtonElement;
+const modalUploadResult = document.getElementById("modal-upload-result")!;
+let modalActiveBatchId = "";
+
+modalUploadBtn.addEventListener("click", () => {
+  modalFileInput.value = "";
+  modalFileInput.click();
+});
+
+modalFileInput.addEventListener("change", async () => {
+  const file = modalFileInput.files?.[0];
+  if (!file || !modalActiveBatchId) return;
+
+  modalUploadBtn.disabled = true;
+  modalUploadBtn.innerHTML = "<span>Uploading...</span>";
+  modalUploadResult.innerHTML = '<span class="loading">Uploading to Swarm…</span>';
+
+  try {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const response = await app.callServerTool({
+      name: "upload_file",
+      arguments: {
+        data: base64,
+        isPath: false,
+        postageBatchId: modalActiveBatchId,
+      },
+    });
+
+    let reference = "";
+    let url = "";
+    if (response.structuredContent) {
+      reference = response.structuredContent.reference || "";
+      url = response.structuredContent.url || "";
+    } else if (response.content?.[0]) {
+      const parsed = JSON.parse(response.content[0].text);
+      reference = parsed.reference || "";
+      url = parsed.url || "";
+    }
+
+    modalUploadResult.innerHTML = `
+      <p class="success" style="margin:0 0 0.4rem 0">✓ Uploaded: <strong>${file.name}</strong></p>
+      <p style="margin:0 0 0.25rem 0;color:#94a3b8;font-size:0.8rem">Reference:</p>
+      <p class="mono" style="margin:0 0 0.5rem 0">${reference}</p>
+      <a href="${url}" target="_blank" style="color:#f97316;font-weight:600;font-size:0.875rem">${url}</a>
+    `;
+  } catch (err: any) {
+    modalUploadResult.innerHTML = `<span class="error-msg">Upload failed: ${err.message}</span>`;
+  } finally {
+    modalUploadBtn.disabled = false;
+    modalUploadBtn.innerHTML = "<span>Upload File to this Stamp</span>";
+  }
+});
+
 // File selection handler
 let selectedFile: File | null = null;
 let fileBase64: string | null = null;
@@ -167,6 +228,8 @@ stampsBtn.addEventListener("click", async () => {
           const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + ' days' : 'N/A';
           const usagePct = typeof stamp.usage === 'number' ? Math.round(stamp.usage * 100) : 0;
 
+          modalActiveBatchId = batchId;
+          modalUploadResult.innerHTML = "";
           document.getElementById('modal-title')!.textContent = stamp.label ? `Stamp: ${stamp.label}` : 'Stamp Details';
           document.getElementById('modal-body')!.innerHTML = `
             <div class="detail-row full">
