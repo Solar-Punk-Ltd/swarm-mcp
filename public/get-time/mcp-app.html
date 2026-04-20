@@ -263,9 +263,122 @@
       .tab-content.active::-webkit-scrollbar-thumb:hover {
         background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
       }
+      .stamp-label-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        color: #f97316;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 1rem;
+        text-decoration: underline dotted;
+        transition: color 0.2s;
+      }
+      .stamp-label-btn::before { display: none; }
+      .stamp-label-btn:hover { color: #ea580c; box-shadow: none; }
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(4px);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.open { display: flex; }
+      .modal {
+        background: #1e293b;
+        border: 1px solid rgba(249,115,22,0.4);
+        border-radius: 16px;
+        padding: 2rem;
+        max-width: 560px;
+        width: 90%;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+        position: relative;
+        animation: modalIn 0.2s ease;
+      }
+      @keyframes modalIn {
+        from { transform: scale(0.92); opacity: 0; }
+        to   { transform: scale(1);    opacity: 1; }
+      }
+      .modal h2 {
+        margin: 0 0 1.5rem 0;
+        color: #f97316;
+        font-size: 1.3rem;
+      }
+      .modal-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.4rem;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        box-shadow: none;
+        line-height: 1;
+      }
+      .modal-close::before { display: none; }
+      .modal-close:hover { color: #f97316; background: rgba(249,115,22,0.1); box-shadow: none; }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem 1.5rem;
+      }
+      .detail-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .detail-row.full { grid-column: 1 / -1; }
+      .detail-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        font-weight: 600;
+      }
+      .detail-value {
+        color: #e2e8f0;
+        font-size: 0.95rem;
+        font-weight: 500;
+        word-break: break-all;
+      }
+      .detail-value.mono {
+        font-family: monospace;
+        font-size: 0.82rem;
+        color: #94a3b8;
+      }
+      .detail-bar-wrap {
+        height: 8px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 4px;
+        margin-top: 0.4rem;
+        overflow: hidden;
+      }
+      .detail-bar {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #f97316, #ea580c);
+        transition: width 0.4s ease;
+      }
     </style>
   </head>
   <body>
+    <!-- Stamp Detail Modal -->
+    <div class="modal-overlay" id="stamp-modal">
+      <div class="modal">
+        <button class="modal-close" id="modal-close">✕</button>
+        <h2 id="modal-title">Stamp Details</h2>
+        <div class="detail-grid" id="modal-body"></div>
+      </div>
+    </div>
+
     <div class="card">
       <h1>Swarm MCP App</h1>
 

@@ -131,9 +131,9 @@ stampsBtn.addEventListener("click", async () => {
         const remainingMB = stamp.remainingSize?.bytes ? (stamp.remainingSize.bytes / 1_000_000).toFixed(2) + ' MB' : 'N/A';
         const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + 'd' : 'N/A';
         const immutable = stamp.immutableFlag ? '<span class="usable-yes">Yes</span>' : '<span style="color:#94a3b8">No</span>';
-        tableHTML += '<tr>';
+        tableHTML += `<tr data-batch-id="${batchId}">`;
         tableHTML += `<td><input type="checkbox" class="stamp-checkbox" data-batch-id="${batchId}" ${isSelected ? 'checked' : ''} /></td>`;
-        tableHTML += `<td><strong>${label}</strong></td>`;
+        tableHTML += `<td><button class="stamp-label-btn" data-batch-id="${batchId}">${label || '<em style="color:#64748b">no label</em>'}</button></td>`;
         tableHTML += `<td class="batch-id" title="${batchId}">${displayBatchId}</td>`;
         tableHTML += `<td>${stamp.depth ?? 'N/A'}</td>`;
         tableHTML += `<td>${stamp.utilization ?? 'N/A'}</td>`;
@@ -147,6 +147,92 @@ stampsBtn.addEventListener("click", async () => {
 
       tableHTML += '</tbody></table>';
       stampsTable.innerHTML = tableHTML;
+
+      // Store stamps data on window for modal access
+      (window as any).__stampsRawData = rawData.length > 0 ? rawData : stamps;
+
+      // Add label click listeners for detail modal
+      const labelBtns = document.querySelectorAll('.stamp-label-btn') as NodeListOf<HTMLButtonElement>;
+      labelBtns.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const batchId = (e.currentTarget as HTMLButtonElement).dataset.batchId || '';
+          const allStamps = (window as any).__stampsRawData as any[];
+          const stamp = allStamps.find((s: any) => (s.batchID || s.stampID) === batchId);
+          if (!stamp) return;
+
+          const sizeMB = stamp.size?.bytes ? (stamp.size.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
+          const remainingMB = stamp.remainingSize?.bytes ? (stamp.remainingSize.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
+          const theoreticalMB = stamp.theoreticalSize?.bytes ? (stamp.theoreticalSize.bytes / 1_000_000).toFixed(0) + ' MB' : 'N/A';
+          const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + ' days' : 'N/A';
+          const usagePct = typeof stamp.usage === 'number' ? Math.round(stamp.usage * 100) : 0;
+
+          document.getElementById('modal-title')!.textContent = stamp.label ? `Stamp: ${stamp.label}` : 'Stamp Details';
+          document.getElementById('modal-body')!.innerHTML = `
+            <div class="detail-row full">
+              <span class="detail-label">Batch ID</span>
+              <span class="detail-value mono">${stamp.batchID || stamp.stampID || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Label</span>
+              <span class="detail-value">${stamp.label || '—'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Depth</span>
+              <span class="detail-value">${stamp.depth ?? 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Bucket Depth</span>
+              <span class="detail-value">${stamp.bucketDepth ?? 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Utilization</span>
+              <span class="detail-value">${stamp.utilization ?? 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Immutable</span>
+              <span class="detail-value" style="color:${stamp.immutableFlag ? '#10b981' : '#94a3b8'}">${stamp.immutableFlag ? 'Yes' : 'No'}</span>
+            </div>
+            <div class="detail-row full">
+              <span class="detail-label">Usage — ${stamp.usageText ?? usagePct + '%'}</span>
+              <div class="detail-bar-wrap"><div class="detail-bar" style="width:${usagePct}%"></div></div>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Used Size</span>
+              <span class="detail-value">${sizeMB}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Remaining</span>
+              <span class="detail-value">${remainingMB}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Theoretical Max</span>
+              <span class="detail-value">${theoreticalMB}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Duration Left</span>
+              <span class="detail-value">${durationDays}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Block Number</span>
+              <span class="detail-value mono">${stamp.blockNumber ?? 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Amount</span>
+              <span class="detail-value mono">${stamp.amount ?? 'N/A'}</span>
+            </div>
+          `;
+          document.getElementById('stamp-modal')!.classList.add('open');
+        });
+      });
+
+      // Modal close
+      document.getElementById('modal-close')!.onclick = () =>
+        document.getElementById('stamp-modal')!.classList.remove('open');
+      document.getElementById('stamp-modal')!.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget)
+          (e.currentTarget as HTMLElement).classList.remove('open');
+      });
 
       // Add checkbox event listeners
       const checkboxes = document.querySelectorAll('.stamp-checkbox') as NodeListOf<HTMLInputElement>;
