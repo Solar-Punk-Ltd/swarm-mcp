@@ -296,6 +296,8 @@
         padding: 2rem;
         max-width: 560px;
         width: 90%;
+        max-height: 85vh;
+        overflow-y: auto;
         box-shadow: 0 30px 80px rgba(0,0,0,0.6);
         position: relative;
         animation: modalIn 0.2s ease;
@@ -367,6 +369,18 @@
         background: linear-gradient(90deg, #f97316, #ea580c);
         transition: width 0.4s ease;
       }
+      .modal-footer {
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid rgba(249,115,22,0.2);
+      }
+      .modal-upload-result {
+        margin-top: 0.75rem;
+        font-size: 0.875rem;
+      }
+      .modal-upload-result .success { color: #10b981; }
+      .modal-upload-result .error-msg { color: #fca5a5; }
+      .modal-upload-result .mono { font-family: monospace; word-break: break-all; color: #94a3b8; }
     </style>
   </head>
   <body>
@@ -376,6 +390,11 @@
         <button class="modal-close" id="modal-close">✕</button>
         <h2 id="modal-title">Stamp Details</h2>
         <div class="detail-grid" id="modal-body"></div>
+        <div class="modal-footer">
+          <input type="file" id="modal-file-input" accept="*/*" style="display:none" />
+          <button id="modal-upload-btn"><span>Upload File to this Stamp</span></button>
+          <div id="modal-upload-result" class="modal-upload-result"></div>
+        </div>
       </div>
     </div>
 
