@@ -7,6 +7,8 @@ const fileInput = document.getElementById("file-input")! as HTMLInputElement;
 const uploadBtn = document.getElementById("upload-btn")! as HTMLButtonElement;
 const uploadResult = document.getElementById("upload-result")!;
 const previewArea = document.getElementById("preview-area")!;
+const historyBtn = document.getElementById("history-btn")! as HTMLButtonElement;
+const historyTable = document.getElementById("history-table")!;
 
 // Tab elements
 const tabs = document.querySelectorAll(".tab");
@@ -62,6 +64,7 @@ modalFileInput.addEventListener("change", async () => {
       arguments: {
         data: base64,
         isPath: false,
+        name: file.name,
         postageBatchId: modalActiveBatchId,
       },
     });
@@ -353,7 +356,8 @@ uploadBtn.addEventListener("click", async () => {
       name: "upload_file",
       arguments: {
         data: fileBase64,
-        isPath: false
+        isPath: false,
+        name: selectedFile.name
       }
     });
 
@@ -453,3 +457,84 @@ uploadBtn.addEventListener("click", async () => {
 
 // Connect to host
 app.connect();
+
+// --- Upload History ---
+
+async function loadHistory() {
+  historyBtn.disabled = true;
+  historyBtn.innerHTML = "<span>Loading...</span>";
+  historyTable.innerHTML = '<div class="loading">Loading history...</div>';
+
+  try {
+    const response = await app.callServerTool({
+      name: "list_upload_history",
+      arguments: {}
+    });
+
+    let entries: any[] = [];
+    if (response.structuredContent?.history) {
+      entries = response.structuredContent.history;
+    } else if (response.content?.[0]) {
+      const parsed = JSON.parse(response.content[0].text);
+      entries = parsed.history || [];
+    }
+
+    if (entries.length === 0) {
+      historyTable.innerHTML = '<p class="loading">No uploads yet in this session.</p>';
+      return;
+    }
+
+    let html = '<table><thead><tr>';
+    html += '<th>#</th><th>File Name</th><th>Reference</th><th>Size</th><th>Time</th><th></th>';
+    html += '</tr></thead><tbody>';
+
+    entries.forEach((entry: any) => {
+      const shortRef = entry.reference
+        ? `${entry.reference.slice(0, 8)}…${entry.reference.slice(-8)}`
+        : 'N/A';
+      const name = entry.name ? `<strong>${entry.name}</strong><br>` : '';
+      const sizeKB = entry.sizeBytes != null
+        ? (entry.sizeBytes / 1024).toFixed(1) + ' KB'
+        : '—';
+      const time = entry.timestamp
+        ? new Date(entry.timestamp).toLocaleTimeString()
+        : '—';
+      const typeBadge = entry.type === 'file'
+        ? '📁'
+        : entry.type === 'folder'
+          ? '📂'
+          : '📄';
+      const displayName = entry.name
+        ? `${typeBadge} ${entry.name}`
+        : `${typeBadge} <span style="color:#64748b;font-style:italic">${entry.type}</span>`;
+
+      html += `<tr>`;
+      html += `<td style="color:#64748b;font-size:0.85rem">${entry.id}</td>`;
+      html += `<td>${displayName}</td>`;
+      html += `<td class="batch-id"><span title="${entry.reference}">${shortRef}</span></td>`;
+      html += `<td>${sizeKB}</td>`;
+      html += `<td style="white-space:nowrap">${time}</td>`;
+      html += `<td><a href="${entry.url}" target="_blank" class="swarm-link" style="font-size:0.85rem">Open ↗</a></td>`;
+      html += `</tr>`;
+    });
+
+    html += '</tbody></table>';
+    historyTable.innerHTML = html;
+  } catch (error: any) {
+    historyTable.innerHTML = `<div class="error">Failed to load history: ${error.message}</div>`;
+  } finally {
+    historyBtn.disabled = false;
+    historyBtn.innerHTML = "<span>Refresh History</span>";
+  }
+}
+
+historyBtn.addEventListener("click", loadHistory);
+
+// Auto-load history when switching to History tab
+document.querySelectorAll(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    if ((tab as HTMLElement).dataset.tab === "history") {
+      loadHistory();
+    }
+  });
+});

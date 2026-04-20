@@ -16,6 +16,7 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
+import { addUploadEntry } from "../upload_history";
 import { UploadFileArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 import { updateUploadFileTaskStatus } from "./utils";
@@ -66,6 +67,9 @@ export async function uploadFile(
     name = path.basename(args.data);
   } else {
     binaryData = Buffer.from(args.data, "base64");
+    if (args.name) {
+      name = args.name;
+    }
   }
 
   const redundancyLevel = args.redundancyLevel;
@@ -156,9 +160,21 @@ export async function uploadFile(
     return getToolErrorResponse(errorMsg);
   }
 
+  const reference = result.reference.toString();
+  const url = config.bee.endpoint + "/bzz/" + reference;
+
+  addUploadEntry({
+    type: "file",
+    reference,
+    url,
+    name,
+    sizeBytes: binaryData.length,
+    tagId,
+  });
+
   return getResponseWithStructuredContent({
-    reference: result.reference.toString(),
-    url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
+    reference,
+    url,
     message,
     tagId,
   });
