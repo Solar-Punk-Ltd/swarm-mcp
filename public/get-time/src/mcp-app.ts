@@ -125,6 +125,83 @@ fileInput.addEventListener("change", async (e) => {
   previewArea.style.display = "none";
 });
 
+// Modal close handlers (registered once at init)
+document.getElementById('modal-close')!.onclick = () =>
+  document.getElementById('stamp-modal')!.classList.remove('open');
+document.getElementById('stamp-modal')!.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget)
+    (e.currentTarget as HTMLElement).classList.remove('open');
+});
+
+// Open stamp detail modal for a given stamp object
+function openStampModal(stamp: any) {
+  const batchId = stamp.batchID || stamp.stampID || '';
+  const sizeMB = stamp.size?.bytes ? (stamp.size.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
+  const remainingMB = stamp.remainingSize?.bytes ? (stamp.remainingSize.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
+  const theoreticalMB = stamp.theoreticalSize?.bytes ? (stamp.theoreticalSize.bytes / 1_000_000).toFixed(0) + ' MB' : 'N/A';
+  const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + ' days' : 'N/A';
+  const usagePct = typeof stamp.usage === 'number' ? Math.round(stamp.usage * 100) : 0;
+
+  modalActiveBatchId = batchId;
+  modalUploadResult.innerHTML = "";
+  document.getElementById('modal-title')!.textContent = stamp.label ? `Stamp: ${stamp.label}` : 'Stamp Details';
+  document.getElementById('modal-body')!.innerHTML = `
+    <div class="detail-row full">
+      <span class="detail-label">Batch ID</span>
+      <span class="detail-value mono">${batchId || 'N/A'}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Label</span>
+      <span class="detail-value">${stamp.label || '—'}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Depth</span>
+      <span class="detail-value">${stamp.depth ?? 'N/A'}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Bucket Depth</span>
+      <span class="detail-value">${stamp.bucketDepth ?? 'N/A'}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Utilization</span>
+      <span class="detail-value">${stamp.utilization ?? 'N/A'}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Immutable</span>
+      <span class="detail-value" style="color:${stamp.immutableFlag ? '#10b981' : '#94a3b8'}">${stamp.immutableFlag ? 'Yes' : 'No'}</span>
+    </div>
+    <div class="detail-row full">
+      <span class="detail-label">Usage — ${stamp.usageText ?? usagePct + '%'}</span>
+      <div class="detail-bar-wrap"><div class="detail-bar" style="width:${usagePct}%"></div></div>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Used Size</span>
+      <span class="detail-value">${sizeMB}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Remaining</span>
+      <span class="detail-value">${remainingMB}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Theoretical Max</span>
+      <span class="detail-value">${theoreticalMB}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Duration Left</span>
+      <span class="detail-value">${durationDays}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Block Number</span>
+      <span class="detail-value mono">${stamp.blockNumber ?? 'N/A'}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Amount</span>
+      <span class="detail-value mono">${stamp.amount ?? 'N/A'}</span>
+    </div>
+  `;
+  document.getElementById('stamp-modal')!.classList.add('open');
+}
+
 // Handle List Stamps button
 stampsBtn.addEventListener("click", async () => {
   stampsBtn.disabled = true;
@@ -226,81 +303,8 @@ stampsBtn.addEventListener("click", async () => {
           const batchId = (e.currentTarget as HTMLButtonElement).dataset.batchId || '';
           const allStamps = (window as any).__stampsRawData as any[];
           const stamp = allStamps.find((s: any) => (s.batchID || s.stampID) === batchId);
-          if (!stamp) return;
-
-          const sizeMB = stamp.size?.bytes ? (stamp.size.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
-          const remainingMB = stamp.remainingSize?.bytes ? (stamp.remainingSize.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
-          const theoreticalMB = stamp.theoreticalSize?.bytes ? (stamp.theoreticalSize.bytes / 1_000_000).toFixed(0) + ' MB' : 'N/A';
-          const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + ' days' : 'N/A';
-          const usagePct = typeof stamp.usage === 'number' ? Math.round(stamp.usage * 100) : 0;
-
-          modalActiveBatchId = batchId;
-          modalUploadResult.innerHTML = "";
-          document.getElementById('modal-title')!.textContent = stamp.label ? `Stamp: ${stamp.label}` : 'Stamp Details';
-          document.getElementById('modal-body')!.innerHTML = `
-            <div class="detail-row full">
-              <span class="detail-label">Batch ID</span>
-              <span class="detail-value mono">${stamp.batchID || stamp.stampID || 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Label</span>
-              <span class="detail-value">${stamp.label || '—'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Depth</span>
-              <span class="detail-value">${stamp.depth ?? 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Bucket Depth</span>
-              <span class="detail-value">${stamp.bucketDepth ?? 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Utilization</span>
-              <span class="detail-value">${stamp.utilization ?? 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Immutable</span>
-              <span class="detail-value" style="color:${stamp.immutableFlag ? '#10b981' : '#94a3b8'}">${stamp.immutableFlag ? 'Yes' : 'No'}</span>
-            </div>
-            <div class="detail-row full">
-              <span class="detail-label">Usage — ${stamp.usageText ?? usagePct + '%'}</span>
-              <div class="detail-bar-wrap"><div class="detail-bar" style="width:${usagePct}%"></div></div>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Used Size</span>
-              <span class="detail-value">${sizeMB}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Remaining</span>
-              <span class="detail-value">${remainingMB}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Theoretical Max</span>
-              <span class="detail-value">${theoreticalMB}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Duration Left</span>
-              <span class="detail-value">${durationDays}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Block Number</span>
-              <span class="detail-value mono">${stamp.blockNumber ?? 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Amount</span>
-              <span class="detail-value mono">${stamp.amount ?? 'N/A'}</span>
-            </div>
-          `;
-          document.getElementById('stamp-modal')!.classList.add('open');
+          if (stamp) openStampModal(stamp);
         });
-      });
-
-      // Modal close
-      document.getElementById('modal-close')!.onclick = () =>
-        document.getElementById('stamp-modal')!.classList.remove('open');
-      document.getElementById('stamp-modal')!.addEventListener('click', (e) => {
-        if (e.target === e.currentTarget)
-          (e.currentTarget as HTMLElement).classList.remove('open');
       });
 
       // Add checkbox event listeners
@@ -458,10 +462,44 @@ uploadBtn.addEventListener("click", async () => {
   }
 });
 
-// Switch to requested tab when tool is invoked
-app.ontoolinput = (params) => {
-  const tab = (params.arguments as any)?.tab as string | undefined;
-  if (tab) activateTab(tab);
+// Switch to requested tab / open stamp modal when tool is invoked
+app.ontoolinput = async (params) => {
+  const args = params.arguments as any;
+  const tab = args?.tab as string | undefined;
+  const stampQuery = args?.stamp as string | undefined;
+
+  if (stampQuery) {
+    // Always switch to stamps tab when a stamp is requested
+    activateTab("stamps");
+
+    // Load stamps if not already loaded
+    let allStamps: any[] = (window as any).__stampsRawData ?? [];
+    if (allStamps.length === 0) {
+      try {
+        const response = await app.callServerTool({ name: "list_postage_stamps", arguments: {} });
+        let rawData: any[] = [];
+        if (response.structuredContent?.raw) {
+          rawData = response.structuredContent.raw;
+        } else if (response.content?.[0]) {
+          rawData = JSON.parse(response.content[0].text).raw ?? [];
+        }
+        (window as any).__stampsRawData = rawData;
+        allStamps = rawData;
+      } catch {
+        // ignore — no stamps data available
+      }
+    }
+
+    const query = stampQuery.toLowerCase();
+    const stamp = allStamps.find((s: any) =>
+      (s.label ?? "").toLowerCase() === query ||
+      (s.batchID ?? "").toLowerCase().startsWith(query) ||
+      (s.stampID ?? "").toLowerCase().startsWith(query)
+    );
+    if (stamp) openStampModal(stamp);
+  } else if (tab) {
+    activateTab(tab);
+  }
 };
 
 // Connect to host
