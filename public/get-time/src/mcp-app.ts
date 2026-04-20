@@ -468,8 +468,16 @@ app.ontoolinput = async (params) => {
   const args = params.arguments as any;
   const tab = args?.tab as string | undefined;
   const stampQuery = args?.stamp as string | undefined;
+  const modal = args?.modal as string | undefined;
 
-  if (stampQuery) {
+  if (modal === "buy-stamp") {
+    activateTab("stamps");
+    buySizeInput.value = "";
+    buyDurationInput.value = "";
+    buyLabelInput.value = "";
+    buyResult.innerHTML = "";
+    buyStampModal.classList.add("open");
+  } else if (stampQuery) {
     // Always switch to stamps tab when a stamp is requested
     activateTab("stamps");
 

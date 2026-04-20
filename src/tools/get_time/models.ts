@@ -5,6 +5,7 @@
 export interface GetTimeArgs {
   tab?: "stamps" | "upload" | "history";
   stamp?: string;
+  modal?: "buy-stamp";
 }
 
 export interface GetTimeResult {

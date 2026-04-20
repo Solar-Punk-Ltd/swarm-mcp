@@ -473,6 +473,11 @@ export const SwarmToolsSchema = [
           type: "string",
           description: "Stamp label or batch ID to open in the detail modal. Automatically switches to the stamps tab and loads stamps if needed.",
         },
+        modal: {
+          type: "string",
+          enum: ["buy-stamp"],
+          description: "Which modal to open: 'buy-stamp' opens the Buy Postage Stamp dialog.",
+        },
       },
       required: [],
     },
