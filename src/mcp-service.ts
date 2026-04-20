@@ -52,6 +52,8 @@ import { selectPostageStamp, getSelectedStamps } from "./tools/select_postage_st
 import { SelectPostageStampArgs } from "./tools/select_postage_stamp/models";
 import { listSelectedStamps } from "./tools/list_selected_stamps";
 import { ListSelectedStampsArgs } from "./tools/list_selected_stamps/models";
+import { listUploadHistory } from "./tools/upload_history";
+import { ListUploadHistoryArgs } from "./tools/upload_history/models";
 import { determineIfGateway } from "./utils";
 
 const GET_TIME_RESOURCE_URI = "content://get-time-ui";
@@ -209,6 +211,9 @@ export class SwarmMCPServer {
 
           case "list_selected_stamps":
             return listSelectedStamps(args as unknown as ListSelectedStampsArgs);
+
+          case "list_upload_history":
+            return listUploadHistory(args as unknown as ListUploadHistoryArgs);
         }
 
         throw new McpError(

@@ -180,6 +180,10 @@ export const SwarmToolsSchema = [
           description: "whether the data parameter is a file path",
           default: false,
         },
+        name: {
+          type: "string",
+          description: "The file name to associate with the upload.",
+        },
         redundancyLevel: {
           type: "number",
           description:
@@ -573,6 +577,29 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["selectedStamps", "count"],
+    },
+  },
+  {
+    name: "list_upload_history",
+    description: "List the upload history of files and data uploaded to Swarm in this session.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        history: {
+          type: "array",
+          description: "List of upload history entries, newest first.",
+        },
+        count: {
+          type: "number",
+          description: "Total number of uploads in history.",
+        },
+      },
+      required: ["history", "count"],
     },
   },
 ];

@@ -12,6 +12,7 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
+import { addUploadEntry } from "../upload_history";
 import { UploadDataArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
@@ -48,9 +49,19 @@ export async function uploadData(
     }
   }
 
+  const reference = result.reference.toString();
+  const url = config.bee.endpoint + "/bytes/" + reference;
+
+  addUploadEntry({
+    type: "data",
+    reference,
+    url,
+    sizeBytes: binaryData.length,
+  });
+
   return getResponseWithStructuredContent({
-    reference: result.reference.toString(),
-    url: config.bee.endpoint + "/bytes/" + result.reference.toString(),
+    reference,
+    url,
     message: "Data successfully uploaded to Swarm",
   });
 }

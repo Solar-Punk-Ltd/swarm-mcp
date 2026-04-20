@@ -404,6 +404,7 @@
       <div class="tabs">
         <button class="tab active" data-tab="stamps"><span>Postage Stamps</span></button>
         <button class="tab" data-tab="upload"><span>Upload File</span></button>
+        <button class="tab" data-tab="history"><span>Upload History</span></button>
       </div>
 
       <div id="stamps-tab" class="tab-content active">
@@ -424,6 +425,11 @@
         <div class="preview-area" id="preview-area" style="display: none;">
           <p class="loading">Preview will appear here...</p>
         </div>
+      </div>
+
+      <div id="history-tab" class="tab-content">
+        <button id="history-btn"><span>Refresh History</span></button>
+        <div id="history-table"></div>
       </div>
     </div>
 
