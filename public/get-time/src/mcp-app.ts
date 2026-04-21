@@ -122,6 +122,7 @@ tabs.forEach((tab) => {
     if (name === "history") loadHistory();
     if (name === "status") loadNodeStatus();
     if (name === "upload") {
+      resetUploadWorkflow();
       if (lastStampsData.length === 0) {
         loadStamps().then(() => renderUploadStampPicker()).catch(() => {});
       } else {
@@ -443,6 +444,17 @@ function goToUploadStep1() {
   uploadStep1Indicator.classList.remove("done"); uploadStep1Indicator.classList.add("active");
   uploadResult.innerHTML = "";
   previewArea.style.display = "none";
+}
+
+function resetUploadWorkflow() {
+  selectedFile = null;
+  fileBase64 = null;
+  uploadSelectedBatchId = "";
+  fileInput.value = "";
+  fileNameDisplay.textContent = "// No file selected";
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = "<span>UPLOAD</span>";
+  goToUploadStep1();
 }
 
 uploadContinueBtn.addEventListener("click", goToUploadStep2);
