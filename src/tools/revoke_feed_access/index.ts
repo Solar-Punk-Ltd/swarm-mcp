@@ -18,9 +18,13 @@ export async function revokeFeedAccess(
 ): Promise<ToolResponse> {
   const outcome = await patchFeedAcl({ ...args, mode: "revoke" }, bee);
   if (!outcome.ok) return outcome.error;
+  const message =
+    outcome.kind === "marketplace-v1"
+      ? `Grantee revoked from all ${outcome.result.itemsPatched} item(s) in the marketplace feed. Note: old historyAddress values still decrypt — revocation is forward-only.`
+      : "Grantee revoked from the latest feed entry. Note: old historyAddress values still decrypt — revocation is forward-only.";
   return getResponseWithStructuredContent({
+    kind: outcome.kind,
     ...outcome.result,
-    message:
-      "Grantee revoked from the latest feed entry. Note: old historyAddress values still decrypt — revocation is forward-only.",
+    message,
   });
 }

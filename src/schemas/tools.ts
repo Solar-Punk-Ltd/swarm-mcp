@@ -659,7 +659,7 @@ export const SwarmToolsSchema = [
     name: "publish_to_feed_with_act",
     title: "Publish to feed (ACT)",
     description:
-      "Opinionated provider flow: upload content with ACT (+ optional grantees) and publish its { reference, historyAddress } JSON to a feed entry identified by a plain-text topic. Accepts either `data` (raw text) or `filePath` (file on disk; stdio mode only).",
+      "Opinionated provider flow: upload content with ACT (+ optional grantees) and publish its { r, g, h } JSON to a feed entry identified by a plain-text topic. Accepts either `data` (raw text) or `filePath` (file on disk; stdio mode only). Advanced: pass `customPayload` to write an arbitrary JSON blob to the feed instead of the default { r, g, h } shape -- upload still runs if data/filePath are provided and the ACT refs come back in the response for you to embed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -678,6 +678,10 @@ export const SwarmToolsSchema = [
         },
         redundancyLevel: { type: "number", default: 0 },
         postageBatchId: { type: "string" },
+        customPayload: {
+          description:
+            "Advanced escape hatch: JSON object or stringified JSON to write to the feed verbatim, replacing the default { r, g, h } payload. Upload still runs if data/filePath provided; embed the returned swarmHash/historyAddress/granteeListRef in your custom shape if needed.",
+        },
       },
       required: ["feedTopic"],
     },
@@ -752,6 +756,78 @@ export const SwarmToolsSchema = [
         },
         filePath: { type: "string" },
         actTimestamp: { type: "number" },
+      },
+      required: ["feedTopic", "publisherPubKey"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "publish_marketplace_feed",
+    title: "Publish to marketplace feed (ACT + schema v1)",
+    description:
+      "Publishes one data item to a marketplace-v1 feed. append=true (default) reads the latest feed entry and appends the new item to dataItems[]; append=false replaces. Payload shape: { schemeVersion: 'v1', dataItems: [{ swarmHash, actHistoryRef, granteeRef, displayName, metadata[], tags[] }, ...] }. Consumer-side uses fetch_marketplace_feed to browse + download_data_act to decrypt a picked item.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        feedTopic: {
+          type: "string",
+          description:
+            "Plain-text topic label (hashed with SHA-256) or a 64-char hex topic.",
+        },
+        data: { type: "string", description: "Text content to upload." },
+        filePath: {
+          type: "string",
+          description: "Path to a file (stdio mode only).",
+        },
+        isPath: { type: "boolean", default: false },
+        displayName: {
+          type: "string",
+          description: "Human-readable name for this data item.",
+        },
+        metadata: {
+          type: "array",
+          items: { type: "string" },
+          description: "Free-form metadata array (e.g. category labels).",
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Distinct from metadata -- tags for search/filtering.",
+        },
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Public keys authorized to decrypt this item. Must be non-empty so a grantee-list ref exists for later patching.",
+        },
+        append: {
+          type: "boolean",
+          default: true,
+          description:
+            "true = read latest feed and append this item to dataItems[]; false = replace with a single-item catalog.",
+        },
+        redundancyLevel: { type: "number", default: 0 },
+        postageBatchId: { type: "string" },
+      },
+      required: ["feedTopic", "displayName", "grantees"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "fetch_marketplace_feed",
+    title: "Fetch marketplace feed catalog",
+    description:
+      "Reads the latest feed entry and STRICT-parses it as marketplace-v1. Returns the full dataItems[] so the caller can browse the catalog. Does NOT download any item -- use download_data_act with swarmHash + actHistoryRef + publisherPubKey to decrypt the chosen one (assuming the consumer's pubkey is on that item's granteeRef).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        feedTopic: { type: "string" },
+        publisherPubKey: { type: "string" },
+        feedOwner: {
+          type: "string",
+          description:
+            "Optional ETH address of the feed owner. Defaults to ethAddress(publisherPubKey).",
+        },
       },
       required: ["feedTopic", "publisherPubKey"],
     },

@@ -221,6 +221,49 @@ export const publishToFeedWithActSchema = z.object({
   grantees: z.array(pubKeyHexSchema).optional(),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
+  customPayload: z.union([z.string(), z.record(z.unknown())]).optional(),
+});
+
+export const publishMarketplaceFeedSchema = z.object({
+  feedTopic: z
+    .string()
+    .min(1, { message: "Missing required parameter: feedTopic." }),
+  data: z.string().optional(),
+  filePath: z.string().optional(),
+  isPath: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional()
+    .default(false),
+  displayName: z
+    .string()
+    .min(1, { message: "Missing required parameter: displayName." }),
+  metadata: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional().default([]),
+  grantees: z.array(pubKeyHexSchema).optional().default([]),
+  append: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional()
+    .default(true),
+  redundancyLevel: z.coerce.number().optional().default(0),
+  postageBatchId: z.string().optional(),
+});
+
+export const fetchMarketplaceFeedSchema = z.object({
+  feedTopic: z
+    .string()
+    .min(1, { message: "Missing required parameter: feedTopic." }),
+  publisherPubKey: pubKeyHexSchema,
+  feedOwner: z.string().optional(),
 });
 
 export const grantFeedAccessSchema = z.object({

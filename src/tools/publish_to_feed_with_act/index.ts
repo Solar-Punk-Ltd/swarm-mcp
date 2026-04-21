@@ -48,9 +48,11 @@ export async function publishToFeedWithAct(
   if (!args.feedTopic) {
     return getToolErrorResponse("Missing required parameter: feedTopic.");
   }
-  if (!args.data && !args.filePath) {
+  const hasUpload = Boolean(args.data || args.filePath);
+  const hasCustomPayload = args.customPayload !== undefined;
+  if (!hasUpload && !hasCustomPayload) {
     return getToolErrorResponse(
-      "Provide either `data` (text) or `filePath` (path to a file)."
+      "Provide either `data`/`filePath` (to upload + auto-publish { r, g, h }) or `customPayload` (to write an arbitrary JSON blob to the feed)."
     );
   }
   if (!config.bee.feedPrivateKey) {
@@ -75,83 +77,87 @@ export async function publishToFeedWithAct(
       `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
     );
   }
-  if (grantees.length === 0) {
+  if (hasUpload && !hasCustomPayload && grantees.length === 0) {
     return getToolErrorResponse(
-      "publish_to_feed_with_act requires at least one grantee public key. Without one there is no grantee-list to patch later via grant_feed_access. Use upload_data_act + update_feed if you just want a publisher-only upload."
+      "Default-payload publish (upload with { r, g, h }) requires at least one grantee public key. Without one there is no grantee-list to patch later via grant_feed_access. Pass `customPayload` for a grantee-less feed write, or use upload_data_act + update_feed for a publisher-only upload."
     );
   }
 
-  let binaryData: Buffer;
+  let binaryData: Buffer | undefined;
   let fileName: string | undefined;
-  if (args.filePath) {
-    if (!(transport instanceof StdioServerTransport)) {
-      return getToolErrorResponse(
-        "File path uploads are only supported in stdio mode."
-      );
-    }
-    try {
-      binaryData = await readFile(args.filePath);
-    } catch {
-      return getToolErrorResponse(
-        `Unable to read file at path: ${args.filePath}.`
-      );
-    }
-    fileName = path.basename(args.filePath);
-  } else {
-    binaryData = Buffer.from(args.data as string);
-  }
-
-  let granteeListRef: string;
-  let historyAddress: string;
-  try {
-    const g = await bee.createGrantees(postageBatchId, grantees);
-    granteeListRef = g.ref.toHex();
-    historyAddress = g.historyref.toHex();
-  } catch (err) {
-    const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
-      ? getErrorMessage(err)
-      : "Unable to create grantees list.";
-    return getToolErrorResponse(msg);
-  }
-
-  const uploadOptions: UploadOptions = {
-    act: true,
-    actHistoryAddress: historyAddress,
-  };
-  if (args.redundancyLevel !== undefined) {
-    (
-      uploadOptions as UploadOptions & { redundancyLevel?: number }
-    ).redundancyLevel = args.redundancyLevel;
-  }
-
-  let uploadResult: UploadResult;
-  try {
-    if (fileName) {
-      uploadResult = await bee.uploadFile(
-        postageBatchId,
-        binaryData,
-        fileName,
-        uploadOptions
-      );
+  if (hasUpload) {
+    if (args.filePath) {
+      if (!(transport instanceof StdioServerTransport)) {
+        return getToolErrorResponse(
+          "File path uploads are only supported in stdio mode."
+        );
+      }
+      try {
+        binaryData = await readFile(args.filePath);
+      } catch {
+        return getToolErrorResponse(
+          `Unable to read file at path: ${args.filePath}.`
+        );
+      }
+      fileName = path.basename(args.filePath);
     } else {
-      uploadResult = await bee.uploadData(
-        postageBatchId,
-        binaryData,
-        uploadOptions
-      );
+      binaryData = Buffer.from(args.data as string);
     }
-  } catch (err) {
-    const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
-      ? getErrorMessage(err)
-      : "Unable to upload content with ACT.";
-    return getToolErrorResponse(msg);
   }
 
-  let uploadHistHex: string | undefined;
-  uploadResult.historyAddress?.ifPresent((r) => {
-    uploadHistHex = r.toHex();
-  });
-  const finalHistory = uploadHistHex ?? historyAddress;
+  let granteeListRef: string | null = null;
+  let historyAddress: string | null = null;
+  if (hasUpload && grantees.length > 0) {
+    try {
+      const g = await bee.createGrantees(postageBatchId, grantees);
+      granteeListRef = g.ref.toHex();
+      historyAddress = g.historyref.toHex();
+    } catch (err) {
+      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+        ? getErrorMessage(err)
+        : "Unable to create grantees list.";
+      return getToolErrorResponse(msg);
+    }
+  }
+
+  let uploadResult: UploadResult | null = null;
+  if (hasUpload) {
+    const uploadOptions: UploadOptions = { act: true };
+    if (historyAddress) uploadOptions.actHistoryAddress = historyAddress;
+    if (args.redundancyLevel !== undefined) {
+      (
+        uploadOptions as UploadOptions & { redundancyLevel?: number }
+      ).redundancyLevel = args.redundancyLevel;
+    }
+
+    try {
+      if (fileName) {
+        uploadResult = await bee.uploadFile(
+          postageBatchId,
+          binaryData as Buffer,
+          fileName,
+          uploadOptions
+        );
+      } else {
+        uploadResult = await bee.uploadData(
+          postageBatchId,
+          binaryData as Buffer,
+          uploadOptions
+        );
+      }
+    } catch (err) {
+      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+        ? getErrorMessage(err)
+        : "Unable to upload content with ACT.";
+      return getToolErrorResponse(msg);
+    }
+
+    let uploadHistHex: string | undefined;
+    uploadResult.historyAddress?.ifPresent((r) => {
+      uploadHistHex = r.toHex();
+    });
+    historyAddress = uploadHistHex ?? historyAddress;
+  }
 
   const topic = normalizeFeedTopic(args.feedTopic);
   const feedPrivateKey = hexToBytes(
@@ -160,16 +166,43 @@ export async function publishToFeedWithAct(
       : config.bee.feedPrivateKey
   );
   const owner = feedOwnerFromPrivateKey(config.bee.feedPrivateKey);
-  const payload = encodeFeedActPayload({
-    r: uploadResult.reference.toHex(),
-    g: granteeListRef,
-    h: finalHistory,
-  });
+
+  let payloadBytes: Uint8Array;
+  if (hasCustomPayload) {
+    const raw = args.customPayload;
+    let asString: string;
+    if (typeof raw === "string") {
+      asString = raw;
+    } else {
+      try {
+        asString = JSON.stringify(raw);
+      } catch (e) {
+        return getToolErrorResponse(
+          `customPayload is not serializable: ${e instanceof Error ? e.message : String(e)}`
+        );
+      }
+    }
+    payloadBytes = Buffer.from(asString);
+  } else {
+    if (!uploadResult || !historyAddress || !granteeListRef) {
+      return getToolErrorResponse(
+        "Internal: cannot build default payload without upload + grantees."
+      );
+    }
+    payloadBytes = encodeFeedActPayload({
+      r: uploadResult.reference.toHex(),
+      g: granteeListRef,
+      h: historyAddress,
+    });
+  }
 
   let feedWriteResult;
   try {
     const feedWriter = bee.makeFeedWriter(topic.topicBytes, feedPrivateKey);
-    feedWriteResult = await feedWriter.uploadPayload(postageBatchId, payload);
+    feedWriteResult = await feedWriter.uploadPayload(
+      postageBatchId,
+      payloadBytes
+    );
   } catch (err) {
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
       ? getErrorMessage(err)
@@ -183,12 +216,14 @@ export async function publishToFeedWithAct(
     feedOwner: owner,
     feedUrl: `${config.bee.endpoint}/feeds/${owner}/${topic.topicHex}`,
     feedReference: feedWriteResult.reference.toHex(),
-    reference: uploadResult.reference.toHex(),
-    historyAddress: finalHistory,
+    reference: uploadResult?.reference.toHex() ?? null,
+    historyAddress: historyAddress ?? null,
     granteeListRef,
     grantees,
     fileName: fileName ?? null,
-    message:
-      "Content uploaded with ACT, granted access to the provided public keys, and published to feed.",
+    customPayloadUsed: hasCustomPayload,
+    message: hasCustomPayload
+      ? "Feed updated with custom payload."
+      : "Content uploaded with ACT, granted access to the provided public keys, and published to feed.",
   });
 }

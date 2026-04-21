@@ -58,6 +58,8 @@ import { publishToFeedWithAct } from "./tools/publish_to_feed_with_act";
 import { grantFeedAccess } from "./tools/grant_feed_access";
 import { revokeFeedAccess } from "./tools/revoke_feed_access";
 import { fetchFromFeedWithAct } from "./tools/fetch_from_feed_with_act";
+import { publishMarketplaceFeed } from "./tools/publish_marketplace_feed";
+import { fetchMarketplaceFeed } from "./tools/fetch_marketplace_feed";
 
 // Model types
 import type { UploadFileArgs } from "./tools/upload_file/models";
@@ -85,6 +87,8 @@ import type { PublishToFeedWithActArgs } from "./tools/publish_to_feed_with_act/
 import type { GrantFeedAccessArgs } from "./tools/grant_feed_access/models";
 import type { RevokeFeedAccessArgs } from "./tools/revoke_feed_access/models";
 import type { FetchFromFeedWithActArgs } from "./tools/fetch_from_feed_with_act/models";
+import type { PublishMarketplaceFeedArgs } from "./tools/publish_marketplace_feed/models";
+import type { FetchMarketplaceFeedArgs } from "./tools/fetch_marketplace_feed/models";
 
 // Zod schemas
 import {
@@ -116,6 +120,8 @@ import {
   grantFeedAccessSchema,
   revokeFeedAccessSchema,
   fetchFromFeedWithActSchema,
+  publishMarketplaceFeedSchema,
+  fetchMarketplaceFeedSchema,
 } from "./schemas/zod-schemas";
 import { TASK_POLL_INTERVAL } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
@@ -480,6 +486,23 @@ export class SwarmMCPServer {
               );
             }
 
+            case "publish_marketplace_feed": {
+              const validArgs = publishMarketplaceFeedSchema.parse(args);
+              return publishMarketplaceFeed(
+                validArgs as unknown as PublishMarketplaceFeedArgs,
+                this.bee,
+                this.server.server.transport
+              );
+            }
+
+            case "fetch_marketplace_feed": {
+              const validArgs = fetchMarketplaceFeedSchema.parse(args);
+              return fetchMarketplaceFeed(
+                validArgs as FetchMarketplaceFeedArgs,
+                this.bee
+              );
+            }
+
             default:
               throw new McpError(
                 ErrorCode.MethodNotFound,
@@ -714,6 +737,8 @@ export class SwarmMCPServer {
           "grant_feed_access",
           "revoke_feed_access",
           "fetch_from_feed_with_act",
+          "publish_marketplace_feed",
+          "fetch_marketplace_feed",
         ];
         tools = tools.filter((item) => !nodeOnlyTools.includes(item.name));
       }
