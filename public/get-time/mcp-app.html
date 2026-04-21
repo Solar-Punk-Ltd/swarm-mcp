@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swarm MCP Interface</title>
+    <title>Swarm MCP</title>
     <style>
       * {
         box-sizing: border-box;
@@ -438,27 +438,516 @@
       .btn-green:hover { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important; }
       .stamps-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
     </style>
+    <style>
+      /* ========= NEW DESIGN OVERRIDES ========= */
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0a0f1a !important;
+        min-height: 100vh;
+        display: flex !important;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 1.5rem !important;
+        max-width: none !important;
+        margin: 0 !important;
+      }
+      .card { display: none !important; }
+      .app-card {
+        background: #111827;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.08);
+        width: 100%;
+        max-width: 720px;
+        overflow: hidden;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      }
+      .app-header { padding: 1.5rem 1.5rem 0; text-align: center; }
+      .app-title { font-size: 1.6rem; font-weight: 700; color: #f97316; letter-spacing: -0.5px; background: none; -webkit-text-fill-color: #f97316; }
+      /* Tab bar */
+      .new-tab-bar {
+        display: flex; padding: 0 1.5rem; margin-top: 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .new-tab {
+        padding: 0.75rem 1.25rem; background: none; border: none;
+        border-bottom: 2px solid transparent; margin-bottom: -1px;
+        font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        color: #4b5563; cursor: pointer; transition: color 0.2s, border-color 0.2s;
+        box-shadow: none; border-radius: 0; margin-right: 0;
+      }
+      .new-tab::before { display: none; }
+      .new-tab:hover { color: #9ca3af; background: none; box-shadow: none; transform: none; }
+      .new-tab.active { color: #f97316; border-bottom-color: #f97316; }
+      /* Tab content */
+      .new-tab-content { display: none; padding: 1.25rem 1.5rem 1.5rem; }
+      .new-tab-content.active { display: block; }
+      /* Scrollable list area */
+      .scroll-area { max-height: 55vh; overflow-y: auto; margin-top: 0.75rem; }
+      .scroll-area::-webkit-scrollbar { width: 5px; }
+      .scroll-area::-webkit-scrollbar-track { background: transparent; }
+      .scroll-area::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.25); border-radius: 3px; }
+      /* BUY button */
+      .buy-stamp-btn-main {
+        width: 100%; background: transparent;
+        border: 2px dashed #10b981 !important; color: #10b981 !important;
+        font-family: monospace; font-size: 0.85rem; font-weight: 700;
+        letter-spacing: 0.12em; padding: 0.85rem; border-radius: 12px;
+        cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+        box-shadow: none !important; margin: 0; position: relative; overflow: hidden;
+      }
+      .buy-stamp-btn-main::before { display: none; }
+      .buy-stamp-btn-main:hover { background: rgba(16,185,129,0.07) !important; box-shadow: 0 0 20px rgba(16,185,129,0.15) !important; }
+      .buy-stamp-btn-main span { position: relative; z-index: 1; }
+      /* Stamp cards */
+      .stamp-card {
+        display: flex; align-items: center;
+        background: #1a2236; border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px; margin-bottom: 0.5rem;
+        cursor: pointer; transition: background 0.15s, border-color 0.15s;
+        overflow: hidden; min-height: 52px;
+      }
+      .stamp-card:hover { background: #1e2a40; border-color: rgba(249,115,22,0.25); }
+      .stamp-card-bar { width: 4px; align-self: stretch; background: #f97316; flex-shrink: 0; }
+      .stamp-card-inner {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.6rem 0.85rem; width: 100%; overflow: hidden;
+      }
+      .stamp-label {
+        font-family: monospace; font-size: 1rem; font-weight: 700;
+        color: #f97316; width: 130px; flex-shrink: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .stamp-progress-wrap { flex: 1; display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+      .stamp-progress-bar-bg { flex: 1; height: 5px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; min-width: 0; }
+      .stamp-progress-bar-fill { height: 100%; border-radius: 999px; background: #f97316; transition: width 0.4s ease; }
+      .stamp-progress-bar-fill.fill-critical { background: #ef4444; }
+      .stamp-pct { font-family: monospace; font-size: 0.75rem; color: #6b7280; width: 32px; text-align: right; flex-shrink: 0; }
+      .stamp-size-badge {
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px; padding: 0.28rem 0.6rem;
+        font-family: monospace; font-size: 0.72rem; color: #9ca3af;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        max-width: 150px; flex-shrink: 0;
+      }
+      .stamp-ttl-badge {
+        display: flex; align-items: center; gap: 0.4rem;
+        border-radius: 8px; padding: 0.28rem 0.65rem;
+        font-family: monospace; font-size: 0.72rem; font-weight: 600;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        max-width: 110px; flex-shrink: 0; border: 1px solid;
+      }
+      .stamp-ttl-badge.ok    { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+      .stamp-ttl-badge.warn  { color: #f97316; border-color: rgba(249,115,22,0.3);  background: rgba(249,115,22,0.08); }
+      .stamp-ttl-badge.critical { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
+      .stamp-ttl-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+      .stamp-ttl-badge.ok       .stamp-ttl-dot { background: #10b981; }
+      .stamp-ttl-badge.warn     .stamp-ttl-dot { background: #f97316; }
+      .stamp-ttl-badge.critical .stamp-ttl-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.7); }
+      /* State messages */
+      .state-text { color: #4b5563; font-size: 0.875rem; font-style: italic; text-align: center; padding: 2rem 1rem; }
+      .state-error {
+        color: #fca5a5; background: rgba(239,68,68,0.07);
+        border: 1px solid rgba(239,68,68,0.22); border-radius: 10px;
+        padding: 0.8rem 1rem; font-size: 0.875rem; margin-top: 0.75rem;
+      }
+      /* ---- Upload Tab ---- */
+      .upload-tab-wrap { padding: 1.5rem 0 0.5rem; }
+      .upload-gateway-title {
+        text-align: center; font-size: 1.5rem; font-weight: 800;
+        color: #e2e8f0; letter-spacing: -0.02em; margin-bottom: 0.55rem;
+      }
+      .upload-gateway-sub {
+        text-align: center; font-family: monospace; font-size: 0.85rem;
+        color: #4b5563; margin-bottom: 1.5rem;
+      }
+      .upload-panel {
+        border: 1px solid rgba(249,115,22,0.25); border-radius: 16px;
+        overflow: hidden;
+      }
+      .upload-select-row {
+        display: flex; border-bottom: 1px solid rgba(255,255,255,0.07);
+      }
+      .upload-select-btn {
+        background: rgba(255,255,255,0.07) !important; border: none !important;
+        border-right: 1px solid rgba(255,255,255,0.1) !important;
+        color: #e2e8f0 !important; font-family: monospace;
+        font-size: 0.82rem; font-weight: 700; letter-spacing: 0.12em;
+        padding: 1rem 1.4rem; white-space: nowrap; flex-shrink: 0;
+        cursor: pointer; border-radius: 0 !important;
+        transition: background 0.2s; box-shadow: none !important;
+        position: relative; overflow: hidden;
+      }
+      .upload-select-btn::before { display: none; }
+      .upload-select-btn:hover { background: rgba(255,255,255,0.13) !important; }
+      .upload-select-btn span { position: relative; z-index: 1; }
+      .upload-file-display {
+        flex: 1; display: flex; align-items: center;
+        padding: 1rem 1.2rem;
+        font-family: monospace; font-size: 0.85rem; color: #374151;
+        background: #0d1117; overflow: hidden; white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .upload-submit-btn {
+        width: 100%; background: rgba(249,115,22,0.1) !important;
+        border: none !important; border-top: 1px solid rgba(249,115,22,0.25) !important;
+        color: #f97316 !important; font-family: monospace;
+        font-size: 0.9rem; font-weight: 700; letter-spacing: 0.18em;
+        padding: 1.1rem; border-radius: 0 !important;
+        cursor: pointer; transition: background 0.2s; box-shadow: none !important;
+        position: relative; overflow: hidden;
+      }
+      .upload-submit-btn::before { display: none; }
+      .upload-submit-btn:hover { background: rgba(249,115,22,0.18) !important; }
+      .upload-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+      .upload-submit-btn span { position: relative; z-index: 1; }
+      .btn-primary {
+        background: linear-gradient(135deg, #f97316, #ea580c) !important;
+        color: white !important; border: none !important; padding: 0.65rem 1.25rem;
+        border-radius: 10px; font-weight: 700; font-size: 0.875rem;
+        cursor: pointer; box-shadow: 0 4px 12px rgba(249,115,22,0.3) !important;
+        transition: box-shadow 0.2s; white-space: nowrap;
+        position: relative; overflow: hidden;
+      }
+      .btn-primary::before { display: none; }
+      .btn-primary:hover { box-shadow: 0 6px 18px rgba(249,115,22,0.5) !important; }
+      .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-primary span { position: relative; z-index: 1; }
+      .btn-emerald {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+        color: white !important; border: none !important; padding: 0.7rem 1.25rem;
+        border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+        width: 100%; cursor: pointer;
+        box-shadow: 0 4px 12px rgba(16,185,129,0.3) !important; transition: box-shadow 0.2s;
+        position: relative; overflow: hidden;
+      }
+      .btn-emerald::before { display: none; }
+      .btn-emerald:hover { box-shadow: 0 6px 20px rgba(16,185,129,0.5) !important; }
+      .btn-emerald:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-emerald span { position: relative; z-index: 1; }
+      .upload-result { margin-top: 0.75rem; font-size: 0.875rem; }
+      .preview-area { margin-top: 1rem; }
+      .preview-area img { max-width: 100%; max-height: 280px; border-radius: 10px; }
+      .result-success {
+        padding: 0.75rem 0.9rem; background: rgba(16,185,129,0.08);
+        border: 1px solid rgba(16,185,129,0.25); border-radius: 9px;
+        color: #10b981; font-size: 0.85rem;
+      }
+      .result-error {
+        padding: 0.75rem 0.9rem; background: rgba(239,68,68,0.08);
+        border: 1px solid rgba(239,68,68,0.25); border-radius: 9px;
+        color: #fca5a5; font-size: 0.85rem;
+      }
+      .loading-text { color: #4b5563; font-size: 0.85rem; font-style: italic; }
+      /* History */
+      .history-wrap table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+      .history-wrap th { color: #f97316; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; padding: 0.5rem; border-bottom: 1px solid rgba(249,115,22,0.2); }
+      .history-wrap td { padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: #94a3b8; }
+      .history-wrap tr:hover td { background: rgba(249,115,22,0.04); }
+      /* History cards */
+      .hist-card {
+        display: flex; align-items: center; gap: 0.75rem;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 14px; padding: 0.9rem 1.1rem;
+        margin-bottom: 0.5rem; overflow: hidden;
+      }
+      .hist-icon { color: #4b5563; flex-shrink: 0; display: flex; align-items: center; }
+      .hist-name {
+        font-family: monospace; font-size: 0.88rem; font-weight: 700;
+        color: #e2e8f0; flex: 1; min-width: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .hist-ref-pill {
+        font-family: monospace; font-size: 0.78rem; font-weight: 600;
+        color: #f97316; background: rgba(249,115,22,0.12);
+        border: 1px solid rgba(249,115,22,0.3);
+        border-radius: 8px; padding: 0.3rem 0.7rem;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        max-width: 160px; flex-shrink: 0;
+      }
+      .hist-size-pill {
+        font-family: monospace; font-size: 0.78rem; font-weight: 600;
+        color: #9ca3af; background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 0.3rem 0.7rem;
+        white-space: nowrap; flex-shrink: 0;
+      }
+      .hist-time {
+        font-family: monospace; font-size: 0.82rem; color: #6b7280;
+        white-space: nowrap; flex-shrink: 0;
+      }
+      .swarm-link { color: #f97316; text-decoration: none; font-weight: 600; }
+      .swarm-link:hover { text-decoration: underline; }
+      .mono { font-family: monospace; }
+      /* Modal overrides */
+      .modal { background: #111827 !important; overflow: hidden; }
+      .modal-inner { padding: 1.75rem; overflow-y: auto; max-height: 88vh; }
+      /* Rainbow bar */
+      .modal-rainbow {
+        height: 4px; width: 100%;
+        background: linear-gradient(90deg, #f97316 0%, #fbbf24 35%, #10b981 70%, #06b6d4 100%);
+        flex-shrink: 0;
+      }
+      /* New modal title */
+      .modal-title { color: #e2e8f0; font-size: 1.35rem; font-weight: 800; letter-spacing: 0.01em; margin-bottom: 1.1rem; }
+      /* Detail inner card */
+      .d-card {
+        background: #0d1117; border-radius: 12px;
+        padding: 1rem 1.1rem; border: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 0.75rem;
+      }
+      .d-section-label {
+        font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
+        color: #4b5563; font-weight: 700; margin-bottom: 0.5rem;
+      }
+      .d-batch-value {
+        font-family: monospace; font-size: 0.78rem; color: #10b981;
+        background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+        border-radius: 8px; padding: 0.45rem 0.75rem;
+        word-break: break-all; user-select: all; margin-bottom: 0.9rem; display: block;
+      }
+      .d-metrics-grid {
+        display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem 1rem;
+      }
+      .d-metric-label {
+        font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #4b5563; font-weight: 700; margin-bottom: 0.15rem;
+      }
+      .d-metric-value { font-size: 1rem; font-weight: 700; color: #e2e8f0; }
+      /* Capacity load */
+      .d-cap-header {
+        display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.55rem;
+      }
+      .d-cap-pct { font-size: 1rem; font-weight: 700; color: #f97316; }
+      .d-cap-bar-bg {
+        height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px;
+        overflow: hidden; margin-bottom: 0.8rem;
+      }
+      .d-cap-bar-fill {
+        height: 100%; border-radius: 999px;
+        background: linear-gradient(90deg, #f97316, #ea580c);
+      }
+      .d-stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; }
+      .d-stat { padding: 0 0.6rem; }
+      .d-stat:not(:first-child) { border-left: 1px solid rgba(255,255,255,0.06); }
+      .d-stat:first-child { padding-left: 0; }
+      .d-stat-label {
+        font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #4b5563; font-weight: 700; margin-bottom: 0.2rem;
+      }
+      .d-stat-value { font-size: 0.92rem; font-weight: 700; color: #e2e8f0; }
+      /* Target upload button */
+      .d-target-upload-btn {
+        width: 100%; background: rgba(249,115,22,0.08) !important;
+        border: 1px solid rgba(249,115,22,0.35) !important;
+        color: #f97316 !important; font-family: monospace;
+        font-size: 0.82rem; font-weight: 700; letter-spacing: 0.12em;
+        padding: 0.85rem; border-radius: 999px !important;
+        cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+        box-shadow: none !important; margin: 0; position: relative; overflow: hidden;
+      }
+      .d-target-upload-btn::before { display: none; }
+      .d-target-upload-btn:hover { background: rgba(249,115,22,0.15) !important; }
+      .d-target-upload-btn:disabled { opacity: 0.5; }
+      .d-target-upload-btn span { position: relative; z-index: 1; }
+      /* Extend row */
+      .d-extend-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+      .d-extend-input {
+        flex: 1; background: rgba(15,23,42,0.9) !important; border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 10px; padding: 0.65rem 0.9rem;
+        color: #6b7280 !important; font-size: 0.875rem;
+        transition: border-color 0.2s, color 0.2s;
+      }
+      .d-extend-input:focus { outline: none; border-color: #f97316 !important; color: #e2e8f0 !important; }
+      .d-extend-input::placeholder { color: #374151; }
+      .d-extend-btn {
+        background: rgba(255,255,255,0.07) !important;
+        border: 1px solid rgba(255,255,255,0.12) !important;
+        color: #e2e8f0 !important; font-family: monospace;
+        font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
+        padding: 0.65rem 1.1rem; border-radius: 10px;
+        cursor: pointer; white-space: nowrap;
+        transition: background 0.2s; box-shadow: none !important; position: relative; overflow: hidden;
+      }
+      .d-extend-btn::before { display: none; }
+      .d-extend-btn:hover { background: rgba(255,255,255,0.12) !important; box-shadow: none !important; }
+      .d-extend-btn:disabled { opacity: 0.5; }
+      .d-extend-btn span { position: relative; z-index: 1; }
+      .d-modal-upload-result { margin-top: 0.6rem; font-size: 0.82rem; }
+      .d-extend-result { margin-top: 0.5rem; font-size: 0.82rem; }
+      /* ---- History Item Modal ---- */
+      .hi-card {
+        background: #0d1117; border-radius: 12px;
+        padding: 1.1rem 1.2rem; border: 1px solid rgba(255,255,255,0.06);
+        margin-bottom: 0.75rem;
+      }
+      .hi-field-label {
+        font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
+        color: #4b5563; font-weight: 700; margin-bottom: 0.4rem;
+      }
+      .hi-field-value {
+        font-family: monospace; font-size: 0.95rem; font-weight: 700;
+        color: #e2e8f0; word-break: break-all; line-height: 1.4;
+      }
+      .hi-separator { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 0.9rem 0; }
+      .hi-hash-box {
+        font-family: monospace; font-size: 0.82rem; font-weight: 600;
+        color: #10b981; background: rgba(16,185,129,0.08);
+        border: 1px solid rgba(16,185,129,0.25);
+        border-radius: 8px; padding: 0.7rem 0.9rem;
+        word-break: break-all; user-select: all; line-height: 1.5;
+      }
+      .hi-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem 1rem; }
+      .hi-meta-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #4b5563; font-weight: 700; margin-bottom: 0.25rem; }
+      .hi-meta-value { font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #e2e8f0; }
+      .hi-meta-value.orange { color: #f97316; }
+      .hi-url-value {
+        font-family: monospace; font-size: 0.82rem;
+        color: #f97316; word-break: break-all; line-height: 1.5;
+        text-decoration: none; display: block;
+      }
+      .hi-url-value:hover { text-decoration: underline; }
+      .hi-copy-btn {
+        width: 100%; background: rgba(255,255,255,0.05) !important;
+        border: none !important; border-top: 1px solid rgba(255,255,255,0.07) !important;
+        color: #9ca3af !important; font-family: monospace;
+        font-size: 0.82rem; font-weight: 700; letter-spacing: 0.14em;
+        padding: 1rem; border-radius: 0 0 18px 18px !important;
+        cursor: pointer; margin-top: 0.75rem; margin-bottom: 0;
+        transition: background 0.2s; box-shadow: none !important;
+        position: relative; overflow: hidden;
+      }
+      .hi-copy-btn::before { display: none; }
+      .hi-copy-btn:hover { background: rgba(255,255,255,0.1) !important; }
+      .hi-copy-btn span { position: relative; z-index: 1; }
+      /* ---- Buy Stamp Modal ---- */
+      .buy-modal-wrap { padding: 0; border-radius: 18px; display: flex; flex-direction: column; }
+      .buy-modal-header {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        padding: 1.6rem 1.75rem 1.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+      }
+      .buy-modal-title {
+        font-size: 1.55rem; font-weight: 800; color: #e2e8f0;
+        letter-spacing: 0.03em; text-transform: uppercase; line-height: 1.2;
+        background: none; -webkit-text-fill-color: #e2e8f0;
+      }
+      .buy-modal-close-btn {
+        background: rgba(255,255,255,0.08) !important;
+        border: none !important; border-radius: 14px !important;
+        color: #9ca3af !important; font-size: 1.1rem; font-weight: 600;
+        width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; flex-shrink: 0; margin-left: 1rem;
+        transition: background 0.2s; box-shadow: none !important;
+        position: static !important; padding: 0;
+      }
+      .buy-modal-close-btn::before { display: none; }
+      .buy-modal-close-btn:hover { background: rgba(255,255,255,0.14) !important; }
+      .buy-form-body { padding: 1.5rem 1.75rem 1.75rem; }
+      .buy-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+      .buy-field { display: flex; flex-direction: column; gap: 0.55rem; }
+      .buy-field-label {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.1em; color: #6b7280;
+      }
+      .buy-field-label-left { display: flex; align-items: center; gap: 0.45rem; }
+      .buy-label-dot { width: 7px; height: 7px; border-radius: 50%; background: #f97316; flex-shrink: 0; }
+      .buy-opt-badge {
+        font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+        color: #4b5563; border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 5px; padding: 0.15rem 0.4rem;
+      }
+      .buy-input {
+        background: #0d1117 !important; border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 12px; padding: 0.85rem 1rem;
+        color: #4b5563 !important; font-size: 0.95rem; font-family: monospace;
+        width: 100%; transition: border-color 0.2s, color 0.2s;
+      }
+      .buy-input:focus { outline: none; border-color: rgba(249,115,22,0.4) !important; color: #e2e8f0 !important; }
+      .buy-input::placeholder { color: #374151; }
+      .buy-stamp-submit-btn {
+        width: 100%; background: rgba(16,185,129,0.12) !important;
+        border: 1px solid rgba(16,185,129,0.4) !important;
+        color: #10b981 !important; font-family: monospace;
+        font-size: 0.9rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+        padding: 1rem; border-radius: 14px !important;
+        cursor: pointer; margin-top: 1.25rem;
+        transition: background 0.2s, box-shadow 0.2s; box-shadow: none !important;
+        position: relative; overflow: hidden;
+      }
+      .buy-stamp-submit-btn::before { display: none; }
+      .buy-stamp-submit-btn:hover { background: rgba(16,185,129,0.2) !important; box-shadow: 0 0 22px rgba(16,185,129,0.18) !important; }
+      .buy-stamp-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .buy-stamp-submit-btn span { position: relative; z-index: 1; }
+    </style>
   </head>
   <body>
+    <!-- History Item Modal -->
+    <div class="modal-overlay" id="hist-item-modal">
+      <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column">
+        <div class="modal-rainbow"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:1.4rem 1.6rem 1.2rem;border-bottom:1px solid rgba(255,255,255,0.07)">
+          <div style="font-size:1.2rem;font-weight:800;color:#e2e8f0;letter-spacing:0.02em;font-family:monospace">
+            INSPECTOR <span style="color:#4b5563">//</span> UPLOAD RECORD
+          </div>
+          <button class="buy-modal-close-btn" id="hist-item-close">&#x2715;</button>
+        </div>
+        <div style="padding:1.25rem 1.6rem 0;overflow-y:auto;max-height:80vh">
+          <div class="hi-card">
+            <div class="hi-field-label">FILE NAME</div>
+            <div class="hi-field-value" id="hi-name">—</div>
+            <hr class="hi-separator" />
+            <div class="hi-field-label">SWARM HASH REFERENCE</div>
+            <div class="hi-hash-box" id="hi-reference">—</div>
+            <hr class="hi-separator" />
+            <div class="hi-meta-grid">
+              <div><div class="hi-meta-label">SIZE</div><div class="hi-meta-value" id="hi-size">—</div></div>
+              <div><div class="hi-meta-label">DATE</div><div class="hi-meta-value" id="hi-date">—</div></div>
+              <div><div class="hi-meta-label">TIME</div><div class="hi-meta-value" id="hi-time">—</div></div>
+              <div><div class="hi-meta-label">USED STAMP</div><div class="hi-meta-value orange" id="hi-stamp">—</div></div>
+            </div>
+          </div>
+          <div class="hi-card">
+            <div class="hi-field-label">GATEWAY ACCESS URL</div>
+            <a class="hi-url-value" id="hi-url" href="#" target="_blank">—</a>
+          </div>
+        </div>
+        <button class="hi-copy-btn" id="hi-copy-btn"><span>COPY HASH</span></button>
+      </div>
+    </div>
+
     <!-- Buy Stamp Modal -->
     <div class="modal-overlay" id="buy-stamp-modal">
-      <div class="modal">
-        <button class="modal-close" id="buy-modal-close">✕</button>
-        <h2>Buy Postage Stamp</h2>
-        <div class="buy-form">
-          <div class="form-group">
-            <label for="buy-size">Size (MB)</label>
-            <input type="number" id="buy-size" class="form-input" min="1" step="1" placeholder="e.g. 100" />
+      <div class="modal buy-modal-wrap">
+        <div class="modal-rainbow"></div>
+        <div class="buy-modal-header">
+          <div class="buy-modal-title">Buy Postage Stamp</div>
+          <button class="buy-modal-close-btn" id="buy-modal-close">&#x2715;</button>
+        </div>
+        <div class="buy-form-body">
+          <div class="buy-two-col">
+            <div class="buy-field">
+              <div class="buy-field-label">
+                <span class="buy-field-label-left"><span class="buy-label-dot"></span>CAPACITY (MB)</span>
+              </div>
+              <input type="number" id="buy-size" class="buy-input" min="1" step="1" placeholder="e.g. 100" />
+            </div>
+            <div class="buy-field">
+              <div class="buy-field-label">
+                <span class="buy-field-label-left"><span class="buy-label-dot"></span>TTL</span>
+              </div>
+              <input type="text" id="buy-duration" class="buy-input" placeholder="1d · 1w · 1m" />
+            </div>
           </div>
-          <div class="form-group">
-            <label for="buy-duration">Duration</label>
-            <input type="text" id="buy-duration" class="form-input" placeholder="1d · 1w · 1month · 1y" />
+          <div class="buy-field">
+            <div class="buy-field-label">
+              <span class="buy-field-label-left"><span class="buy-label-dot"></span>IDENTIFIER</span>
+              <span class="buy-opt-badge">OPT</span>
+            </div>
+            <input type="text" id="buy-label" class="buy-input" placeholder="sys_stamp_01" />
           </div>
-          <div class="form-group">
-            <label for="buy-label">Label <span style="opacity:0.5;font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
-            <input type="text" id="buy-label" class="form-input" placeholder="My Stamp" />
-          </div>
-          <button id="buy-submit-btn" class="btn-green"><span>Buy Stamp</span></button>
+          <button id="buy-submit-btn" class="buy-stamp-submit-btn"><span>BUY STAMP</span></button>
           <div id="buy-result"></div>
         </div>
       </div>
@@ -466,68 +955,66 @@
 
     <!-- Stamp Detail Modal -->
     <div class="modal-overlay" id="stamp-modal">
-      <div class="modal">
-        <button class="modal-close" id="modal-close">✕</button>
-        <h2 id="modal-title">Stamp Details</h2>
-        <div class="detail-grid" id="modal-body"></div>
-        <div class="modal-footer">
-          <input type="file" id="modal-file-input" accept="*/*" style="display:none" />
-          <button id="modal-upload-btn"><span>Upload File to this Stamp</span></button>
-          <div id="modal-upload-result" class="modal-upload-result"></div>
-          <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(249,115,22,0.15)">
-            <p style="margin:0 0 0.75rem 0;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;font-weight:600;">Extend / Top-up</p>
-            <div style="display:flex;gap:0.75rem">
-              <div class="form-group" style="flex:1">
-                <label class="detail-label" for="extend-size">Add Size (MB)</label>
-                <input type="number" id="extend-size" class="form-input" min="1" step="1" placeholder="e.g. 100" />
-              </div>
-              <div class="form-group" style="flex:1">
-                <label class="detail-label" for="extend-duration">Add Duration</label>
-                <input type="text" id="extend-duration" class="form-input" placeholder="1d · 1w · 1month" />
-              </div>
-            </div>
-            <button id="extend-submit-btn" style="margin-top:0.75rem;width:100%"><span>Extend Stamp</span></button>
-            <div id="extend-result" style="margin-top:0.75rem;font-size:0.875rem"></div>
+      <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column">
+        <div class="modal-rainbow"></div>
+        <div class="modal-inner">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.1rem">
+            <div class="modal-title" id="modal-title" style="margin-bottom:0">Stamp Details</div>
+            <button class="modal-close" id="modal-close" style="position:static;margin-left:0.75rem;flex-shrink:0">&#x2715;</button>
           </div>
+          <div id="modal-body"></div>
+          <input type="file" id="modal-file-input" accept="*/*" style="display:none" />
+          <button id="modal-upload-btn" class="d-target-upload-btn"><span>TARGET UPLOAD</span></button>
+          <div id="modal-upload-result" class="d-modal-upload-result"></div>
+          <div class="d-extend-row">
+            <input type="number" id="extend-size" class="d-extend-input" min="1" step="1" placeholder="+ Size" />
+            <input type="text" id="extend-duration" class="d-extend-input" placeholder="+ TTL" />
+            <button id="extend-submit-btn" class="d-extend-btn"><span>EXTEND</span></button>
+          </div>
+          <div id="extend-result" class="d-extend-result"></div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <h1>Swarm MCP App</h1>
-
-      <div class="tabs">
-        <button class="tab active" data-tab="stamps"><span>Postage Stamps</span></button>
-        <button class="tab" data-tab="upload"><span>Upload File</span></button>
-        <button class="tab" data-tab="history"><span>Upload History</span></button>
+    <!-- Main app -->
+    <div class="app-card">
+      <div class="app-header">
+        <div class="app-title">Swarm MCP</div>
+      </div>
+      <div class="new-tab-bar">
+        <button class="new-tab active" data-tab="stamps">Postage Stamps</button>
+        <button class="new-tab" data-tab="upload">Upload File</button>
+        <button class="new-tab" data-tab="history">Upload History</button>
       </div>
 
-      <div id="stamps-tab" class="tab-content active">
-        <div class="stamps-actions">
-          <button id="stamps-btn"><span>Load Postage Stamps</span></button>
-          <button id="buy-stamp-btn" class="btn-green"><span>+ Buy New Stamp</span></button>
-        </div>
-        <div id="stamps-table"></div>
+      <!-- Stamps tab -->
+      <div id="stamps-tab" class="new-tab-content active">
+        <button id="buy-stamp-btn" class="buy-stamp-btn-main"><span>+ BUY POSTAGE STAMP</span></button>
+        <div class="scroll-area" id="stamps-table"></div>
       </div>
 
-      <div id="upload-tab" class="tab-content">
-        <p>Select a file to upload to the decentralized storage</p>
-        
-        <div class="file-input-wrapper">
-          <input type="file" id="file-input" accept="*/*" />
-          <button id="upload-btn" disabled><span>Upload to Swarm</span></button>
-        </div>
-
-        <div id="upload-result"></div>
-        
-        <div class="preview-area" id="preview-area" style="display: none;">
-          <p class="loading">Preview will appear here...</p>
+      <!-- Upload tab -->
+      <div id="upload-tab" class="new-tab-content">
+        <div class="upload-tab-wrap">
+          <div class="upload-gateway-title">Decentralized Storage Gateway</div>
+          <div class="upload-gateway-sub">Initialize secure upload sequence to the Swarm network.</div>
+          <div class="upload-panel">
+            <div class="upload-select-row">
+              <button id="select-asset-btn" class="upload-select-btn"><span>SELECT ASSET</span></button>
+              <div class="upload-file-display" id="file-name-display">// No file selected</div>
+            </div>
+            <button id="upload-btn" class="upload-submit-btn" disabled><span>UPLOAD</span></button>
+          </div>
+          <input type="file" id="file-input" accept="*/*" style="display:none" />
+          <div id="upload-result" class="upload-result" style="margin-top:0.75rem"></div>
+          <div id="preview-area" class="preview-area" style="display:none"></div>
         </div>
       </div>
 
-      <div id="history-tab" class="tab-content">
-        <button id="history-btn"><span>Refresh History</span></button>
-        <div id="history-table"></div>
+      <!-- History tab -->
+      <div id="history-tab" class="new-tab-content">
+        <button id="history-btn" style="display:none"></button>
+        <div class="scroll-area" id="history-table"></div>
       </div>
     </div>
 
