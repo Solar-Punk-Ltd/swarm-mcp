@@ -54,6 +54,7 @@ import { listSelectedStamps } from "./tools/list_selected_stamps";
 import { ListSelectedStampsArgs } from "./tools/list_selected_stamps/models";
 import { listUploadHistory } from "./tools/upload_history";
 import { ListUploadHistoryArgs } from "./tools/upload_history/models";
+import { getNodeStatus } from "./tools/get_node_status";
 import { determineIfGateway } from "./utils";
 
 const GET_TIME_RESOURCE_URI = "content://get-time-ui";
@@ -214,6 +215,9 @@ export class SwarmMCPServer {
 
           case "list_upload_history":
             return listUploadHistory(args as unknown as ListUploadHistoryArgs);
+
+          case "get_node_status":
+            return getNodeStatus(this.bee);
         }
 
         throw new McpError(

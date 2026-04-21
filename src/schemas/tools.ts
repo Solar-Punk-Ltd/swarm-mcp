@@ -367,6 +367,26 @@ export const SwarmToolsSchema = [
     },
   },
   {
+    name: "get_node_status",
+    description: "Fetches the current status of the connected Bee node including health, connectivity, wallet balances and chain state.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "object", description: "Node connectivity and reserve status." },
+        health: { type: "object", description: "Node health and version info." },
+        nodeInfo: { type: "object", description: "Node mode and feature flags." },
+        wallet: { type: "object", description: "BZZ and native token balances." },
+        chain: { type: "object", description: "Chain tip, block and gas price." },
+      },
+      required: [],
+    },
+  },
+  {
     name: "create_postage_stamp",
     description: "Buy postage stamp based on size in megabytes and duration.",
     inputSchema: {
@@ -460,14 +480,14 @@ export const SwarmToolsSchema = [
   },
   {
     name: "swarm-mcp-app-tool",
-    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history.",
+    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history, 'status' for node network status.",
     inputSchema: {
       type: "object",
       properties: {
         tab: {
           type: "string",
-          enum: ["stamps", "upload", "history"],
-          description: "Which tab to open: 'stamps' for Postage Stamps, 'upload' for Upload File, 'history' for Upload History.",
+          enum: ["stamps", "upload", "history", "status"],
+          description: "Which tab to open: 'stamps' for Postage Stamps, 'upload' for Upload File, 'history' for Upload History, 'status' for Node Network Status.",
         },
         stamp: {
           type: "string",
