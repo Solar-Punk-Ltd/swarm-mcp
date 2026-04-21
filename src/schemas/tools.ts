@@ -416,6 +416,348 @@ export const SwarmToolsSchema = [
     },
   },
   {
+    name: "get_node_public_key",
+    title: "Get node public key",
+    description:
+      "Returns the Bee node's ACT publisher public key (hex) and related identity fields (ETH address, overlay). Share this with consumers who need to fetch ACT-protected content you publish.",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: {
+      type: "object",
+      properties: {
+        publicKey: { type: "string" },
+        publicKeyCompressed: { type: "string" },
+        pssPublicKey: { type: "string" },
+        ethAddress: { type: "string" },
+        overlay: { type: "string" },
+      },
+      required: ["publicKey", "ethAddress"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "get_wallet_address",
+    title: "Get wallet address",
+    description:
+      "Returns the ETH address of the Bee node's wallet. Use this to tell a user where to send BZZ / xDAI before purchasing a postage stamp.",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: {
+      type: "object",
+      properties: {
+        address: { type: "string" },
+        chainId: { type: "number" },
+        chequebookContractAddress: { type: "string" },
+      },
+      required: ["address"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "get_wallet_balance",
+    title: "Get wallet balance",
+    description:
+      "Returns BZZ / native-token / chequebook balances of the Bee node's wallet. Use before create_postage_stamp to check funds.",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: {
+      type: "object",
+      properties: {
+        walletAddress: { type: "string" },
+        chainId: { type: "number" },
+        bzzBalance: { type: "string" },
+        nativeTokenBalance: { type: "string" },
+        chequebookAddress: { type: "string" },
+        chequebookTotalBalance: { type: "string" },
+        chequebookAvailableBalance: { type: "string" },
+      },
+      required: ["walletAddress", "bzzBalance", "nativeTokenBalance"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "estimate_stamp_cost",
+    title: "Estimate stamp cost",
+    description:
+      "Given a data size and duration (same format as create_postage_stamp: e.g. '15mb', '90d'), returns a recommended depth (with 20% headroom) and BZZ cost derived from current chain price. Read-only; does not purchase anything.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        size: { type: "string", description: "e.g. '15mb', '1gb'" },
+        duration: { type: "string", description: "e.g. '30d', '1month'" },
+        depth: {
+          type: "number",
+          description: "Override the automatically-chosen depth.",
+        },
+      },
+      required: ["size", "duration"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "upload_data_act",
+    title: "Upload data (ACT)",
+    description:
+      "Upload text data to Swarm with ACT (Access Control Trie) encryption enabled. Returns { reference, historyAddress }. Pass grantees[] (public keys) to authorize decryption at publish time, or grant later with patch_grantees.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        data: { type: "string", description: "Arbitrary string to upload." },
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional public keys authorized to decrypt.",
+        },
+        historyAddress: {
+          type: "string",
+          description:
+            "Existing ACT history to append to. Omit to create a new history.",
+        },
+        redundancyLevel: { type: "number", default: 0 },
+        postageBatchId: { type: "string" },
+      },
+      required: ["data"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        reference: { type: "string" },
+        historyAddress: { type: "string" },
+        url: { type: "string" },
+        grantees: { type: "array", items: { type: "string" } },
+      },
+      required: ["reference"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "upload_file_act",
+    title: "Upload file (ACT)",
+    description:
+      "Upload a single file to Swarm with ACT encryption. Same semantics as upload_file but ACT-enabled, plus optional grantees[].",
+    inputSchema: {
+      type: "object",
+      properties: {
+        data: {
+          type: "string",
+          description: "base64 file content or file path.",
+        },
+        isPath: { type: "boolean", default: false },
+        grantees: { type: "array", items: { type: "string" } },
+        historyAddress: { type: "string" },
+        redundancyLevel: { type: "number", default: 0 },
+        postageBatchId: { type: "string" },
+      },
+      required: ["data"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "upload_folder_act",
+    title: "Upload folder (ACT)",
+    description:
+      "Upload a folder to Swarm with ACT encryption. Same semantics as upload_folder but ACT-enabled, plus optional grantees[].",
+    inputSchema: {
+      type: "object",
+      properties: {
+        folderPath: { type: "string" },
+        grantees: { type: "array", items: { type: "string" } },
+        historyAddress: { type: "string" },
+        redundancyLevel: { type: "number", default: 0 },
+        postageBatchId: { type: "string" },
+      },
+      required: ["folderPath"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "download_data_act",
+    title: "Download data (ACT)",
+    description:
+      "Download ACT-protected text content. Requires the publisher's public key and the history address they returned. The local Bee node decrypts using its own identity (must be in the grantee list).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        reference: { type: "string" },
+        actPublisher: { type: "string" },
+        actHistoryAddress: { type: "string" },
+        actTimestamp: {
+          type: "number",
+          description:
+            "Optional Unix timestamp to read a past version of the grantee list.",
+        },
+      },
+      required: ["reference", "actPublisher", "actHistoryAddress"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "download_files_act",
+    title: "Download files (ACT)",
+    description:
+      "Download ACT-protected manifests (folders). If filePath is provided, writes files to disk; otherwise returns the manifest listing.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        reference: { type: "string" },
+        actPublisher: { type: "string" },
+        actHistoryAddress: { type: "string" },
+        actTimestamp: { type: "number" },
+        filePath: { type: "string" },
+      },
+      required: ["reference", "actPublisher", "actHistoryAddress"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "create_grantees",
+    title: "Create grantees list",
+    description:
+      "Create an initial grantee list from an array of public keys. Returns { reference, historyAddress } usable as actHistoryAddress on subsequent upload_*_act calls.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+        },
+        postageBatchId: { type: "string" },
+      },
+      required: ["grantees"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "list_grantees",
+    title: "List grantees",
+    description:
+      "Returns the current grantee public keys for a grantees-list reference.",
+    inputSchema: {
+      type: "object",
+      properties: { reference: { type: "string" } },
+      required: ["reference"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "patch_grantees",
+    title: "Patch grantees",
+    description:
+      "Add or revoke grantee public keys on an existing { reference, historyAddress } pair. Returns the new historyAddress. Revocation is forward-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        reference: { type: "string" },
+        historyAddress: { type: "string" },
+        add: { type: "array", items: { type: "string" } },
+        revoke: { type: "array", items: { type: "string" } },
+        postageBatchId: { type: "string" },
+      },
+      required: ["reference", "historyAddress"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "publish_to_feed_with_act",
+    title: "Publish to feed (ACT)",
+    description:
+      "Opinionated provider flow: upload content with ACT (+ optional grantees) and publish its { reference, historyAddress } JSON to a feed entry identified by a plain-text topic. Accepts either `data` (raw text) or `filePath` (file on disk; stdio mode only).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        feedTopic: {
+          type: "string",
+          description:
+            "Plain-text topic label (hashed with SHA-256) or a 64-char hex topic.",
+        },
+        data: { type: "string" },
+        filePath: { type: "string" },
+        isPath: { type: "boolean", default: false },
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional public keys to grant at publish time.",
+        },
+        redundancyLevel: { type: "number", default: 0 },
+        postageBatchId: { type: "string" },
+      },
+      required: ["feedTopic"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        feedTopic: { type: "string" },
+        feedTopicHex: { type: "string" },
+        feedOwner: { type: "string" },
+        feedUrl: { type: "string" },
+        feedReference: { type: "string" },
+        reference: { type: "string" },
+        historyAddress: { type: "string" },
+        grantees: { type: "array", items: { type: "string" } },
+      },
+      required: [
+        "feedTopic",
+        "feedOwner",
+        "feedReference",
+        "reference",
+        "historyAddress",
+      ],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "grant_feed_access",
+    title: "Grant feed access",
+    description:
+      "Add a grantee public key to the latest feed entry's grantee list and advance the feed. Consumer can then decrypt via fetch_from_feed_with_act without re-discovering the publisher.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        feedTopic: { type: "string" },
+        granteePubKey: { type: "string" },
+        postageBatchId: { type: "string" },
+      },
+      required: ["feedTopic", "granteePubKey"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "revoke_feed_access",
+    title: "Revoke feed access",
+    description:
+      "Remove a grantee public key from the latest feed entry and advance the feed. Note: revocation is forward-only — anyone who already knows the old historyAddress can still decrypt existing content.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        feedTopic: { type: "string" },
+        granteePubKey: { type: "string" },
+        postageBatchId: { type: "string" },
+      },
+      required: ["feedTopic", "granteePubKey"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "fetch_from_feed_with_act",
+    title: "Fetch from feed (ACT)",
+    description:
+      "Consumer flow: read the latest feed entry for a topic, resolve the { reference, historyAddress } payload, and download with ACT using the publisher's public key. If feedOwner is omitted, it's derived from publisherPubKey (aligned identity). Provide filePath to save binary / manifest content; otherwise returns text.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        feedTopic: { type: "string" },
+        publisherPubKey: { type: "string" },
+        feedOwner: {
+          type: "string",
+          description:
+            "Optional ETH address of the feed owner. Defaults to ethAddress(publisherPubKey).",
+        },
+        filePath: { type: "string" },
+        actTimestamp: { type: "number" },
+      },
+      required: ["feedTopic", "publisherPubKey"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
     name: "query_upload_progress",
     title: "Query upload progress",
     description:

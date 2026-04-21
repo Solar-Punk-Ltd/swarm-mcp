@@ -4,8 +4,10 @@ node_modules/
 # TypeScript output
 dist/
 
-# Environment variables
+# Environment variables (wildcard covers .env.publisher, .env.consumer, etc.)
 .env
+.env.*
+!.env.example
 
 # Logs
 logs/
