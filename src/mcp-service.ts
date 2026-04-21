@@ -56,11 +56,8 @@ import { listUploadHistory } from "./tools/upload_history";
 import { ListUploadHistoryArgs } from "./tools/upload_history/models";
 import { determineIfGateway } from "./utils";
 
-// MCP-Apps (SEP-1865) requires the `ui://` scheme and the profile-tagged
-// MIME type so compliant hosts detect the resource as an app UI and render
-// it in a sandboxed iframe.
-const GET_TIME_RESOURCE_URI = "ui://get-time-ui";
-const GET_TIME_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
+const GET_TIME_RESOURCE_URI = "content://get-time-ui";
+const GET_TIME_RESOURCE_MIME_TYPE = "text/html";
 const SELECTED_STAMPS_RESOURCE_URI = "selected-stamps://list";
 const SELECTED_STAMPS_RESOURCE_MIME_TYPE = "application/json";
 // CommonJS környezetben (mivel a tsconfig szerint ez az) a __dirname használatos

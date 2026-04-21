@@ -493,7 +493,7 @@ export const SwarmToolsSchema = [
     },
     _meta: {
       ui: {
-        resourceUri: "ui://get-time-ui",
+        resourceUri: "content://get-time-ui",
       },
     },
   },
