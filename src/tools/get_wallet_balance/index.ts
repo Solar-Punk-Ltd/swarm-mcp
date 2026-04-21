@@ -20,11 +20,12 @@ export async function getWalletBalance(bee: Bee): Promise<ToolResponse> {
     return getResponseWithStructuredContent({
       walletAddress: wallet.walletAddress,
       chainId: wallet.chainID,
-      bzzBalance: wallet.bzzBalance.toString(),
-      nativeTokenBalance: wallet.nativeTokenBalance.toString(),
+      bzzBalance: wallet.bzzBalance.toDecimalString(),
+      bzzBalancePlur: wallet.bzzBalance.toPLURString(),
+      nativeTokenBalance: wallet.nativeTokenBalance.toDecimalString(),
       chequebookAddress: wallet.chequebookContractAddress,
-      chequebookTotalBalance: chequebook.totalBalance.toString(),
-      chequebookAvailableBalance: chequebook.availableBalance.toString(),
+      chequebookTotalBalance: chequebook.totalBalance.toDecimalString(),
+      chequebookAvailableBalance: chequebook.availableBalance.toDecimalString(),
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
