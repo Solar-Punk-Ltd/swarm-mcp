@@ -1,12 +1,21 @@
 /**
  * MCP Tool: publish_to_feed_with_act
  *
- * Opinionated provider flow: upload content to Swarm with ACT enabled (+
- * optional grantees at publish time), then write a new entry on a feed
- * (identified by a plain-text topic) whose payload is the JSON
- *   { "r": <contentReference>, "h": <historyAddress> }
- * Consumers discover the feed by topic + publisher public key, fetch the
- * latest entry, and decrypt via ACT.
+ * Opinionated provider flow: upload content to Swarm with ACT enabled and
+ * publish its { r, g, h } JSON to a feed entry identified by a plain-text
+ * topic. Consumers look up the feed by (topic, publisherPubKey), read the
+ * payload, and decrypt via ACT using the publisher pubkey + h.
+ *
+ * Flow when grantees are provided (required for the wizard -- without them
+ * there's no grantee-list ref to patch later via grant_feed_access):
+ *   1. bee.createGrantees(stamp, grantees) -> { granteeListRef, historyref }
+ *   2. bee.uploadFile/uploadData(..., { act: true, actHistoryAddress: historyref })
+ *   3. bee.makeFeedWriter(...).uploadPayload(JSON { r, g, h })
+ *
+ * Feed payload shape:
+ *   r: content reference (64 hex)
+ *   g: grantee-list reference (128 hex)  <-- carries the ref needed for PATCH
+ *   h: history address (64 hex)
  */
 import { Bee, UploadOptions, UploadResult } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -46,7 +55,7 @@ export async function publishToFeedWithAct(
   }
   if (!config.bee.feedPrivateKey) {
     return getToolErrorResponse(
-      "Feed private key not configured. Set BEE_FEED_PK environment variable (must match the Bee node's wallet so feed owner and ACT publisher are the same identity)."
+      "Feed private key not configured. Set BEE_FEED_PK (must equal the Bee node's wallet key so feed owner and ACT publisher are the same identity)."
     );
   }
 
@@ -64,6 +73,11 @@ export async function publishToFeedWithAct(
   } catch (e) {
     return getToolErrorResponse(
       `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+  if (grantees.length === 0) {
+    return getToolErrorResponse(
+      "publish_to_feed_with_act requires at least one grantee public key. Without one there is no grantee-list to patch later via grant_feed_access. Use upload_data_act + update_feed if you just want a publisher-only upload."
     );
   }
 
@@ -84,12 +98,26 @@ export async function publishToFeedWithAct(
     }
     fileName = path.basename(args.filePath);
   } else {
-    binaryData = args.isPath
-      ? Buffer.alloc(0)
-      : Buffer.from(args.data as string);
+    binaryData = Buffer.from(args.data as string);
   }
 
-  const uploadOptions: UploadOptions = { act: true };
+  let granteeListRef: string;
+  let historyAddress: string;
+  try {
+    const g = await bee.createGrantees(postageBatchId, grantees);
+    granteeListRef = g.ref.toHex();
+    historyAddress = g.historyref.toHex();
+  } catch (err) {
+    const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+      ? getErrorMessage(err)
+      : "Unable to create grantees list.";
+    return getToolErrorResponse(msg);
+  }
+
+  const uploadOptions: UploadOptions = {
+    act: true,
+    actHistoryAddress: historyAddress,
+  };
   if (args.redundancyLevel !== undefined) {
     (
       uploadOptions as UploadOptions & { redundancyLevel?: number }
@@ -119,32 +147,13 @@ export async function publishToFeedWithAct(
     return getToolErrorResponse(msg);
   }
 
-  let historyAddress = uploadResult.historyAddress?.toString();
-  if (!historyAddress) {
-    return getToolErrorResponse(
-      "ACT upload did not return a historyAddress; cannot publish to feed."
-    );
-  }
-
-  if (grantees.length > 0) {
-    try {
-      const patch = await bee.patchGrantees(
-        postageBatchId,
-        uploadResult.reference,
-        historyAddress,
-        { add: grantees }
-      );
-      historyAddress = patch.historyref.toString();
-    } catch (err) {
-      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
-        ? getErrorMessage(err)
-        : "Upload succeeded but granting access failed.";
-      return getToolErrorResponse(msg);
-    }
-  }
+  let uploadHistHex: string | undefined;
+  uploadResult.historyAddress?.ifPresent((r) => {
+    uploadHistHex = r.toHex();
+  });
+  const finalHistory = uploadHistHex ?? historyAddress;
 
   const topic = normalizeFeedTopic(args.feedTopic);
-
   const feedPrivateKey = hexToBytes(
     config.bee.feedPrivateKey.startsWith("0x")
       ? config.bee.feedPrivateKey.slice(2)
@@ -152,8 +161,9 @@ export async function publishToFeedWithAct(
   );
   const owner = feedOwnerFromPrivateKey(config.bee.feedPrivateKey);
   const payload = encodeFeedActPayload({
-    r: uploadResult.reference.toString(),
-    h: historyAddress,
+    r: uploadResult.reference.toHex(),
+    g: granteeListRef,
+    h: finalHistory,
   });
 
   let feedWriteResult;
@@ -172,14 +182,13 @@ export async function publishToFeedWithAct(
     feedTopicHex: topic.topicHex,
     feedOwner: owner,
     feedUrl: `${config.bee.endpoint}/feeds/${owner}/${topic.topicHex}`,
-    feedReference: feedWriteResult.reference.toString(),
-    reference: uploadResult.reference.toString(),
-    historyAddress,
+    feedReference: feedWriteResult.reference.toHex(),
+    reference: uploadResult.reference.toHex(),
+    historyAddress: finalHistory,
+    granteeListRef,
     grantees,
     fileName: fileName ?? null,
     message:
-      grantees.length > 0
-        ? "Content uploaded with ACT + granted access to the provided public keys + published to feed."
-        : "Content uploaded with ACT + published to feed (no grantees yet — use grant_feed_access to share).",
+      "Content uploaded with ACT, granted access to the provided public keys, and published to feed.",
   });
 }

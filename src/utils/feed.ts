@@ -36,7 +36,11 @@ export function feedOwnerFromPrivateKey(feedPrivateKeyHex: string): string {
 }
 
 export interface FeedActPayload {
+  /** content reference (what the consumer downloads with ACT) */
   r: string;
+  /** grantee-list reference (needed for later patch/revoke; absent when publish had no grantees) */
+  g?: string;
+  /** ACT history address (needed for download + for patch) */
   h: string;
 }
 
@@ -47,11 +51,15 @@ export function encodeFeedActPayload(payload: FeedActPayload): Uint8Array {
 export function decodeFeedActPayload(raw: Uint8Array | string): FeedActPayload {
   const text =
     typeof raw === "string" ? raw : Buffer.from(raw).toString("utf-8");
-  const parsed = JSON.parse(text) as { r?: unknown; h?: unknown };
+  const parsed = JSON.parse(text) as { r?: unknown; g?: unknown; h?: unknown };
   if (typeof parsed.r !== "string" || typeof parsed.h !== "string") {
     throw new Error(
-      'feed payload is not in the expected shape { "r": "<hex>", "h": "<hex>" }'
+      'feed payload is not in the expected shape { "r": "<hex>", "h": "<hex>", g?: "<hex>" }'
     );
   }
-  return { r: parsed.r, h: parsed.h };
+  return {
+    r: parsed.r,
+    h: parsed.h,
+    ...(typeof parsed.g === "string" ? { g: parsed.g } : {}),
+  };
 }

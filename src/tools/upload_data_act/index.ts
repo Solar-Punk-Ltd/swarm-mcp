@@ -1,8 +1,20 @@
 /**
  * MCP Tool: upload_data_act
- * Uploads text data to Swarm with ACT (Access Control Trie) enabled.
- * Returns a content reference plus a history address that grantees need
- * to decrypt.
+ *
+ * Uploads text data with ACT enabled. If `grantees` are provided, the flow is:
+ *   1. bee.createGrantees(stamp, grantees) -> { ref (grantee-list), historyref }
+ *   2. bee.uploadData(stamp, data, { act: true, actHistoryAddress: historyref })
+ *
+ * (The reverse order -- upload then patch -- is broken in Bee 2.7.x: the PATCH
+ * endpoint returns 500 when the reference wasn't created via POST /grantee.)
+ *
+ * If `grantees` is empty, a plain ACT upload is performed. Only the publisher
+ * (node's own wallet) can decrypt. A grantee list can be attached later via
+ * patch_grantees once granteeListRef exists -- but that requires starting from
+ * a createGrantees call.
+ *
+ * `historyAddress` (if provided) is threaded into the upload to extend an
+ * existing ACT history.
  */
 import { Bee, UploadOptions } from "@ethersphere/bee-js";
 import config from "../../config";
@@ -43,10 +55,10 @@ export async function uploadDataAct(
     );
   }
 
-  let historyAddress: string | undefined;
+  let initialHistoryAddress: string | undefined;
   if (args.historyAddress) {
     try {
-      historyAddress = normalizeReferenceHex(args.historyAddress);
+      initialHistoryAddress = normalizeReferenceHex(args.historyAddress);
     } catch (e) {
       return getToolErrorResponse(
         `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`
@@ -54,8 +66,24 @@ export async function uploadDataAct(
     }
   }
 
+  let granteeListRef: string | null = null;
+  let actHistoryAddress = initialHistoryAddress;
+
+  if (grantees.length > 0) {
+    try {
+      const g = await bee.createGrantees(postageBatchId, grantees);
+      granteeListRef = g.ref.toHex();
+      actHistoryAddress = g.historyref.toHex();
+    } catch (err) {
+      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+        ? getErrorMessage(err)
+        : "Unable to create grantees list.";
+      return getToolErrorResponse(msg);
+    }
+  }
+
   const options: UploadOptions = { act: true };
-  if (historyAddress) options.actHistoryAddress = historyAddress;
+  if (actHistoryAddress) options.actHistoryAddress = actHistoryAddress;
   if (args.redundancyLevel !== undefined) {
     (options as UploadOptions & { redundancyLevel?: number }).redundancyLevel =
       args.redundancyLevel;
@@ -75,35 +103,21 @@ export async function uploadDataAct(
     return getToolErrorResponse(msg);
   }
 
-  let finalHistory = uploadResult.historyAddress?.toString() ?? historyAddress;
-
-  if (grantees.length > 0) {
-    if (!finalHistory) {
-      return getToolErrorResponse(
-        "Upload did not return a historyAddress; cannot patch grantees."
-      );
-    }
-    try {
-      const patch = await bee.patchGrantees(
-        postageBatchId,
-        uploadResult.reference,
-        finalHistory,
-        { add: grantees }
-      );
-      finalHistory = patch.historyref.toString();
-    } catch (err) {
-      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
-        ? getErrorMessage(err)
-        : "Upload succeeded but granting access failed.";
-      return getToolErrorResponse(msg);
-    }
-  }
+  let uploadHistHex: string | undefined;
+  uploadResult.historyAddress?.ifPresent((r) => {
+    uploadHistHex = r.toHex();
+  });
+  const finalHistory = uploadHistHex ?? actHistoryAddress ?? null;
 
   return getResponseWithStructuredContent({
-    reference: uploadResult.reference.toString(),
-    historyAddress: finalHistory ?? null,
-    url: config.bee.endpoint + "/bytes/" + uploadResult.reference.toString(),
+    reference: uploadResult.reference.toHex(),
+    historyAddress: finalHistory,
+    granteeListRef,
+    url: config.bee.endpoint + "/bytes/" + uploadResult.reference.toHex(),
     grantees,
-    message: "Data successfully uploaded to Swarm with ACT enabled.",
+    message:
+      grantees.length > 0
+        ? "Data uploaded with ACT and granted access to the provided public keys."
+        : "Data uploaded with ACT (publisher-only decryption -- no grantees attached).",
   });
 }

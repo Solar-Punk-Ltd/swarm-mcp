@@ -1,9 +1,15 @@
 /**
  * Shared helper for grant_feed_access and revoke_feed_access.
  *
- * Reads the latest entry from the publisher's feed, patches grantees on the
- * referenced (r, h) pair, then writes a new feed entry pointing to the same
- * content reference with the advanced history address.
+ * Reads the latest entry from the publisher's feed, decodes { r, g, h },
+ * patches grantees on the grantee-list reference (g) with the current history
+ * (h), then writes a new feed entry pointing to the same content reference
+ * with the advanced grantee-list ref and history.
+ *
+ * Important: bee.patchGrantees must receive the grantee-list reference (the
+ * 128-hex encrypted ref returned by createGrantees.ref), not the content
+ * reference. Passing the content ref yields a server-side 500 on Bee 2.7.x.
+ * That is why the feed payload carries `g` alongside `r` and `h`.
  */
 import { Bee } from "@ethersphere/bee-js";
 import config from "../../config";
@@ -40,6 +46,7 @@ export interface PatchFeedAclSuccess {
     feedUrl: string;
     feedReference: string;
     reference: string;
+    granteeListRef: string;
     historyAddress: string;
     mode: "add" | "revoke";
     granteePubKey: string;
@@ -117,17 +124,28 @@ export async function patchFeedAcl(
     };
   }
 
+  if (!latestPayload.g) {
+    return {
+      ok: false,
+      error: getToolErrorResponse(
+        "Latest feed entry has no grantee-list reference (g). This feed was probably published without grantees -- cannot patch."
+      ),
+    };
+  }
+
+  let newGranteeRef: string;
   let newHistory: string;
   try {
     const patch = await bee.patchGrantees(
       postageBatchId,
-      latestPayload.r,
+      latestPayload.g,
       latestPayload.h,
       args.mode === "add"
         ? { add: [granteePubKey] }
         : { revoke: [granteePubKey] }
     );
-    newHistory = patch.historyref.toString();
+    newGranteeRef = patch.ref.toHex();
+    newHistory = patch.historyref.toHex();
   } catch (err) {
     const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
       ? getErrorMessage(err)
@@ -140,6 +158,7 @@ export async function patchFeedAcl(
     const feedWriter = bee.makeFeedWriter(topic.topicBytes, feedPrivateKey);
     const payload = encodeFeedActPayload({
       r: latestPayload.r,
+      g: newGranteeRef,
       h: newHistory,
     });
     feedWriteResult = await feedWriter.uploadPayload(postageBatchId, payload);
@@ -157,8 +176,9 @@ export async function patchFeedAcl(
       feedTopicHex: topic.topicHex,
       feedOwner: owner,
       feedUrl: `${config.bee.endpoint}/feeds/${owner}/${topic.topicHex}`,
-      feedReference: feedWriteResult.reference.toString(),
+      feedReference: feedWriteResult.reference.toHex(),
       reference: latestPayload.r,
+      granteeListRef: newGranteeRef,
       historyAddress: newHistory,
       mode: args.mode,
       granteePubKey,

@@ -1,6 +1,9 @@
 /**
  * MCP Tool: upload_file_act
- * Uploads a single file to Swarm with ACT enabled.
+ *
+ * Uploads a single file with ACT. If grantees are provided, createGrantees is
+ * called first (see upload_data_act for the rationale) and the returned
+ * historyref is threaded into the upload.
  */
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -45,10 +48,10 @@ export async function uploadFileAct(
     );
   }
 
-  let historyAddress: string | undefined;
+  let initialHistoryAddress: string | undefined;
   if (args.historyAddress) {
     try {
-      historyAddress = normalizeReferenceHex(args.historyAddress);
+      initialHistoryAddress = normalizeReferenceHex(args.historyAddress);
     } catch (e) {
       return getToolErrorResponse(
         `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`
@@ -75,8 +78,24 @@ export async function uploadFileAct(
     binaryData = Buffer.from(args.data, "base64");
   }
 
+  let granteeListRef: string | null = null;
+  let actHistoryAddress = initialHistoryAddress;
+
+  if (grantees.length > 0) {
+    try {
+      const g = await bee.createGrantees(postageBatchId, grantees);
+      granteeListRef = g.ref.toHex();
+      actHistoryAddress = g.historyref.toHex();
+    } catch (err) {
+      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+        ? getErrorMessage(err)
+        : "Unable to create grantees list.";
+      return getToolErrorResponse(msg);
+    }
+  }
+
   const options: FileUploadOptions = { act: true };
-  if (historyAddress) options.actHistoryAddress = historyAddress;
+  if (actHistoryAddress) options.actHistoryAddress = actHistoryAddress;
   if (args.redundancyLevel !== undefined) {
     options.redundancyLevel = args.redundancyLevel;
   }
@@ -96,36 +115,22 @@ export async function uploadFileAct(
     return getToolErrorResponse(msg);
   }
 
-  let finalHistory = uploadResult.historyAddress?.toString() ?? historyAddress;
-
-  if (grantees.length > 0) {
-    if (!finalHistory) {
-      return getToolErrorResponse(
-        "Upload did not return a historyAddress; cannot patch grantees."
-      );
-    }
-    try {
-      const patch = await bee.patchGrantees(
-        postageBatchId,
-        uploadResult.reference,
-        finalHistory,
-        { add: grantees }
-      );
-      finalHistory = patch.historyref.toString();
-    } catch (err) {
-      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
-        ? getErrorMessage(err)
-        : "Upload succeeded but granting access failed.";
-      return getToolErrorResponse(msg);
-    }
-  }
+  let uploadHistHex: string | undefined;
+  uploadResult.historyAddress?.ifPresent((r) => {
+    uploadHistHex = r.toHex();
+  });
+  const finalHistory = uploadHistHex ?? actHistoryAddress ?? null;
 
   return getResponseWithStructuredContent({
-    reference: uploadResult.reference.toString(),
-    historyAddress: finalHistory ?? null,
-    url: config.bee.endpoint + "/bzz/" + uploadResult.reference.toString(),
+    reference: uploadResult.reference.toHex(),
+    historyAddress: finalHistory,
+    granteeListRef,
+    url: config.bee.endpoint + "/bzz/" + uploadResult.reference.toHex(),
     name,
     grantees,
-    message: "File successfully uploaded to Swarm with ACT enabled.",
+    message:
+      grantees.length > 0
+        ? "File uploaded with ACT and granted access to the provided public keys."
+        : "File uploaded with ACT (publisher-only decryption -- no grantees attached).",
   });
 }
