@@ -1,659 +1,33 @@
 import { App } from "@modelcontextprotocol/ext-apps";
 
-// Get element references
-const stampsBtn = document.getElementById("stamps-btn")! as HTMLButtonElement;
-const buyStampBtn = document.getElementById("buy-stamp-btn")! as HTMLButtonElement;
+// ---------------------------------------------------------------------------
+// Element references
+// ---------------------------------------------------------------------------
 const stampsTable = document.getElementById("stamps-table")!;
+const buyStampBtn = document.getElementById("buy-stamp-btn")! as HTMLButtonElement;
 const fileInput = document.getElementById("file-input")! as HTMLInputElement;
 const uploadBtn = document.getElementById("upload-btn")! as HTMLButtonElement;
 const uploadResult = document.getElementById("upload-result")!;
 const previewArea = document.getElementById("preview-area")!;
-const historyBtn = document.getElementById("history-btn")! as HTMLButtonElement;
+const fileNameDisplay = document.getElementById("file-name-display")!;
+const selectAssetBtn = document.getElementById("select-asset-btn")! as HTMLButtonElement;
 const historyTable = document.getElementById("history-table")!;
+const historyBtn = document.getElementById("history-btn")! as HTMLButtonElement;
 
-// Tab elements
-const tabs = document.querySelectorAll(".tab");
-const tabContents = document.querySelectorAll(".tab-content");
-
-// Tab switching
-function activateTab(tabName: string) {
-  tabs.forEach((t) => t.classList.remove("active"));
-  tabContents.forEach((content) => content.classList.remove("active"));
-  const tabBtn = document.querySelector<HTMLElement>(`[data-tab="${tabName}"]`);
-  if (tabBtn) {
-    tabBtn.classList.add("active");
-    document.getElementById(`${tabName}-tab`)?.classList.add("active");
-  }
-}
-
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const tabName = (tab as HTMLElement).dataset.tab;
-    if (tabName) activateTab(tabName);
-  });
-});
-
-// Create app instance
-const app = new App({ name: "Swarm MCP Interface", version: "1.0.0" });
-
-// Modal upload elements
+// Stamp modal
+const stampModal = document.getElementById("stamp-modal")!;
+const modalTitle = document.getElementById("modal-title")!;
+const modalBody = document.getElementById("modal-body")!;
+const modalClose = document.getElementById("modal-close")!;
 const modalFileInput = document.getElementById("modal-file-input")! as HTMLInputElement;
 const modalUploadBtn = document.getElementById("modal-upload-btn")! as HTMLButtonElement;
 const modalUploadResult = document.getElementById("modal-upload-result")!;
-let modalActiveBatchId = "";
-
-// Modal extend elements
 const extendSubmitBtn = document.getElementById("extend-submit-btn")! as HTMLButtonElement;
 const extendSizeInput = document.getElementById("extend-size")! as HTMLInputElement;
 const extendDurationInput = document.getElementById("extend-duration")! as HTMLInputElement;
 const extendResult = document.getElementById("extend-result")!;
 
-modalUploadBtn.addEventListener("click", () => {
-  modalFileInput.value = "";
-  modalFileInput.click();
-});
-
-modalFileInput.addEventListener("change", async () => {
-  const file = modalFileInput.files?.[0];
-  if (!file || !modalActiveBatchId) return;
-
-  modalUploadBtn.disabled = true;
-  modalUploadBtn.innerHTML = "<span>Uploading...</span>";
-  modalUploadResult.innerHTML = '<span class="loading">Uploading to Swarm…</span>';
-
-  try {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string).split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    const response = await app.callServerTool({
-      name: "upload_file",
-      arguments: {
-        data: base64,
-        isPath: false,
-        name: file.name,
-        postageBatchId: modalActiveBatchId,
-      },
-    });
-
-    let reference = "";
-    let url = "";
-    if (response.structuredContent) {
-      reference = response.structuredContent.reference || "";
-      url = response.structuredContent.url || "";
-    } else if (response.content?.[0]) {
-      const parsed = JSON.parse(response.content[0].text);
-      reference = parsed.reference || "";
-      url = parsed.url || "";
-    }
-
-    modalUploadResult.innerHTML = `
-      <p class="success" style="margin:0 0 0.4rem 0">✓ Uploaded: <strong>${file.name}</strong></p>
-      <p style="margin:0 0 0.25rem 0;color:#94a3b8;font-size:0.8rem">Reference:</p>
-      <p class="mono" style="margin:0 0 0.5rem 0">${reference}</p>
-      <a href="${url}" target="_blank" style="color:#f97316;font-weight:600;font-size:0.875rem">${url}</a>
-    `;
-  } catch (err: any) {
-    modalUploadResult.innerHTML = `<span class="error-msg">Upload failed: ${err.message}</span>`;
-  } finally {
-    modalUploadBtn.disabled = false;
-    modalUploadBtn.innerHTML = "<span>Upload File to this Stamp</span>";
-  }
-});
-
-// File selection handler
-let selectedFile: File | null = null;
-let fileBase64: string | null = null;
-
-fileInput.addEventListener("change", async (e) => {
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (!file) {
-    uploadBtn.disabled = true;
-    selectedFile = null;
-    fileBase64 = null;
-    return;
-  }
-
-  selectedFile = file;
-  uploadBtn.disabled = false;
-  
-  // Read file as base64
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const base64String = (e.target?.result as string).split(',')[1];
-    fileBase64 = base64String;
-  };
-  reader.readAsDataURL(file);
-  
-  uploadResult.innerHTML = `<p style="color: #6b7280;">Selected: <strong>${file.name}</strong> (${(file.size / 1024).toFixed(2)} KB)</p>`;
-  previewArea.style.display = "none";
-});
-
-// Modal close handlers (registered once at init)
-document.getElementById('modal-close')!.onclick = () =>
-  document.getElementById('stamp-modal')!.classList.remove('open');
-document.getElementById('stamp-modal')!.addEventListener('click', (e) => {
-  if (e.target === e.currentTarget)
-    (e.currentTarget as HTMLElement).classList.remove('open');
-});
-
-// Open stamp detail modal for a given stamp object
-function openStampModal(stamp: any) {
-  const batchId = stamp.batchID || stamp.stampID || '';
-  const sizeMB = stamp.size?.bytes ? (stamp.size.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
-  const remainingMB = stamp.remainingSize?.bytes ? (stamp.remainingSize.bytes / 1_000_000).toFixed(3) + ' MB' : 'N/A';
-  const theoreticalMB = stamp.theoreticalSize?.bytes ? (stamp.theoreticalSize.bytes / 1_000_000).toFixed(0) + ' MB' : 'N/A';
-  const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + ' days' : 'N/A';
-  const usagePct = typeof stamp.usage === 'number' ? Math.round(stamp.usage * 100) : 0;
-
-  modalActiveBatchId = batchId;
-  modalUploadResult.innerHTML = "";
-  extendSizeInput.value = "";
-  extendDurationInput.value = "";
-  extendResult.innerHTML = "";
-  document.getElementById('modal-title')!.textContent = stamp.label ? `Stamp: ${stamp.label}` : 'Stamp Details';
-  document.getElementById('modal-body')!.innerHTML = `
-    <div class="detail-row full">
-      <span class="detail-label">Batch ID</span>
-      <span class="detail-value mono">${batchId || 'N/A'}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Label</span>
-      <span class="detail-value">${stamp.label || '—'}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Depth</span>
-      <span class="detail-value">${stamp.depth ?? 'N/A'}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Bucket Depth</span>
-      <span class="detail-value">${stamp.bucketDepth ?? 'N/A'}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Utilization</span>
-      <span class="detail-value">${stamp.utilization ?? 'N/A'}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Immutable</span>
-      <span class="detail-value" style="color:${stamp.immutableFlag ? '#10b981' : '#94a3b8'}">${stamp.immutableFlag ? 'Yes' : 'No'}</span>
-    </div>
-    <div class="detail-row full">
-      <span class="detail-label">Usage — ${stamp.usageText ?? usagePct + '%'}</span>
-      <div class="detail-bar-wrap"><div class="detail-bar" style="width:${usagePct}%"></div></div>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Used Size</span>
-      <span class="detail-value">${sizeMB}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Remaining</span>
-      <span class="detail-value">${remainingMB}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Theoretical Max</span>
-      <span class="detail-value">${theoreticalMB}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Duration Left</span>
-      <span class="detail-value">${durationDays}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Block Number</span>
-      <span class="detail-value mono">${stamp.blockNumber ?? 'N/A'}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Amount</span>
-      <span class="detail-value mono">${stamp.amount ?? 'N/A'}</span>
-    </div>
-  `;
-  document.getElementById('stamp-modal')!.classList.add('open');
-}
-
-// Extend / top-up stamp
-extendSubmitBtn.addEventListener("click", async () => {
-  const size = parseFloat(extendSizeInput.value);
-  const duration = extendDurationInput.value.trim();
-
-  if ((!size || size <= 0) && !duration) {
-    extendResult.innerHTML = '<div class="buy-result-error">Enter a size (MB) and/or a duration to extend.</div>';
-    return;
-  }
-
-  extendSubmitBtn.disabled = true;
-  extendSubmitBtn.innerHTML = "<span>Extending…</span>";
-  extendResult.innerHTML = '<span class="loading">Extending postage stamp…</span>';
-
-  try {
-    const args: Record<string, any> = { postageBatchId: modalActiveBatchId };
-    if (size > 0) args.size = size;
-    if (duration) args.duration = duration;
-
-    const response = await app.callServerTool({
-      name: "extend_postage_stamp",
-      arguments: args,
-    });
-
-    let message = "";
-    if (response.structuredContent) {
-      message = response.structuredContent.message || "";
-    } else if (response.content?.[0]) {
-      try {
-        const parsed = JSON.parse(response.content[0].text);
-        message = parsed.message || "";
-      } catch {
-        message = response.content[0].text;
-      }
-    }
-
-    extendResult.innerHTML = `
-      <div class="buy-result-success">
-        <strong>✓ Stamp extended!</strong>
-        ${message ? `<p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">${message}</p>` : ""}
-      </div>`;
-  } catch (err: any) {
-    extendResult.innerHTML = `<div class="buy-result-error">Failed: ${err.message}</div>`;
-  } finally {
-    extendSubmitBtn.disabled = false;
-    extendSubmitBtn.innerHTML = "<span>Extend Stamp</span>";
-  }
-});
-
-// Handle List Stamps button
-stampsBtn.addEventListener("click", async () => {
-  stampsBtn.disabled = true;
-  stampsBtn.innerHTML = "<span>Loading...</span>";
-  stampsTable.innerHTML = '<div class="loading">Loading...</div>';
-
-  try {
-    const response = await app.callServerTool({ 
-      name: "list_postage_stamps", 
-      arguments: {} 
-    });
-
-    // Get selected stamps first
-    let selectedStampsResponse;
-    let selectedLabels: string[] = [];
-    try {
-      selectedStampsResponse = await app.callServerTool({
-        name: "list_selected_stamps",
-        arguments: {}
-      });
-      if (selectedStampsResponse.content && selectedStampsResponse.content[0]) {
-        const parsed = JSON.parse(selectedStampsResponse.content[0].text);
-        selectedLabels = parsed.selectedStamps || [];
-      }
-    } catch (error) {
-      console.error('Failed to load selected stamps:', error);
-    }
-
-    // Extract structured data
-    let stamps: any[] = [];
-    let rawData: any[] = [];
-    
-    if (response.structuredContent) {
-      if (response.structuredContent.summary) {
-        stamps = response.structuredContent.summary;
-      }
-      if (response.structuredContent.raw) {
-        rawData = response.structuredContent.raw;
-      }
-    } else if (response.content && response.content[0]) {
-      const parsed = JSON.parse(response.content[0].text);
-      stamps = parsed.summary || [];
-      rawData = parsed.raw || [];
-    }
-
-    if (stamps.length === 0) {
-      stampsTable.innerHTML = '<p class="loading">No postage stamps available.</p>';
-    } else {
-      // Build table from raw data (more detailed)
-      let tableHTML = '<table><thead><tr>';
-      tableHTML += '<th style="width: 40px;"></th>';
-      tableHTML += '<th>Label</th>';
-      tableHTML += '<th>Batch ID</th>';
-      tableHTML += '<th>Depth</th>';
-      tableHTML += '<th>Utilization</th>';
-      tableHTML += '<th>Immutable</th>';
-      tableHTML += '<th>Usage</th>';
-      tableHTML += '<th>Size</th>';
-      tableHTML += '<th>Remaining</th>';
-      tableHTML += '<th>Duration (days)</th>';
-      tableHTML += '</tr></thead><tbody>';
-
-      (rawData.length > 0 ? rawData : stamps).forEach((stamp: any, index: number) => {
-        const label = stamp.label || '-';
-        const isSelected = selectedLabels.includes(label);
-        const batchId = stamp.batchID || stamp.stampID || 'N/A';
-        const displayBatchId = batchId !== 'N/A' && batchId.length > 8 
-          ? `${batchId.slice(0, 8)}…${batchId.slice(-8)}` 
-          : batchId;
-        const sizeMB = stamp.size?.bytes ? (stamp.size.bytes / 1_000_000).toFixed(2) + ' MB' : 'N/A';
-        const remainingMB = stamp.remainingSize?.bytes ? (stamp.remainingSize.bytes / 1_000_000).toFixed(2) + ' MB' : 'N/A';
-        const durationDays = stamp.duration?.seconds ? (stamp.duration.seconds / 86400).toFixed(1) + 'd' : 'N/A';
-        const immutable = stamp.immutableFlag ? '<span class="usable-yes">Yes</span>' : '<span style="color:#94a3b8">No</span>';
-        tableHTML += `<tr data-batch-id="${batchId}">`;
-        tableHTML += `<td><input type="checkbox" class="stamp-checkbox" data-batch-id="${batchId}" ${isSelected ? 'checked' : ''} /></td>`;
-        tableHTML += `<td><button class="stamp-label-btn" data-batch-id="${batchId}">${label || '<em style="color:#64748b">no label</em>'}</button></td>`;
-        tableHTML += `<td class="batch-id" title="${batchId}">${displayBatchId}</td>`;
-        tableHTML += `<td>${stamp.depth ?? 'N/A'}</td>`;
-        tableHTML += `<td>${stamp.utilization ?? 'N/A'}</td>`;
-        tableHTML += `<td>${immutable}</td>`;
-        tableHTML += `<td>${stamp.usageText ?? 'N/A'}</td>`;
-        tableHTML += `<td>${sizeMB}</td>`;
-        tableHTML += `<td>${remainingMB}</td>`;
-        tableHTML += `<td>${durationDays}</td>`;
-        tableHTML += '</tr>';
-      });
-
-      tableHTML += '</tbody></table>';
-      stampsTable.innerHTML = tableHTML;
-
-      // Store stamps data on window for modal access
-      (window as any).__stampsRawData = rawData.length > 0 ? rawData : stamps;
-
-      // Add label click listeners for detail modal
-      const labelBtns = document.querySelectorAll('.stamp-label-btn') as NodeListOf<HTMLButtonElement>;
-      labelBtns.forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const batchId = (e.currentTarget as HTMLButtonElement).dataset.batchId || '';
-          const allStamps = (window as any).__stampsRawData as any[];
-          const stamp = allStamps.find((s: any) => (s.batchID || s.stampID) === batchId);
-          if (stamp) openStampModal(stamp);
-        });
-      });
-
-      // Add checkbox event listeners
-      const checkboxes = document.querySelectorAll('.stamp-checkbox') as NodeListOf<HTMLInputElement>;
-      checkboxes.forEach((checkbox) => {
-        checkbox.addEventListener('change', async (e) => {
-          const target = e.target as HTMLInputElement;
-          const batchId = target.dataset.batchId || '';
-          const isChecked = target.checked;
-          
-          // Find the label from the stamps data
-          const stamp = (rawData.length > 0 ? rawData : stamps).find((s: any) => 
-            (s.batchID || s.stampID) === batchId
-          );
-          const label = stamp?.label || batchId;
-          
-          try {
-            await app.callServerTool({
-              name: "select_postage_stamp",
-              arguments: {
-                label: label,
-                selected: isChecked
-              }
-            });
-          } catch (error) {
-            console.error('Failed to update stamp selection:', error);
-            // Revert checkbox state on error
-            target.checked = !isChecked;
-          }
-        });
-      });
-    }
-  } catch (error: any) {
-    stampsTable.innerHTML = `<div class="error">Error loading stamps: ${error.message}</div>`;
-    console.error(error);
-  } finally {
-    stampsBtn.disabled = false;
-    stampsBtn.innerHTML = "<span>Load Postage Stamps</span>";
-  }
-});
-
-// Handle Upload File button
-uploadBtn.addEventListener("click", async () => {
-  if (!selectedFile || !fileBase64) {
-    uploadResult.innerHTML = '<div class="error">No file selected</div>';
-    return;
-  }
-
-  uploadBtn.disabled = true;
-  uploadBtn.innerHTML = "<span>Uploading...</span>";
-  uploadResult.innerHTML = '<p class="loading">Uploading to Swarm...</p>';
-  previewArea.style.display = "none";
-
-  try {
-    const response = await app.callServerTool({
-      name: "upload_file",
-      arguments: {
-        data: fileBase64,
-        isPath: false,
-        name: selectedFile.name
-      }
-    });
-
-    // Extract upload result
-    let reference = "";
-    let url = "";
-    let message = "";
-
-    if (response.structuredContent) {
-      reference = response.structuredContent.reference || "";
-      url = response.structuredContent.url || "";
-      message = response.structuredContent.message || "Upload successful";
-    } else if (response.content && response.content[0]) {
-      const parsed = JSON.parse(response.content[0].text);
-      reference = parsed.reference || "";
-      url = parsed.url || "";
-      message = parsed.message || "Upload successful";
-    }
-
-    // Display result
-    let html = '<div class="file-info">';
-    html += `<p style="margin: 0 0 0.5rem 0; color: #059669; font-weight: 600;">✓ ${message}</p>`;
-    html += `<p style="margin: 0 0 0.5rem 0;"><strong>File:</strong> ${selectedFile.name}</p>`;
-    html += `<p style="margin: 0 0 0.5rem 0;"><strong>Reference:</strong> <code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.85rem;">${reference}</code></p>`;
-    html += `<p style="margin: 0;"><strong>URL:</strong> <a href="${url}" target="_blank" class="swarm-link">${url}</a></p>`;
-    html += '</div>';
-
-    // Display full response
-    html += `<details style="margin-top: 1rem;"><summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5rem;">Full Response</summary>`;
-    html += `<pre style="background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem;">${JSON.stringify(response, null, 2)}</pre>`;
-    html += `</details>`;
-
-    uploadResult.innerHTML = html;
-
-    // Preview - try to display as image (check file type OR extension)
-    const fileName = selectedFile.name.toLowerCase();
-    const isImageExtension = fileName.endsWith('.png') || fileName.endsWith('.jpg') || 
-                             fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || 
-                             fileName.endsWith('.webp') || fileName.endsWith('.svg') ||
-                             fileName.endsWith('.bmp');
-    
-    const isProbablyImage = selectedFile.type.startsWith("image/") || isImageExtension;
-    
-    previewArea.style.display = "block";
-    
-    if (isProbablyImage && fileBase64) {
-      // Show image preview from base64 (more reliable than Swarm URL immediately)
-      const dataUrl = `data:${selectedFile.type || 'image/png'};base64,${fileBase64}`;
-      
-      let previewHtml = '<div style="width: 100%;">';
-      previewHtml += '<h3 style="margin: 0 0 1rem 0; color: #374151;">Preview:</h3>';
-      previewHtml += `<img src="${dataUrl}" alt="${selectedFile.name}" style="max-width: 100%; max-height: 400px; border-radius: 0.5rem; margin-bottom: 1rem;" />`;
-      previewHtml += '<div style="display: flex; gap: 0.5rem; justify-content: center;">';
-      previewHtml += `<button id="open-btn" style="display: inline-block; padding: 0.5rem 1rem; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer;"><span>Open in Browser</span></button>`;
-      previewHtml += '</div>';
-      previewHtml += '</div>';;
-      
-      previewArea.innerHTML = previewHtml;
-      
-      // Add click handler
-      document.getElementById('open-btn')?.addEventListener('click', async () => {
-        try {
-          await app.callServerTool({ name: "open_url", arguments: { url } });
-        } catch (error) {
-          console.error('Failed to open URL:', error);
-        }
-      });
-    } else {
-      // Non-image file - just show open option
-      let previewHtml = '<div style="width: 100%; text-align: center;">';
-      previewHtml += '<p style="color: #6b7280; margin-bottom: 1rem;">✓ File uploaded successfully</p>';
-      previewHtml += '<div style="display: flex; gap: 0.5rem; justify-content: center;">';
-      previewHtml += `<button id="open-btn" style="display: inline-block; padding: 0.5rem 1rem; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer;"><span>Open in Browser</span></button>`;
-      previewHtml += '</div>';
-      previewHtml += '</div>';
-      
-      previewArea.innerHTML = previewHtml;
-      
-      // Add click handler
-      document.getElementById('open-btn')?.addEventListener('click', async () => {
-        try {
-          await app.callServerTool({ name: "open_url", arguments: { url } });
-        } catch (error) {
-          console.error('Failed to open URL:', error);
-        }
-      });
-    }
-
-  } catch (error: any) {
-    uploadResult.innerHTML = `<div class="error">Upload failed: ${error.message}</div>`;
-    console.error(error);
-  } finally {
-    uploadBtn.disabled = fileBase64 === null;
-    uploadBtn.innerHTML = "<span>Upload to Swarm</span>";
-  }
-});
-
-// Switch to requested tab / open stamp modal when tool is invoked
-app.ontoolinput = async (params) => {
-  const args = params.arguments as any;
-  const tab = args?.tab as string | undefined;
-  const stampQuery = args?.stamp as string | undefined;
-  const modal = args?.modal as string | undefined;
-
-  if (modal === "buy-stamp") {
-    activateTab("stamps");
-    buySizeInput.value = "";
-    buyDurationInput.value = "";
-    buyLabelInput.value = "";
-    buyResult.innerHTML = "";
-    buyStampModal.classList.add("open");
-  } else if (stampQuery) {
-    // Always switch to stamps tab when a stamp is requested
-    activateTab("stamps");
-
-    // Load stamps if not already loaded
-    let allStamps: any[] = (window as any).__stampsRawData ?? [];
-    if (allStamps.length === 0) {
-      try {
-        const response = await app.callServerTool({ name: "list_postage_stamps", arguments: {} });
-        let rawData: any[] = [];
-        if (response.structuredContent?.raw) {
-          rawData = response.structuredContent.raw;
-        } else if (response.content?.[0]) {
-          rawData = JSON.parse(response.content[0].text).raw ?? [];
-        }
-        (window as any).__stampsRawData = rawData;
-        allStamps = rawData;
-      } catch {
-        // ignore — no stamps data available
-      }
-    }
-
-    const query = stampQuery.toLowerCase();
-    const stamp = allStamps.find((s: any) =>
-      (s.label ?? "").toLowerCase() === query ||
-      (s.batchID ?? "").toLowerCase().startsWith(query) ||
-      (s.stampID ?? "").toLowerCase().startsWith(query)
-    );
-    if (stamp) openStampModal(stamp);
-  } else if (tab) {
-    activateTab(tab);
-  }
-};
-
-// Connect to host
-app.connect();
-
-// --- Upload History ---
-
-async function loadHistory() {
-  historyBtn.disabled = true;
-  historyBtn.innerHTML = "<span>Loading...</span>";
-  historyTable.innerHTML = '<div class="loading">Loading history...</div>';
-
-  try {
-    const response = await app.callServerTool({
-      name: "list_upload_history",
-      arguments: {}
-    });
-
-    let entries: any[] = [];
-    if (response.structuredContent?.history) {
-      entries = response.structuredContent.history;
-    } else if (response.content?.[0]) {
-      const parsed = JSON.parse(response.content[0].text);
-      entries = parsed.history || [];
-    }
-
-    if (entries.length === 0) {
-      historyTable.innerHTML = '<p class="loading">No uploads yet in this session.</p>';
-      return;
-    }
-
-    let html = '<table><thead><tr>';
-    html += '<th>#</th><th>File Name</th><th>Reference</th><th>Size</th><th>Time</th><th></th>';
-    html += '</tr></thead><tbody>';
-
-    entries.forEach((entry: any) => {
-      const shortRef = entry.reference
-        ? `${entry.reference.slice(0, 8)}…${entry.reference.slice(-8)}`
-        : 'N/A';
-      const name = entry.name ? `<strong>${entry.name}</strong><br>` : '';
-      const sizeKB = entry.sizeBytes != null
-        ? (entry.sizeBytes / 1024).toFixed(1) + ' KB'
-        : '—';
-      const time = entry.timestamp
-        ? new Date(entry.timestamp).toLocaleTimeString()
-        : '—';
-      const typeBadge = entry.type === 'file'
-        ? '📁'
-        : entry.type === 'folder'
-          ? '📂'
-          : '📄';
-      const displayName = entry.name
-        ? `${typeBadge} ${entry.name}`
-        : `${typeBadge} <span style="color:#64748b;font-style:italic">${entry.type}</span>`;
-
-      html += `<tr>`;
-      html += `<td style="color:#64748b;font-size:0.85rem">${entry.id}</td>`;
-      html += `<td>${displayName}</td>`;
-      html += `<td class="batch-id"><span title="${entry.reference}">${shortRef}</span></td>`;
-      html += `<td>${sizeKB}</td>`;
-      html += `<td style="white-space:nowrap">${time}</td>`;
-      html += `<td><a href="${entry.url}" target="_blank" class="swarm-link" style="font-size:0.85rem">Open ↗</a></td>`;
-      html += `</tr>`;
-    });
-
-    html += '</tbody></table>';
-    historyTable.innerHTML = html;
-  } catch (error: any) {
-    historyTable.innerHTML = `<div class="error">Failed to load history: ${error.message}</div>`;
-  } finally {
-    historyBtn.disabled = false;
-    historyBtn.innerHTML = "<span>Refresh History</span>";
-  }
-}
-
-historyBtn.addEventListener("click", loadHistory);
-
-// Auto-load history when switching to History tab
-document.querySelectorAll(".tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    if ((tab as HTMLElement).dataset.tab === "history") {
-      loadHistory();
-    }
-  });
-});
-
-// --- Buy Postage Stamp Modal ---
+// Buy stamp modal
 const buyStampModal = document.getElementById("buy-stamp-modal")!;
 const buyModalClose = document.getElementById("buy-modal-close")!;
 const buySizeInput = document.getElementById("buy-size")! as HTMLInputElement;
@@ -662,73 +36,550 @@ const buyLabelInput = document.getElementById("buy-label")! as HTMLInputElement;
 const buySubmitBtn = document.getElementById("buy-submit-btn")! as HTMLButtonElement;
 const buyResult = document.getElementById("buy-result")!;
 
-buyStampBtn.addEventListener("click", () => {
-  buySizeInput.value = "";
-  buyDurationInput.value = "";
-  buyLabelInput.value = "";
-  buyResult.innerHTML = "";
-  buyStampModal.classList.add("open");
+// History item modal
+const histItemModal = document.getElementById("hist-item-modal")!;
+const histItemClose = document.getElementById("hist-item-close")!;
+const hiName = document.getElementById("hi-name")!;
+const hiReference = document.getElementById("hi-reference")!;
+const hiSize = document.getElementById("hi-size")!;
+const hiDate = document.getElementById("hi-date")!;
+const hiTime = document.getElementById("hi-time")!;
+const hiStamp = document.getElementById("hi-stamp")!;
+const hiUrl = document.getElementById("hi-url")! as HTMLAnchorElement;
+const hiCopyBtn = document.getElementById("hi-copy-btn")! as HTMLButtonElement;
+
+// ---------------------------------------------------------------------------
+// App instance + SDK type helpers
+// ---------------------------------------------------------------------------
+const app = new App({ name: "Swarm MCP Interface", version: "1.0.0" });
+
+// structuredContent is typed as {} in newer SDK builds — cast via helper
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sc = (r: { structuredContent?: unknown }): any => (r.structuredContent ?? {}) as any;
+// content items are a union type that may not have .text — access safely
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const tc = (content: unknown[]): string => ((content?.[0]) as any)?.text ?? "";
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+function esc(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatMB(bytes?: number): string {
+  if (bytes == null || bytes < 0) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  const mb = bytes / 1_000_000;
+  if (mb < 1) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (mb < 1000) return `${mb.toFixed(2)} MB`;
+  return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
+}
+
+type TTLSeverity = "ok" | "warn" | "critical";
+function ttlFromSeconds(seconds?: number): { text: string; severity: TTLSeverity } {
+  if (!seconds || seconds <= 0) return { text: "expired", severity: "critical" };
+  const days = seconds / 86400;
+  if (days <= 3) {
+    if (seconds < 3600) return { text: `${Math.max(1, Math.round(seconds / 60))} min`, severity: "critical" };
+    return { text: `${(seconds / 3600).toFixed(1)} hrs`, severity: "critical" };
+  }
+  const display = days < 10 ? days.toFixed(1) : Math.round(days).toString();
+  return { text: `${display} days`, severity: days <= 14 ? "warn" : "ok" };
+}
+
+// ---------------------------------------------------------------------------
+// Tabs  (new-tab / new-tab-content classes)
+// ---------------------------------------------------------------------------
+const tabs = document.querySelectorAll<HTMLButtonElement>(".new-tab");
+const tabContents = document.querySelectorAll<HTMLElement>(".new-tab-content");
+
+function activateTab(name: string) {
+  tabs.forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  tabContents.forEach((c) => c.classList.toggle("active", c.id === `${name}-tab`));
+}
+
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const name = tab.dataset.tab;
+    if (!name) return;
+    activateTab(name);
+    if (name === "stamps") loadStamps();
+    if (name === "history") loadHistory();
+  });
 });
 
-buyModalClose.addEventListener("click", () => buyStampModal.classList.remove("open"));
-buyStampModal.addEventListener("click", (e) => {
-  if (e.target === e.currentTarget) buyStampModal.classList.remove("open");
+// ---------------------------------------------------------------------------
+// Modal helpers
+// ---------------------------------------------------------------------------
+function openModal(el: HTMLElement)  { el.classList.add("open"); }
+function closeModal(el: HTMLElement) { el.classList.remove("open"); }
+
+[stampModal, buyStampModal].forEach((overlay) => {
+  overlay.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeModal(overlay as HTMLElement);
+  });
+});
+modalClose.addEventListener("click",   () => closeModal(stampModal));
+buyModalClose.addEventListener("click", () => closeModal(buyStampModal));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { closeModal(stampModal); closeModal(buyStampModal); }
+});
+
+// ---------------------------------------------------------------------------
+// Stamps list
+// ---------------------------------------------------------------------------
+let lastStampsData: any[] = [];
+let modalActiveBatchId = "";
+
+function renderStampCard(stamp: any): string {
+  const batchId  = stamp.batchID || stamp.stampID || "";
+  const label    = stamp.label || "unlabeled";
+  const usagePct = typeof stamp.usage === "number" ? Math.round(stamp.usage * 100) : 0;
+  const sizeBytes      = stamp.size?.bytes ?? 0;
+  const remainingBytes = stamp.remainingSize?.bytes ?? 0;
+  const usedBytes      = Math.max(0, sizeBytes - remainingBytes);
+  const { text: ttlText, severity } = ttlFromSeconds(stamp.duration?.seconds);
+  const fillClass  = severity === "critical" ? "stamp-progress-bar-fill fill-critical" : "stamp-progress-bar-fill";
+  const sizeLabel  = `${formatMB(usedBytes)} / ${formatMB(sizeBytes)}`;
+
+  return `
+    <div class="stamp-card" data-batch-id="${esc(batchId)}">
+      <div class="stamp-card-bar"></div>
+      <div class="stamp-card-inner">
+        <div class="stamp-label" title="${esc(label)}">${esc(label)}</div>
+        <div class="stamp-progress-wrap">
+          <div class="stamp-progress-bar-bg">
+            <div class="${fillClass}" style="width:${usagePct}%"></div>
+          </div>
+          <div class="stamp-pct">${usagePct}%</div>
+        </div>
+        <div class="stamp-size-badge" title="${esc(sizeLabel)}">${esc(sizeLabel)}</div>
+        <div class="stamp-ttl-badge ${severity}" title="${esc(ttlText)}">
+          <div class="stamp-ttl-dot"></div>
+          <span>${esc(ttlText)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadStamps() {
+  stampsTable.innerHTML = `<div class="state-text">Loading postage stamps…</div>`;
+  try {
+    const response = await app.callServerTool({ name: "list_postage_stamps", arguments: {} });
+    let rawData: any[] = [];
+    if (sc(response).raw) rawData = sc(response).raw;
+    else if (response.content?.[0]) {
+      try { const p = JSON.parse(tc(response.content)); rawData = p.raw || p.summary || []; }
+      catch { rawData = []; }
+    }
+    lastStampsData = rawData;
+    (window as any).__stampsRawData = rawData;
+
+    if (rawData.length === 0) {
+      stampsTable.innerHTML = `<div class="state-text">No postage stamps yet.</div>`;
+      return;
+    }
+
+    stampsTable.innerHTML = rawData.map(renderStampCard).join("");
+    stampsTable.querySelectorAll<HTMLElement>(".stamp-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const bid   = card.dataset.batchId || "";
+        const stamp = lastStampsData.find((s) => (s.batchID || s.stampID) === bid);
+        if (stamp) openStampModal(stamp);
+      });
+    });
+  } catch (error: any) {
+    stampsTable.innerHTML = `<div class="state-error">Error loading stamps: ${esc(error?.message || String(error))}</div>`;
+  }
+}
+
+// Auto-load on startup
+loadStamps();
+
+// ---------------------------------------------------------------------------
+// Stamp detail modal
+// ---------------------------------------------------------------------------
+function openStampModal(stamp: any) {
+  const batchId       = stamp.batchID || stamp.stampID || "";
+  const label         = stamp.label || "Stamp";
+  const usagePct      = typeof stamp.usage === "number" ? Math.round(stamp.usage * 100) : 0;
+  const usedMB        = stamp.size?.bytes           ? (stamp.size.bytes           / 1_000_000).toFixed(2) + " MB" : "N/A";
+  const freeMB        = stamp.remainingSize?.bytes  ? (stamp.remainingSize.bytes  / 1_000_000).toFixed(2) + " MB" : "N/A";
+  const maxMB         = stamp.theoreticalSize?.bytes ? (stamp.theoreticalSize.bytes / 1_000_000).toFixed(0) + " MB" : "N/A";
+  const ttlObj        = stamp.duration?.seconds ? ttlFromSeconds(stamp.duration.seconds) : null;
+  const ttlText       = ttlObj ? ttlObj.text : "N/A";
+  const lockColor     = stamp.immutableFlag ? "#f97316" : "#4b5563";
+  const lockText      = stamp.immutableFlag ? "YES" : "NO";
+
+  modalActiveBatchId = batchId;
+  modalUploadResult.innerHTML = "";
+  extendSizeInput.value = "";
+  extendDurationInput.value = "";
+  extendResult.innerHTML = "";
+  modalTitle.textContent = `${label.toUpperCase()} DETAILS`;
+
+  modalBody.innerHTML = `
+    <!-- Technical data card -->
+    <div class="d-card">
+      <div class="d-section-label">BATCH_HASH</div>
+      <span class="d-batch-value">${esc(batchId) || "N/A"}</span>
+      <div class="d-metrics-grid">
+        <div>
+          <div class="d-metric-label">DEPTH</div>
+          <div class="d-metric-value">${stamp.depth ?? "N/A"}</div>
+        </div>
+        <div>
+          <div class="d-metric-label">BUCKET</div>
+          <div class="d-metric-value">${stamp.bucketDepth ?? "N/A"}</div>
+        </div>
+        <div>
+          <div class="d-metric-label">UTIL</div>
+          <div class="d-metric-value">${stamp.utilization ?? "N/A"}</div>
+        </div>
+        <div>
+          <div class="d-metric-label">LOCK</div>
+          <div class="d-metric-value" style="color:${lockColor}">${lockText}</div>
+        </div>
+        <div>
+          <div class="d-metric-label">BLOCK</div>
+          <div class="d-metric-value">${stamp.blockNumber ?? "N/A"}</div>
+        </div>
+        <div>
+          <div class="d-metric-label">AMOUNT</div>
+          <div class="d-metric-value" style="font-size:0.82rem">${stamp.amount ?? "N/A"}</div>
+        </div>
+      </div>
+    </div>
+    <!-- Capacity load card -->
+    <div class="d-card" style="margin-bottom:0.9rem">
+      <div class="d-cap-header">
+        <span class="d-section-label" style="margin-bottom:0">CAPACITY LOAD</span>
+        <span class="d-cap-pct">${usagePct}%</span>
+      </div>
+      <div class="d-cap-bar-bg">
+        <div class="d-cap-bar-fill" style="width:${usagePct}%"></div>
+      </div>
+      <div class="d-stats-row">
+        <div class="d-stat">
+          <div class="d-stat-label">USED</div>
+          <div class="d-stat-value">${esc(usedMB)}</div>
+        </div>
+        <div class="d-stat">
+          <div class="d-stat-label">FREE</div>
+          <div class="d-stat-value">${esc(freeMB)}</div>
+        </div>
+        <div class="d-stat">
+          <div class="d-stat-label">MAX</div>
+          <div class="d-stat-value">${esc(maxMB)}</div>
+        </div>
+        <div class="d-stat">
+          <div class="d-stat-label">TTL</div>
+          <div class="d-stat-value">${esc(ttlText)}</div>
+        </div>
+      </div>
+    </div>`;
+  openModal(stampModal);
+}
+
+// Upload to stamp
+modalUploadBtn.addEventListener("click", () => { modalFileInput.value = ""; modalFileInput.click(); });
+
+modalFileInput.addEventListener("change", async () => {
+  const file = modalFileInput.files?.[0];
+  if (!file || !modalActiveBatchId) return;
+  modalUploadBtn.disabled = true;
+  modalUploadBtn.innerHTML = "<span>Uploading…</span>";
+  modalUploadResult.innerHTML = `<span class="loading-text">Uploading to Swarm…</span>`;
+  try {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const response = await app.callServerTool({
+      name: "upload_file",
+      arguments: { data: base64, isPath: false, name: file.name, postageBatchId: modalActiveBatchId },
+    });
+    let reference = ""; let url = "";
+    if (response.structuredContent) { reference = sc(response).reference || ""; url = sc(response).url || ""; }
+    else if (response.content?.[0]) {
+      try { const p = JSON.parse(tc(response.content)); reference = p.reference || ""; url = p.url || ""; } catch { /* ignore */ }
+    }
+    modalUploadResult.innerHTML = `
+      <div class="result-success" style="margin-top:0.5rem">
+        <strong>✓ Uploaded: ${esc(file.name)}</strong>
+        <div style="font-family:monospace;font-size:0.75rem;margin-top:0.35rem;word-break:break-all">${esc(reference)}</div>
+        ${url ? `<a href="${esc(url)}" target="_blank" class="swarm-link" style="font-size:0.78rem;word-break:break-all">${esc(url)}</a>` : ""}
+      </div>`;
+  } catch (err: any) {
+    modalUploadResult.innerHTML = `<div class="result-error">${esc(err?.message || String(err))}</div>`;
+  } finally {
+    modalUploadBtn.disabled = false;
+    modalUploadBtn.innerHTML = "<span>TARGET UPLOAD</span>";
+  }
+});
+
+// Extend stamp
+extendSubmitBtn.addEventListener("click", async () => {
+  const size     = parseFloat(extendSizeInput.value);
+  const duration = extendDurationInput.value.trim();
+  if ((!size || size <= 0) && !duration) {
+    extendResult.innerHTML = `<div class="result-error">Enter a size (MB) and/or a duration to extend.</div>`;
+    return;
+  }
+  extendSubmitBtn.disabled = true;
+  extendSubmitBtn.innerHTML = "<span>Extending…</span>";
+  extendResult.innerHTML = `<span class="loading-text">Extending postage stamp…</span>`;
+  try {
+    const args: Record<string, any> = { postageBatchId: modalActiveBatchId };
+    if (size > 0) args.size = size;
+    if (duration) args.duration = duration;
+    const response = await app.callServerTool({ name: "extend_postage_stamp", arguments: args });
+    let message = "";
+    if (response.structuredContent) message = sc(response).message || "";
+    else if (response.content?.[0]) {
+      try { message = JSON.parse(tc(response.content)).message || ""; } catch { message = tc(response.content); }
+    }
+    extendResult.innerHTML = `
+      <div class="result-success">
+        <strong>✓ Stamp extended!</strong>
+        ${message ? `<div style="margin-top:0.35rem;font-size:0.8rem">${esc(message)}</div>` : ""}
+      </div>`;
+    loadStamps();
+  } catch (err: any) {
+    extendResult.innerHTML = `<div class="result-error">Failed: ${esc(err?.message || String(err))}</div>`;
+  } finally {
+    extendSubmitBtn.disabled = false;
+    extendSubmitBtn.innerHTML = "<span>Extend Stamp</span>";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Upload tab
+// ---------------------------------------------------------------------------
+let selectedFile: File | null = null;
+let fileBase64: string | null = null;
+
+selectAssetBtn.addEventListener("click", () => { fileInput.value = ""; fileInput.click(); });
+
+fileInput.addEventListener("change", async (e) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) { uploadBtn.disabled = true; selectedFile = null; fileBase64 = null; fileNameDisplay.textContent = "// No file selected"; return; }
+  selectedFile = file;
+  uploadBtn.disabled = false;
+  fileNameDisplay.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = (ev) => { fileBase64 = (ev.target?.result as string).split(",")[1]; };
+  reader.readAsDataURL(file);
+  uploadResult.innerHTML = "";
+  previewArea.style.display = "none";
+});
+
+uploadBtn.addEventListener("click", async () => {
+  if (!selectedFile || !fileBase64) { uploadResult.innerHTML = `<div class="state-error">No file selected.</div>`; return; }
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = "<span>UPLOADING…</span>";
+  uploadResult.innerHTML = `<span class="loading-text">Uploading to Swarm…</span>`;
+  previewArea.style.display = "none";
+  try {
+    const response = await app.callServerTool({
+      name: "upload_file",
+      arguments: { data: fileBase64, isPath: false, name: selectedFile.name },
+    });
+    let reference = ""; let url = ""; let message = "";
+    if (response.structuredContent) {
+      reference = sc(response).reference || ""; url = sc(response).url || ""; message = sc(response).message || "Upload successful";
+    } else if (response.content?.[0]) {
+      try { const p = JSON.parse(tc(response.content)); reference = p.reference || ""; url = p.url || ""; message = p.message || "Upload successful"; }
+      catch { message = tc(response.content); }
+    }
+    uploadResult.innerHTML = `
+      <div class="result-success">
+        <strong>✓ ${esc(message)}</strong>
+        <div style="margin-top:0.4rem"><strong>File:</strong> ${esc(selectedFile.name)}</div>
+        <div style="margin-top:0.25rem;font-family:monospace;font-size:0.78rem;word-break:break-all">${esc(reference)}</div>
+        ${url ? `<div style="margin-top:0.35rem"><a href="${esc(url)}" target="_blank" class="swarm-link">${esc(url)}</a></div>` : ""}
+      </div>`;
+    const isImage = selectedFile.type.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(selectedFile.name);
+    if (isImage && fileBase64) {
+      const dataUrl = `data:${selectedFile.type || "image/png"};base64,${fileBase64}`;
+      previewArea.style.display = "block";
+      previewArea.innerHTML = `<img src="${esc(dataUrl)}" alt="${esc(selectedFile.name)}" />`;
+    }
+    loadHistory().catch(() => {});
+  } catch (error: any) {
+    uploadResult.innerHTML = `<div class="state-error">Upload failed: ${esc(error?.message || String(error))}</div>`;
+  } finally {
+    uploadBtn.disabled = fileBase64 === null;
+    uploadBtn.innerHTML = "<span>UPLOAD</span>";
+    if (!fileBase64) fileNameDisplay.textContent = "// No file selected";
+  }
+});
+
+// ---------------------------------------------------------------------------
+// History
+// ---------------------------------------------------------------------------
+const FILE_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+
+async function loadHistory() {
+  historyTable.innerHTML = `<div class="state-text">Loading history…</div>`;
+  try {
+    const response = await app.callServerTool({ name: "list_upload_history", arguments: {} });
+    let entries: any[] = [];
+    if (sc(response).history) entries = sc(response).history;
+    else if (response.content?.[0]) {
+      try { entries = JSON.parse(tc(response.content)).history || []; } catch { entries = []; }
+    }
+    if (entries.length === 0) {
+      historyTable.innerHTML = `<div class="state-text">No uploads yet in this session.</div>`;
+      return;
+    }
+    const fileIcon = FILE_ICON;
+    let html = "";
+    entries.forEach((entry: any) => {
+      const shortRef = entry.reference ? `${entry.reference.slice(0, 12)}…` : "N/A";
+      const sizeKB   = entry.sizeBytes != null ? (entry.sizeBytes / 1024).toFixed(1) + "…" : "—";
+      const time     = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : "—";
+      const name     = entry.name || entry.type || "data";
+      const url      = entry.url ? ` style="cursor:pointer" onclick="window.open('${esc(entry.url)}','_blank')"` : "";
+      html += `<div class="hist-card"${url}>`;
+      html += `<span class="hist-icon">${fileIcon}</span>`;
+      html += `<span class="hist-name" title="${esc(entry.reference ?? "")}">${esc(name)}</span>`;
+      html += `<span class="hist-ref-pill" title="${esc(entry.reference ?? "")}">${esc(shortRef)}</span>`;
+      html += `<span class="hist-size-pill">${esc(sizeKB)}</span>`;
+      html += `<span class="hist-time">${esc(time)}</span>`;
+      html += `</div>`;
+    });
+    historyTable.innerHTML = html;
+    // Wire click handlers to open detail modal
+    historyTable.querySelectorAll<HTMLElement>(".hist-card").forEach((card, i) => {
+      card.addEventListener("click", () => openHistoryItemModal(entries[i]));
+    });
+  } catch (error: any) {
+    historyTable.innerHTML = `<div class="state-error">Failed to load history: ${esc(error?.message || String(error))}</div>`;
+  }
+}
+
+function openHistoryItemModal(entry: any) {
+  const ts = entry.timestamp ? new Date(entry.timestamp) : null;
+  const sizeKB = entry.sizeBytes != null ? (entry.sizeBytes / 1024).toFixed(1) + " KB" : "—";
+  const dateStr = ts ? ts.toLocaleDateString("en-CA") : "—"; // YYYY-MM-DD
+  const timeStr = ts ? ts.toLocaleTimeString() : "—";
+  hiName.textContent      = entry.name || entry.type || "—";
+  hiReference.textContent = entry.reference || "—";
+  hiSize.textContent      = sizeKB;
+  hiDate.textContent      = dateStr;
+  hiTime.textContent      = timeStr;
+  hiStamp.textContent     = entry.postageBatchId || "—";
+  if (entry.url) { hiUrl.href = entry.url; hiUrl.textContent = entry.url; }
+  else           { hiUrl.removeAttribute("href"); hiUrl.textContent = "—"; }
+  openModal(histItemModal);
+}
+
+histItemClose.addEventListener("click", () => closeModal(histItemModal));
+histItemModal.addEventListener("click", (e) => { if (e.target === histItemModal) closeModal(histItemModal); });
+
+hiCopyBtn.addEventListener("click", async () => {
+  const ref = hiReference.textContent || "";
+  if (!ref || ref === "—") return;
+  try {
+    await navigator.clipboard.writeText(ref);
+    hiCopyBtn.innerHTML = "<span>COPIED ✓</span>";
+    setTimeout(() => { hiCopyBtn.innerHTML = "<span>COPY HASH</span>"; }, 1800);
+  } catch { /* ignore */ }
+});
+
+historyBtn.addEventListener("click", () => {
+  historyBtn.disabled = true;
+  historyBtn.innerHTML = "<span>Loading…</span>";
+  loadHistory();
+});
+
+// ---------------------------------------------------------------------------
+// Buy stamp modal
+// ---------------------------------------------------------------------------
+buyStampBtn.addEventListener("click", () => {
+  buySizeInput.value = ""; buyDurationInput.value = ""; buyLabelInput.value = ""; buyResult.innerHTML = "";
+  openModal(buyStampModal);
 });
 
 buySubmitBtn.addEventListener("click", async () => {
-  const size = parseFloat(buySizeInput.value);
+  const size     = parseFloat(buySizeInput.value);
   const duration = buyDurationInput.value.trim();
-  const label = buyLabelInput.value.trim();
-
-  if (!size || size <= 0) {
-    buyResult.innerHTML = '<div class="buy-result-error">Please enter a valid size in MB.</div>';
-    return;
-  }
-  if (!duration) {
-    buyResult.innerHTML = '<div class="buy-result-error">Please enter a duration (e.g. 1d, 1w, 1month).</div>';
-    return;
-  }
-
+  const label    = buyLabelInput.value.trim();
+  if (!size || size <= 0) { buyResult.innerHTML = `<div class="result-error">Please enter a valid size in MB.</div>`; return; }
+  if (!duration)           { buyResult.innerHTML = `<div class="result-error">Please enter a duration (e.g. 1d, 1w, 1month).</div>`; return; }
   buySubmitBtn.disabled = true;
   buySubmitBtn.innerHTML = "<span>Buying…</span>";
-  buyResult.innerHTML = '<div class="loading">Buying postage stamp…</div>';
-
+  buyResult.innerHTML = `<span class="loading-text">Buying postage stamp…</span>`;
   try {
     const args: Record<string, any> = { size, duration };
     if (label) args.label = label;
-
-    const response = await app.callServerTool({
-      name: "create_postage_stamp",
-      arguments: args,
-    });
-
-    let batchId = "";
-    let message = "";
-    if (response.structuredContent) {
-      batchId = response.structuredContent.batchID || response.structuredContent.stampID || "";
-      message = response.structuredContent.message || "";
-    } else if (response.content?.[0]) {
-      const text = response.content[0].text;
-      try {
-        const parsed = JSON.parse(text);
-        batchId = parsed.batchID || parsed.stampID || parsed.reference || "";
-        message = parsed.message || "";
-      } catch {
-        // plain text response (e.g. "Purchase of postage batch is in progress…")
-        message = text;
-      }
+    const response = await app.callServerTool({ name: "create_postage_stamp", arguments: args });
+    let batchId = ""; let message = "";
+    if (response.structuredContent) { batchId = sc(response).batchID || sc(response).stampID || ""; message = sc(response).message || ""; }
+    else if (response.content?.[0]) {
+      const text = tc(response.content);
+      try { const p = JSON.parse(text); batchId = p.batchID || p.stampID || p.reference || ""; message = p.message || ""; }
+      catch { message = text; }
     }
-
     buyResult.innerHTML = `
-      <div class="buy-result-success">
+      <div class="result-success">
         <strong>✓ Stamp purchased!</strong>
-        ${message ? `<p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">${message}</p>` : ""}
-        ${batchId ? `<p style="margin: 0.5rem 0 0 0; font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Batch ID</p><p style="margin: 0.2rem 0 0 0; font-family: monospace; font-size: 0.82rem; color: #e2e8f0; word-break: break-all;">${batchId}</p>` : ""}
+        ${message ? `<div style="margin-top:0.3rem;font-size:0.8rem">${esc(message)}</div>` : ""}
+        ${batchId ? `<div style="margin-top:0.4rem;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:#4b5563">Batch ID</div><div style="font-family:monospace;font-size:0.75rem;word-break:break-all">${esc(batchId)}</div>` : ""}
       </div>`;
+    loadStamps();
   } catch (err: any) {
-    buyResult.innerHTML = `<div class="buy-result-error">Failed: ${err.message}</div>`;
+    buyResult.innerHTML = `<div class="result-error">Failed: ${esc(err?.message || String(err))}</div>`;
   } finally {
     buySubmitBtn.disabled = false;
     buySubmitBtn.innerHTML = "<span>Buy Stamp</span>";
   }
 });
+
+// ---------------------------------------------------------------------------
+// MCP tool input handler
+// ---------------------------------------------------------------------------
+app.ontoolinput = async (params) => {
+  const args        = params.arguments as any;
+  const tab         = args?.tab as string | undefined;
+  const stampQuery  = args?.stamp as string | undefined;
+  const modal       = args?.modal as string | undefined;
+
+  if (modal === "buy-stamp") {
+    activateTab("stamps");
+    buySizeInput.value = ""; buyDurationInput.value = ""; buyLabelInput.value = ""; buyResult.innerHTML = "";
+    openModal(buyStampModal);
+    return;
+  }
+
+  if (stampQuery) {
+    activateTab("stamps");
+    if (lastStampsData.length === 0) await loadStamps();
+    const query = stampQuery.toLowerCase();
+    const stamp = lastStampsData.find((s: any) =>
+      (s.label ?? "").toLowerCase() === query ||
+      (s.batchID ?? "").toLowerCase().startsWith(query) ||
+      (s.stampID ?? "").toLowerCase().startsWith(query)
+    );
+    if (stamp) openStampModal(stamp);
+    return;
+  }
+
+  if (tab) {
+    activateTab(tab);
+    if (tab === "stamps") loadStamps();
+    if (tab === "history") loadHistory();
+  }
+};
+
+// Connect to host
+app.connect();

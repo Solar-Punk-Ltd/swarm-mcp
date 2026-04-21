@@ -113,6 +113,7 @@ export async function uploadFile(
     name,
     sizeBytes: binaryData.length,
     tagId,
+    postageBatchId: args.postageBatchId,
   });
 
   return getResponseWithStructuredContent({

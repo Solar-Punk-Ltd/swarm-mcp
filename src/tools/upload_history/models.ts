@@ -9,6 +9,7 @@ export interface UploadHistoryEntry {
   sizeBytes?: number;
   tagId?: string;
   timestamp: string;
+  postageBatchId?: string;
 }
 
 export interface ListUploadHistoryArgs {}
