@@ -111,6 +111,7 @@ tabs.forEach((tab) => {
     activateTab(name);
     if (name === "stamps") loadStamps();
     if (name === "history") loadHistory();
+    if (name === "status") loadNodeStatus();
   });
 });
 
@@ -503,6 +504,105 @@ historyBtn.addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Node Status tab
+// ---------------------------------------------------------------------------
+const statusContent  = document.getElementById("status-content")!;
+
+function dot(ok: boolean | null): string {
+  const cls = ok === true ? "ok" : ok === false ? "error" : "unknown";
+  return `<span class="status-dot ${cls}"></span>`;
+}
+
+function statusVal(v: unknown, cls?: string): string {
+  if (v == null) return `<span class="status-val muted">—</span>`;
+  const extra = cls ? ` ${cls}` : "";
+  return `<span class="status-val${extra}">${esc(String(v))}</span>`;
+}
+
+function row(label: string, value: string): string {
+  return `<div class="status-row"><span class="status-key">${label}</span>${value}</div>`;
+}
+
+function fmtBzz(val?: unknown): string {
+  if (val == null || val === "") return "—";
+  try {
+    return `${parseFloat(String(val)).toFixed(4)} BZZ`;
+  } catch { return String(val); }
+}
+
+function fmtEth(val?: unknown): string {
+  if (val == null || val === "") return "—";
+  try {
+    return `${parseFloat(String(val)).toFixed(4)} xDAI`;
+  } catch { return String(val); }
+}
+
+function renderNodeStatus(data: any): string {
+  const s  = data.status   ?? {};
+  const h  = data.health   ?? {};
+  const ni = data.nodeInfo ?? {};
+  const w  = data.wallet   ?? {};
+  const c  = data.chain    ?? {};
+
+  const isHealthy = h.status === "ok";
+  const connected = s.connectedPeers ?? null;
+  const mode: string = ni.beeMode ?? "unknown";
+  const modeClass = ["full", "light", "dev"].includes(mode) ? mode : "unknown";
+
+  return `
+    <div class="status-panel">
+      <div class="status-panel-header">
+        <span class="status-panel-title">${dot(isHealthy)} Node Status</span>
+        <button id="status-refresh-icon" class="status-refresh-icon" title="Refresh">↻</button>
+      </div>
+
+      <div class="status-section">
+        <div class="status-section-label">Health</div>
+        ${row("status", statusVal(h.status ?? (data.health == null ? null : "?"), isHealthy ? "green" : "red"))}
+        ${row("version", statusVal(h.version ?? ni.apiVersion ?? null))}
+        ${row("mode", `<span class="status-mode-badge ${modeClass}">${esc(mode)}</span>`)}
+      </div>
+
+      <div class="status-section">
+        <div class="status-section-label">Network</div>
+        ${row("peers", statusVal(s.connectedPeers ?? null, connected > 0 ? "green" : "orange"))}
+        ${row("neighborhood", statusVal(s.neighborhoodSize ?? null))}
+        ${row("depth", statusVal(s.storageRadius ?? null))}
+      </div>
+
+      <div class="status-section">
+        <div class="status-section-label">Wallet</div>
+        ${row("BZZ", statusVal(fmtBzz(w.bzzBalance), "orange"))}
+        ${row("xDAI", statusVal(fmtEth(w.nativeTokenBalance)))}
+      </div>
+
+      <div class="status-section">
+        <div class="status-section-label">Chain</div>
+        ${row("block", statusVal(c.currentBlock ?? null))}
+        ${row("gas", statusVal(c.gasPrice ?? null))}
+        ${row("time", statusVal(c.blockTime ? new Date(Number(c.blockTime) * 1000).toLocaleTimeString() : null))}
+      </div>
+    </div>`;
+}
+
+async function loadNodeStatus() {
+  statusContent.innerHTML = `<div class="state-text">Loading node status…</div>`;
+  // disable inline refresh button if present
+  const btn = statusContent.querySelector<HTMLButtonElement>("#status-refresh-icon");
+  if (btn) btn.disabled = true;
+  try {
+    const response = await app.callServerTool({ name: "get_node_status", arguments: {} });
+    const data = sc(response);
+    statusContent.innerHTML = renderNodeStatus(data);
+    // Wire inline refresh button (rendered inside statusContent)
+    const refreshIcon = statusContent.querySelector<HTMLButtonElement>("#status-refresh-icon");
+    if (refreshIcon) refreshIcon.addEventListener("click", () => loadNodeStatus());
+  } catch (err: any) {
+    statusContent.innerHTML = `<div class="state-error">Failed to fetch status: ${esc(err?.message || String(err))}</div>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Buy stamp modal
 // ---------------------------------------------------------------------------
 buyStampBtn.addEventListener("click", () => {
@@ -578,6 +678,7 @@ app.ontoolinput = async (params) => {
     activateTab(tab);
     if (tab === "stamps") loadStamps();
     if (tab === "history") loadHistory();
+    if (tab === "status") loadNodeStatus();
   }
 };
 
