@@ -798,7 +798,7 @@ export const SwarmToolsSchema = [
           type: "array",
           items: { type: "string" },
           description:
-            "Public keys authorized to decrypt this item. Must be non-empty so a grantee-list ref exists for later patching.",
+            "Public keys authorized to decrypt this item. Optional: if omitted or empty, the publisher's own pubkey is auto-seeded so the item stays patchable later via grant_feed_access / patch_grantees. Pass concrete buyer pubkeys here if you already know them at publish time.",
         },
         append: {
           type: "boolean",
@@ -809,7 +809,7 @@ export const SwarmToolsSchema = [
         redundancyLevel: { type: "number", default: 0 },
         postageBatchId: { type: "string" },
       },
-      required: ["feedTopic", "displayName", "grantees"],
+      required: ["feedTopic", "displayName"],
     },
     execution: { taskSupport: "forbidden" },
   },

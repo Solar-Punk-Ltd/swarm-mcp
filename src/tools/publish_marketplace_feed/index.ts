@@ -83,10 +83,22 @@ export async function publishMarketplaceFeed(
       `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
     );
   }
+
+  // Auto-seed: Bee requires a non-empty grantees list at createGrantees time,
+  // and only refs produced by createGrantees are patchable by patchGrantees
+  // later (Bee 2.7.x behavior). If the caller omitted grantees, seed the list
+  // with the publisher's own pubkey so buyers can be added via x402 later.
+  let autoSeededGrantee: string | null = null;
   if (grantees.length === 0) {
-    return getToolErrorResponse(
-      "publish_marketplace_feed requires at least one grantee public key per item (so its granteeRef is patchable later). Pass the publisher's own pubkey if you have no consumer grantees yet."
-    );
+    try {
+      const addresses = await bee.getNodeAddresses();
+      autoSeededGrantee = addresses.publicKey.toCompressedHex();
+      grantees = [autoSeededGrantee];
+    } catch (err) {
+      return getToolErrorResponse(
+        `grantees was empty and auto-seeding from node public key failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   // Read existing feed state FIRST (before any upload) so we can detect
@@ -242,6 +254,7 @@ export async function publishMarketplaceFeed(
     totalItems: dataItems.length,
     item: newItem,
     grantees,
+    autoSeededGrantee,
     fileName: fileName ?? null,
     appendMode: append,
     message: append
