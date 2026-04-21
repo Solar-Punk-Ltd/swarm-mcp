@@ -11,6 +11,15 @@ const uploadResult = document.getElementById("upload-result")!;
 const previewArea = document.getElementById("preview-area")!;
 const fileNameDisplay = document.getElementById("file-name-display")!;
 const selectAssetBtn = document.getElementById("select-asset-btn")! as HTMLButtonElement;
+// Upload step UI
+const uploadStep1El = document.getElementById("upload-step-1")!;
+const uploadStep2El = document.getElementById("upload-step-2")!;
+const uploadStampList = document.getElementById("upload-stamp-list")!;
+const uploadContinueBtn = document.getElementById("upload-continue-btn")! as HTMLButtonElement;
+const uploadSelectedStampLabel = document.getElementById("upload-selected-stamp-label")!;
+const uploadChangeStampBtn = document.getElementById("upload-change-stamp-btn")! as HTMLButtonElement;
+const uploadStep1Indicator = document.getElementById("upload-step-1-indicator")!;
+const uploadStep2Indicator = document.getElementById("upload-step-2-indicator")!;
 const historyTable = document.getElementById("history-table")!;
 const historyBtn = document.getElementById("history-btn")! as HTMLButtonElement;
 
@@ -112,6 +121,13 @@ tabs.forEach((tab) => {
     if (name === "stamps") loadStamps();
     if (name === "history") loadHistory();
     if (name === "status") loadNodeStatus();
+    if (name === "upload") {
+      if (lastStampsData.length === 0) {
+        loadStamps().then(() => renderUploadStampPicker()).catch(() => {});
+      } else {
+        renderUploadStampPicker();
+      }
+    }
   });
 });
 
@@ -181,6 +197,7 @@ async function loadStamps() {
     }
     lastStampsData = rawData;
     (window as any).__stampsRawData = rawData;
+    renderUploadStampPicker();
 
     if (rawData.length === 0) {
       stampsTable.innerHTML = `<div class="state-text">No postage stamps yet.</div>`;
@@ -367,6 +384,69 @@ extendSubmitBtn.addEventListener("click", async () => {
 // ---------------------------------------------------------------------------
 let selectedFile: File | null = null;
 let fileBase64: string | null = null;
+let uploadSelectedBatchId = "";
+
+// ---- Step 1: Stamp picker ----
+function renderUploadStampPicker() {
+  const stamps = lastStampsData;
+  if (stamps.length === 0) {
+    uploadStampList.innerHTML = `<div class="state-text">No stamps available. Buy one first.</div>`;
+    return;
+  }
+  uploadStampList.innerHTML = stamps.map((stamp: any) => {
+    const batchId = stamp.batchID || stamp.stampID || "";
+    const label   = stamp.label || "unlabeled";
+    const usagePct = typeof stamp.usage === "number" ? Math.round(stamp.usage * 100) : 0;
+    const { text: ttlText, severity } = ttlFromSeconds(stamp.duration?.seconds);
+    const selected = batchId === uploadSelectedBatchId ? " selected" : "";
+    return `
+      <div class="upload-stamp-option${selected}" data-batch-id="${esc(batchId)}">
+        <div class="upload-stamp-option-radio"><div class="upload-stamp-option-radio-dot"></div></div>
+        <div class="upload-stamp-option-inner">
+          <div class="stamp-label" style="width:auto;margin-bottom:0.3rem">${esc(label)}</div>
+          <div style="display:flex;align-items:center;gap:0.6rem">
+            <div class="stamp-progress-bar-bg" style="flex:1;height:4px">
+              <div class="stamp-progress-bar-fill${severity === 'critical' ? ' fill-critical' : ''}" style="width:${usagePct}%"></div>
+            </div>
+            <div class="stamp-ttl-badge ${severity}" style="padding:0.15rem 0.5rem;font-size:0.68rem">
+              <div class="stamp-ttl-dot"></div><span>${esc(ttlText)}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  uploadStampList.querySelectorAll<HTMLElement>(".upload-stamp-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      uploadSelectedBatchId = opt.dataset.batchId || "";
+      uploadStampList.querySelectorAll(".upload-stamp-option").forEach((o) => o.classList.remove("selected"));
+      opt.classList.add("selected");
+      uploadContinueBtn.disabled = false;
+    });
+  });
+  uploadContinueBtn.disabled = !uploadSelectedBatchId;
+}
+
+function goToUploadStep2() {
+  const stamp = lastStampsData.find((s: any) => (s.batchID || s.stampID) === uploadSelectedBatchId);
+  uploadSelectedStampLabel.textContent = stamp?.label || uploadSelectedBatchId.slice(0, 16) + "…" || "—";
+  uploadStep1El.style.display = "none";
+  uploadStep2El.style.display = "block";
+  uploadStep1Indicator.classList.remove("active"); uploadStep1Indicator.classList.add("done");
+  uploadStep2Indicator.classList.add("active");
+}
+
+function goToUploadStep1() {
+  uploadStep2El.style.display = "none";
+  uploadStep1El.style.display = "block";
+  uploadStep2Indicator.classList.remove("active");
+  uploadStep1Indicator.classList.remove("done"); uploadStep1Indicator.classList.add("active");
+  uploadResult.innerHTML = "";
+  previewArea.style.display = "none";
+}
+
+uploadContinueBtn.addEventListener("click", goToUploadStep2);
+uploadChangeStampBtn.addEventListener("click", goToUploadStep1);
 
 selectAssetBtn.addEventListener("click", () => { fileInput.value = ""; fileInput.click(); });
 
@@ -392,7 +472,7 @@ uploadBtn.addEventListener("click", async () => {
   try {
     const response = await app.callServerTool({
       name: "upload_file",
-      arguments: { data: fileBase64, isPath: false, name: selectedFile.name },
+      arguments: { data: fileBase64, isPath: false, name: selectedFile.name, postageBatchId: uploadSelectedBatchId || undefined },
     });
     let reference = ""; let url = ""; let message = "";
     if (response.structuredContent) {
@@ -679,6 +759,13 @@ app.ontoolinput = async (params) => {
     if (tab === "stamps") loadStamps();
     if (tab === "history") loadHistory();
     if (tab === "status") loadNodeStatus();
+    if (tab === "upload") {
+      if (lastStampsData.length === 0) {
+        loadStamps().catch(() => {});
+      } else {
+        renderUploadStampPicker();
+      }
+    }
   }
 };
 
