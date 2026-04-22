@@ -234,7 +234,7 @@ function openStampModal(stamp: any) {
   const maxMB         = stamp.theoreticalSize?.bytes ? (stamp.theoreticalSize.bytes / 1_000_000).toFixed(0) + " MB" : "N/A";
   const ttlObj        = stamp.duration?.seconds ? ttlFromSeconds(stamp.duration.seconds) : null;
   const ttlText       = ttlObj ? ttlObj.text : "N/A";
-  const lockColor     = stamp.immutableFlag ? "#f97316" : "#4b5563";
+  const lockColor     = stamp.immutableFlag ? "#f97316" : "#b5b5b5";
   const lockText      = stamp.immutableFlag ? "YES" : "NO";
 
   modalActiveBatchId = batchId;
@@ -256,7 +256,7 @@ function openStampModal(stamp: any) {
       </div>
     </div>
     <!-- DETAILS accordion -->
-    <div class="d-accordion open" id="acc-details">
+    <div class="d-accordion" id="acc-details">
       <div class="d-accordion-header" onclick="this.closest('.d-accordion').classList.toggle('open')">
         <span class="d-accordion-title">DETAILS</span>
         <span class="d-accordion-chevron">&#9660;</span>
@@ -763,7 +763,7 @@ buySubmitBtn.addEventListener("click", async () => {
       <div class="result-success">
         <strong>✓ Stamp purchased!</strong>
         ${message ? `<div style="margin-top:0.3rem;font-size:0.8rem">${esc(message)}</div>` : ""}
-        ${batchId ? `<div style="margin-top:0.4rem;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:#4b5563">Batch ID</div><div style="font-family:monospace;font-size:0.75rem;word-break:break-all">${esc(batchId)}</div>` : ""}
+        ${batchId ? `<div style="margin-top:0.4rem;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:#b5b5b5">Batch ID</div><div style="font-family:monospace;font-size:0.75rem;word-break:break-all">${esc(batchId)}</div>` : ""}
       </div>`;
     loadStamps();
   } catch (err: any) {
