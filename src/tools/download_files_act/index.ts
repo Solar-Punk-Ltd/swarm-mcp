@@ -66,15 +66,25 @@ export async function downloadFilesAct(
     node = await MantarayNode.unmarshal(bee, reference, actOptions);
     await node.loadRecursively(bee, actOptions);
   } catch (err) {
+    // Surface the underlying error verbatim rather than guessing at the cause.
+    // A 404 usually means either a missing chunk or a node that isn't a
+    // grantee -- both valid reasons, but many other failure modes end up here
+    // too (malformed manifest, non-manifest reference, transient network).
+    const body = getErrorMessage(err);
+    const rawMsg = err instanceof Error ? err.message : String(err);
     if (errorHasStatus(err, NOT_FOUND_STATUS)) {
       return getToolErrorResponse(
-        "Manifest not found, or this node is not a grantee for the given history."
+        `Manifest chunk not found (${body || rawMsg}). Either the reference is stale/unpinned, or this node isn't a grantee on the given history.`
       );
     }
-    const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
-      ? getErrorMessage(err)
-      : "Unable to unmarshal manifest — the reference may not be a manifest. Try download_data_act for a single object.";
-    return getToolErrorResponse(msg);
+    if (errorHasStatus(err, BAD_REQUEST_STATUS)) {
+      return getToolErrorResponse(
+        `Bee rejected the manifest request: ${body || rawMsg}. The reference may not be a Mantaray manifest -- try download_data_act for a single object.`
+      );
+    }
+    return getToolErrorResponse(
+      `Unable to unmarshal manifest: ${body || rawMsg}. If the reference is a single-chunk object (uploadData, not uploadFile), use download_data_act instead.`
+    );
   }
 
   const nodes = node.collect();
