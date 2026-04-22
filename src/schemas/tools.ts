@@ -435,6 +435,12 @@ export const SwarmToolsSchema = [
           description:
             "Sets label for the postage batch (omit if the user didn't ask for one). Do not set a label with with specific capacity values because they can get misleading.",
         },
+        immutable: {
+          type: "boolean",
+          description:
+            "If true, data uploaded with this stamp cannot be overwritten. Defaults to false.",
+          default: false,
+        },
       },
       required: ["size", "duration"],
     },
@@ -506,7 +512,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "swarm-mcp-app-tool",
-    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history, 'status' for node network status.",
+    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history, 'status' for node network status. When opening the buy-stamp modal, extract any size (MB) and duration the user mentioned and pass them as 'size' and 'duration' to pre-fill the form.",
     inputSchema: {
       type: "object",
       properties: {
@@ -523,6 +529,14 @@ export const SwarmToolsSchema = [
           type: "string",
           enum: ["buy-stamp"],
           description: "Which modal to open: 'buy-stamp' opens the Buy Postage Stamp dialog.",
+        },
+        size: {
+          type: "number",
+          description: "Pre-fill the capacity field (in MB) in the Buy Postage Stamp dialog.",
+        },
+        duration: {
+          type: "string",
+          description: "Pre-fill the TTL field in the Buy Postage Stamp dialog (e.g. 1d, 1w, 1month).",
         },
       },
       required: [],

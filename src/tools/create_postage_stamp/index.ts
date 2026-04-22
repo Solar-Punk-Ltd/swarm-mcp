@@ -22,7 +22,7 @@ export async function createPostageStamp(
   args: CreatePostageStampArgs,
   bee: Bee
 ): Promise<ToolResponse> {
-  const { size, duration, label } = args;
+  const { size, duration, label, immutable } = args;
 
   if (!size) {
     throw new McpError(
@@ -52,6 +52,7 @@ export async function createPostageStamp(
       Duration.fromMilliseconds(durationMs),
       {
         label,
+        immutableFlag: immutable,
       }
     );
     const [response, hasTimedOut] = await runWithTimeout(
