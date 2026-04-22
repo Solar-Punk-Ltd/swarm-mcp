@@ -420,18 +420,25 @@ function renderUploadStampPicker() {
     const batchId = stamp.batchID || stamp.stampID || "";
     const label   = stamp.label || "unlabeled";
     const usagePct = typeof stamp.usage === "number" ? Math.round(stamp.usage * 100) : 0;
+    const sizeBytes      = stamp.size?.bytes ?? 0;
+    const remainingBytes = stamp.remainingSize?.bytes ?? 0;
+    const usedBytes      = Math.max(0, sizeBytes - remainingBytes);
+    const sizeLabel      = `${formatMB(usedBytes)} / ${formatMB(sizeBytes)}`;
     const { text: ttlText, severity } = ttlFromSeconds(stamp.duration?.seconds);
     const selected = batchId === uploadSelectedBatchId ? " selected" : "";
     return `
       <div class="upload-stamp-option${selected}" data-batch-id="${esc(batchId)}">
+        <div class="stamp-card-bar ${severity}"></div>
         <div class="upload-stamp-option-radio"><div class="upload-stamp-option-radio-dot"></div></div>
         <div class="upload-stamp-option-inner">
-          <div class="stamp-label" style="width:auto;margin-bottom:0.3rem">${esc(label)}</div>
-          <div style="display:flex;align-items:center;gap:0.6rem">
-            <div class="stamp-progress-bar-bg" style="flex:1;height:4px">
-              <div class="stamp-progress-bar-fill${severity === 'critical' ? ' fill-critical' : ''}" style="width:${usagePct}%"></div>
+          <div style="display:flex;align-items:center;gap:0.6rem;min-width:0;flex:1">
+            <div class="stamp-label ${severity}" style="width:130px;flex-shrink:0">${esc(label)}</div>
+            <div class="stamp-progress-bar-bg" style="flex:1;height:4px;min-width:0">
+              <div class="stamp-progress-bar-fill fill-${severity}" style="width:${usagePct}%"></div>
             </div>
-            <div class="stamp-ttl-badge ${severity}" style="padding:0.15rem 0.5rem;font-size:0.68rem">
+            <div class="stamp-pct" style="flex-shrink:0">${usagePct}%</div>
+            <div class="stamp-size-badge" style="flex-shrink:0" title="${esc(sizeLabel)}">${esc(sizeLabel)}</div>
+            <div class="stamp-ttl-badge ${severity}" style="flex-shrink:0">
               <div class="stamp-ttl-dot"></div><span>${esc(ttlText)}</span>
             </div>
           </div>
@@ -520,7 +527,7 @@ uploadBtn.addEventListener("click", async () => {
         <strong>✓ ${esc(message)}</strong>
         <div style="margin-top:0.4rem"><strong>File:</strong> ${esc(selectedFile.name)}</div>
         <div style="margin-top:0.25rem;font-family:monospace;font-size:0.78rem;word-break:break-all">${esc(reference)}</div>
-        ${url ? `<div style="margin-top:0.35rem"><a href="${esc(url)}" target="_blank" class="swarm-link">${esc(url)}</a></div>` : ""}
+        ${url ? `<div style="margin-top:0.35rem;word-break:break-all"><a href="${esc(url)}" target="_blank" class="swarm-link">${esc(url)}</a></div>` : ""}
       </div>`;
     const isImage = selectedFile.type.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(selectedFile.name);
     if (isImage && fileBase64) {
