@@ -974,6 +974,11 @@
       .buy-stamp-submit-btn:hover { background: rgba(16,185,129,0.2) !important; box-shadow: 0 0 22px rgba(16,185,129,0.18) !important; }
       .buy-stamp-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
       .buy-stamp-submit-btn span { position: relative; z-index: 1; }
+      .buy-toggle-row { display:flex;align-items:center;gap:0.6rem;cursor:pointer;margin-bottom:0.75rem;font-size:0.78rem;color:#9ca3af;letter-spacing:0.06em;user-select:none; }
+      .buy-toggle-input { appearance:none;width:2rem;height:1rem;background:#1f2937;border:1px solid #374151;border-radius:999px;position:relative;cursor:pointer;transition:background 0.2s; }
+      .buy-toggle-input:checked { background:#f97316;border-color:#f97316; }
+      .buy-toggle-input::after { content:"";position:absolute;top:1px;left:1px;width:0.75rem;height:0.75rem;background:#fff;border-radius:50%;transition:transform 0.2s; }
+      .buy-toggle-input:checked::after { transform:translateX(1rem); }
       /* ---- Node Status Tab ---- */
       .status-wrap { padding: 0.1rem 0 0.5rem; }
       .status-panel {
@@ -1070,8 +1075,9 @@
             </div>
           </div>
           <div class="hi-card">
-            <div class="hi-field-label">GATEWAY ACCESS URL</div>
+            <div class="hi-field-label">ACCESS VIA LOCAL NODE</div>
             <a class="hi-url-value" id="hi-url" href="#" target="_blank">—</a>
+            <div id="hi-preview" style="display:none;margin-top:0.9rem"></div>
           </div>
         </div>
       </div>
@@ -1106,6 +1112,10 @@
             </div>
             <input type="text" id="buy-label" class="buy-input" placeholder="sys_stamp_01" />
           </div>
+          <label class="buy-toggle-row" for="buy-immutable">
+            <input type="checkbox" id="buy-immutable" class="buy-toggle-input" />
+            IMMUTABLE
+          </label>
           <div id="buy-cost-estimate" style="display:none;margin-bottom:0.75rem;padding:0.6rem 0.9rem;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);border-radius:8px;font-size:0.82rem;color:#fb923c;letter-spacing:0.04em">
             <span class="buy-field-label-left" style="display:block;font-size:0.7rem;margin-bottom:0.2rem;opacity:0.7">ESTIMATED COST</span>
             <span id="buy-cost-value" style="font-family:monospace;font-size:1rem;font-weight:600">—</span>

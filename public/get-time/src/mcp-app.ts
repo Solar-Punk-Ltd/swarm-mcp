@@ -46,6 +46,7 @@ const buySubmitBtn = document.getElementById("buy-submit-btn")! as HTMLButtonEle
 const buyResult = document.getElementById("buy-result")!;
 const buyCostEstimate = document.getElementById("buy-cost-estimate")!;
 const buyCostValue = document.getElementById("buy-cost-value")!;
+const buyImmutableInput = document.getElementById("buy-immutable")! as HTMLInputElement;
 
 // History item modal
 const histItemModal = document.getElementById("hist-item-modal")!;
@@ -57,6 +58,7 @@ const hiDate = document.getElementById("hi-date")!;
 const hiTime = document.getElementById("hi-time")!;
 const hiStamp = document.getElementById("hi-stamp")!;
 const hiUrl = document.getElementById("hi-url")! as HTMLAnchorElement;
+const hiPreview = document.getElementById("hi-preview")!;
 
 // ---------------------------------------------------------------------------
 // App instance + SDK type helpers
@@ -202,7 +204,14 @@ async function loadStamps() {
     renderUploadStampPicker();
 
     if (rawData.length === 0) {
-      stampsTable.innerHTML = `<div class="state-text">No postage stamps yet.</div>`;
+      stampsTable.innerHTML = `<div class="state-text">No postage stamps yet.<br><button id="buy-first-stamp-btn" style="margin-top:0.85rem"><span>+ Buy your first stamp</span></button></div>`;
+      document.getElementById("buy-first-stamp-btn")?.addEventListener("click", () => {
+        buySizeInput.value = ""; buyDurationInput.value = ""; buyLabelInput.value = ""; buyResult.innerHTML = "";
+        buyImmutableInput.checked = false;
+        buyCostEstimate.style.display = "none";
+        buyCostValue.textContent = "\u2014";
+        openModal(buyStampModal);
+      });
       return;
     }
 
@@ -276,7 +285,7 @@ function openStampModal(stamp: any) {
             <div class="d-metric-value">${stamp.utilization ?? "N/A"}</div>
           </div>
           <div>
-            <div class="d-metric-label">LOCK</div>
+            <div class="d-metric-label">IMMUTABLE</div>
             <div class="d-metric-value" style="color:${lockColor}">${lockText}</div>
           </div>
           <div>
@@ -551,11 +560,10 @@ async function loadHistory() {
     let html = "";
     entries.forEach((entry: any) => {
       const shortRef = entry.reference ? `${entry.reference.slice(0, 12)}…` : "N/A";
-      const sizeKB   = entry.sizeBytes != null ? (entry.sizeBytes / 1024).toFixed(1) + "…" : "—";
+      const sizeKB   = entry.sizeBytes != null ? (entry.sizeBytes / 1024).toFixed(1) + " KB" : "—";
       const time     = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : "—";
       const name     = entry.name || entry.type || "data";
-      const url      = entry.url ? ` style="cursor:pointer" onclick="window.open('${esc(entry.url)}','_blank')"` : "";
-      html += `<div class="hist-card"${url}>`;
+      html += `<div class="hist-card">`;
       html += `<span class="hist-icon">${fileIcon}</span>`;
       html += `<span class="hist-name" title="${esc(entry.reference ?? "")}">${esc(name)}</span>`;
       html += `<span class="hist-ref-pill" title="${esc(entry.reference ?? "")}">${esc(shortRef)}</span>`;
@@ -586,11 +594,25 @@ function openHistoryItemModal(entry: any) {
   hiStamp.textContent     = entry.postageBatchId || "—";
   if (entry.url) { hiUrl.href = entry.url; hiUrl.textContent = entry.url; }
   else           { hiUrl.removeAttribute("href"); hiUrl.textContent = "—"; }
+  hiPreview.style.display = "none";
+  hiPreview.innerHTML = "";
+  const imgExts = /\.(png|jpg|jpeg|gif|webp|svg)(\?|$)/i;
+  if (entry.url && imgExts.test(entry.url)) {
+    hiPreview.innerHTML = `<img src="${esc(entry.url)}" style="max-width:100%;border-radius:8px;margin-top:0.5rem" />`;
+    hiPreview.style.display = "block";
+  }
   openModal(histItemModal);
 }
 
 histItemClose.addEventListener("click", () => closeModal(histItemModal));
 histItemModal.addEventListener("click", (e) => { if (e.target === histItemModal) closeModal(histItemModal); });
+
+hiUrl.addEventListener("click", (e) => {
+  const href = hiUrl.getAttribute("href");
+  if (!href || href === "#") return;
+  e.preventDefault();
+  app.callServerTool({ name: "open_url", arguments: { url: href } }).catch(() => {});
+});
 
 historyBtn.addEventListener("click", () => {
   historyBtn.disabled = true;
@@ -702,6 +724,7 @@ async function loadNodeStatus() {
 // ---------------------------------------------------------------------------
 buyStampBtn.addEventListener("click", () => {
   buySizeInput.value = ""; buyDurationInput.value = ""; buyLabelInput.value = ""; buyResult.innerHTML = "";
+  buyImmutableInput.checked = false;
   buyCostEstimate.style.display = "none";
   buyCostValue.textContent = "—";
   openModal(buyStampModal);
@@ -751,6 +774,7 @@ buySubmitBtn.addEventListener("click", async () => {
   try {
     const args: Record<string, any> = { size, duration };
     if (label) args.label = label;
+    if (buyImmutableInput.checked) args.immutable = true;
     const response = await app.callServerTool({ name: "create_postage_stamp", arguments: args });
     let batchId = ""; let message = "";
     if (response.structuredContent) { batchId = sc(response).batchID || sc(response).stampID || ""; message = sc(response).message || ""; }
@@ -782,11 +806,20 @@ app.ontoolinput = async (params) => {
   const tab         = args?.tab as string | undefined;
   const stampQuery  = args?.stamp as string | undefined;
   const modal       = args?.modal as string | undefined;
+  const prefillSize = args?.size as number | undefined;
+  const prefillDur  = args?.duration as string | undefined;
 
   if (modal === "buy-stamp") {
     activateTab("stamps");
-    buySizeInput.value = ""; buyDurationInput.value = ""; buyLabelInput.value = ""; buyResult.innerHTML = "";
+    buySizeInput.value     = prefillSize != null ? String(prefillSize) : "";
+    buyDurationInput.value = prefillDur  ?? "";
+    buyLabelInput.value    = "";
+    buyResult.innerHTML    = "";
+    buyImmutableInput.checked = false;
+    buyCostEstimate.style.display = "none";
+    buyCostValue.textContent = "—";
     openModal(buyStampModal);
+    if (prefillSize != null && prefillDur) scheduleCostEstimate();
     return;
   }
 
