@@ -44,6 +44,8 @@ const buyDurationInput = document.getElementById("buy-duration")! as HTMLInputEl
 const buyLabelInput = document.getElementById("buy-label")! as HTMLInputElement;
 const buySubmitBtn = document.getElementById("buy-submit-btn")! as HTMLButtonElement;
 const buyResult = document.getElementById("buy-result")!;
+const buyCostEstimate = document.getElementById("buy-cost-estimate")!;
+const buyCostValue = document.getElementById("buy-cost-value")!;
 
 // History item modal
 const histItemModal = document.getElementById("hist-item-modal")!;
@@ -699,8 +701,42 @@ async function loadNodeStatus() {
 // ---------------------------------------------------------------------------
 buyStampBtn.addEventListener("click", () => {
   buySizeInput.value = ""; buyDurationInput.value = ""; buyLabelInput.value = ""; buyResult.innerHTML = "";
+  buyCostEstimate.style.display = "none";
+  buyCostValue.textContent = "—";
   openModal(buyStampModal);
 });
+
+// ---------------------------------------------------------------------------
+// Cost estimation (debounced)
+// ---------------------------------------------------------------------------
+let _costDebounce: ReturnType<typeof setTimeout> | null = null;
+
+async function updateCostEstimate() {
+  const size = parseFloat(buySizeInput.value);
+  const duration = buyDurationInput.value.trim();
+  if (!size || size <= 0 || !duration) {
+    buyCostEstimate.style.display = "none";
+    return;
+  }
+  buyCostValue.textContent = "…";
+  buyCostEstimate.style.display = "block";
+  try {
+    const response = await app.callServerTool({ name: "get_storage_cost", arguments: { size, duration } });
+    const data = sc(response);
+    const bzz = data.bzz ?? tc(response.content ?? []);
+    buyCostValue.textContent = bzz ? parseFloat(bzz).toFixed(4) : "N/A";
+  } catch {
+    buyCostValue.textContent = "N/A";
+  }
+}
+
+function scheduleCostEstimate() {
+  if (_costDebounce) clearTimeout(_costDebounce);
+  _costDebounce = setTimeout(updateCostEstimate, 600);
+}
+
+buySizeInput.addEventListener("input", scheduleCostEstimate);
+buyDurationInput.addEventListener("input", scheduleCostEstimate);
 
 buySubmitBtn.addEventListener("click", async () => {
   const size     = parseFloat(buySizeInput.value);

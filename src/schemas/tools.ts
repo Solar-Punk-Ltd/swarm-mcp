@@ -387,6 +387,32 @@ export const SwarmToolsSchema = [
     },
   },
   {
+    name: "get_storage_cost",
+    description: "Estimate the BZZ cost of buying a postage stamp for a given size (MB) and duration.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        size: {
+          type: "number",
+          description: "The storage size in MB.",
+        },
+        duration: {
+          type: "string",
+          description: "Duration string, e.g. 1d, 1w, 1month.",
+        },
+      },
+      required: ["size", "duration"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        bzz: { type: "string", description: "Estimated cost in BZZ." },
+        plur: { type: "string", description: "Estimated cost in PLUR." },
+      },
+      required: ["bzz"],
+    },
+  },
+  {
     name: "create_postage_stamp",
     description: "Buy postage stamp based on size in megabytes and duration.",
     inputSchema: {
