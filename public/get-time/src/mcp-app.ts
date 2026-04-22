@@ -57,7 +57,6 @@ const hiDate = document.getElementById("hi-date")!;
 const hiTime = document.getElementById("hi-time")!;
 const hiStamp = document.getElementById("hi-stamp")!;
 const hiUrl = document.getElementById("hi-url")! as HTMLAnchorElement;
-const hiCopyBtn = document.getElementById("hi-copy-btn")! as HTMLButtonElement;
 
 // ---------------------------------------------------------------------------
 // App instance + SDK type helpers
@@ -165,14 +164,14 @@ function renderStampCard(stamp: any): string {
   const remainingBytes = stamp.remainingSize?.bytes ?? 0;
   const usedBytes      = Math.max(0, sizeBytes - remainingBytes);
   const { text: ttlText, severity } = ttlFromSeconds(stamp.duration?.seconds);
-  const fillClass  = severity === "critical" ? "stamp-progress-bar-fill fill-critical" : "stamp-progress-bar-fill";
+  const fillClass  = `stamp-progress-bar-fill fill-${severity}`;
   const sizeLabel  = `${formatMB(usedBytes)} / ${formatMB(sizeBytes)}`;
 
   return `
     <div class="stamp-card" data-batch-id="${esc(batchId)}">
-      <div class="stamp-card-bar"></div>
+      <div class="stamp-card-bar ${severity}"></div>
       <div class="stamp-card-inner">
-        <div class="stamp-label" title="${esc(label)}">${esc(label)}</div>
+        <div class="stamp-label ${severity}" title="${esc(label)}">${esc(label)}</div>
         <div class="stamp-progress-wrap">
           <div class="stamp-progress-bar-bg">
             <div class="${fillClass}" style="width:${usagePct}%"></div>
@@ -246,62 +245,74 @@ function openStampModal(stamp: any) {
   modalTitle.textContent = `${label.toUpperCase()} DETAILS`;
 
   modalBody.innerHTML = `
-    <!-- Technical data card -->
-    <div class="d-card">
-      <div class="d-section-label">BATCH_HASH</div>
-      <span class="d-batch-value">${esc(batchId) || "N/A"}</span>
-      <div class="d-metrics-grid">
-        <div>
-          <div class="d-metric-label">DEPTH</div>
-          <div class="d-metric-value">${stamp.depth ?? "N/A"}</div>
-        </div>
-        <div>
-          <div class="d-metric-label">BUCKET</div>
-          <div class="d-metric-value">${stamp.bucketDepth ?? "N/A"}</div>
-        </div>
-        <div>
-          <div class="d-metric-label">UTIL</div>
-          <div class="d-metric-value">${stamp.utilization ?? "N/A"}</div>
-        </div>
-        <div>
-          <div class="d-metric-label">LOCK</div>
-          <div class="d-metric-value" style="color:${lockColor}">${lockText}</div>
-        </div>
-        <div>
-          <div class="d-metric-label">BLOCK</div>
-          <div class="d-metric-value">${stamp.blockNumber ?? "N/A"}</div>
-        </div>
-        <div>
-          <div class="d-metric-label">AMOUNT</div>
-          <div class="d-metric-value" style="font-size:0.82rem">${stamp.amount ?? "N/A"}</div>
-        </div>
+    <!-- BATCH_HASH accordion -->
+    <div class="d-accordion" id="acc-hash">
+      <div class="d-accordion-header" onclick="this.closest('.d-accordion').classList.toggle('open')">
+        <span class="d-accordion-title">BATCH_HASH</span>
+        <span class="d-accordion-chevron">&#9660;</span>
+      </div>
+      <div class="d-accordion-body">
+        <span class="d-batch-value">${esc(batchId) || "N/A"}</span>
       </div>
     </div>
-    <!-- Capacity load card -->
-    <div class="d-card" style="margin-bottom:0.9rem">
-      <div class="d-cap-header">
-        <span class="d-section-label" style="margin-bottom:0">CAPACITY LOAD</span>
-        <span class="d-cap-pct">${usagePct}%</span>
+    <!-- DETAILS accordion -->
+    <div class="d-accordion open" id="acc-details">
+      <div class="d-accordion-header" onclick="this.closest('.d-accordion').classList.toggle('open')">
+        <span class="d-accordion-title">DETAILS</span>
+        <span class="d-accordion-chevron">&#9660;</span>
       </div>
-      <div class="d-cap-bar-bg">
-        <div class="d-cap-bar-fill" style="width:${usagePct}%"></div>
-      </div>
-      <div class="d-stats-row">
-        <div class="d-stat">
-          <div class="d-stat-label">USED</div>
-          <div class="d-stat-value">${esc(usedMB)}</div>
+      <div class="d-accordion-body">
+        <div class="d-metrics-grid" style="margin-bottom:0.75rem">
+          <div>
+            <div class="d-metric-label">DEPTH</div>
+            <div class="d-metric-value">${stamp.depth ?? "N/A"}</div>
+          </div>
+          <div>
+            <div class="d-metric-label">BUCKET</div>
+            <div class="d-metric-value">${stamp.bucketDepth ?? "N/A"}</div>
+          </div>
+          <div>
+            <div class="d-metric-label">UTIL</div>
+            <div class="d-metric-value">${stamp.utilization ?? "N/A"}</div>
+          </div>
+          <div>
+            <div class="d-metric-label">LOCK</div>
+            <div class="d-metric-value" style="color:${lockColor}">${lockText}</div>
+          </div>
+          <div>
+            <div class="d-metric-label">BLOCK</div>
+            <div class="d-metric-value">${stamp.blockNumber ?? "N/A"}</div>
+          </div>
+          <div>
+            <div class="d-metric-label">AMOUNT</div>
+            <div class="d-metric-value" style="font-size:0.82rem">${stamp.amount ?? "N/A"}</div>
+          </div>
         </div>
-        <div class="d-stat">
-          <div class="d-stat-label">FREE</div>
-          <div class="d-stat-value">${esc(freeMB)}</div>
+        <!-- Capacity load -->
+        <div class="d-cap-header">
+          <span class="d-section-label" style="margin-bottom:0">CAPACITY LOAD</span>
+          <span class="d-cap-pct">${usagePct}%</span>
         </div>
-        <div class="d-stat">
-          <div class="d-stat-label">MAX</div>
-          <div class="d-stat-value">${esc(maxMB)}</div>
+        <div class="d-cap-bar-bg">
+          <div class="d-cap-bar-fill" style="width:${usagePct}%"></div>
         </div>
-        <div class="d-stat">
-          <div class="d-stat-label">TTL</div>
-          <div class="d-stat-value">${esc(ttlText)}</div>
+        <div class="d-stats-row">
+          <div class="d-stat">
+            <div class="d-stat-label">USED</div>
+            <div class="d-stat-value">${esc(usedMB)}</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">FREE</div>
+            <div class="d-stat-value">${esc(freeMB)}</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">MAX</div>
+            <div class="d-stat-value">${esc(maxMB)}</div>
+          </div>
+          <div class="d-stat">
+            <div class="d-stat-label">TTL</div>
+            <div class="d-stat-value">${esc(ttlText)}</div>
+          </div>
         </div>
       </div>
     </div>`;
@@ -580,16 +591,6 @@ function openHistoryItemModal(entry: any) {
 
 histItemClose.addEventListener("click", () => closeModal(histItemModal));
 histItemModal.addEventListener("click", (e) => { if (e.target === histItemModal) closeModal(histItemModal); });
-
-hiCopyBtn.addEventListener("click", async () => {
-  const ref = hiReference.textContent || "";
-  if (!ref || ref === "—") return;
-  try {
-    await navigator.clipboard.writeText(ref);
-    hiCopyBtn.innerHTML = "<span>COPIED ✓</span>";
-    setTimeout(() => { hiCopyBtn.innerHTML = "<span>COPY HASH</span>"; }, 1800);
-  } catch { /* ignore */ }
-});
 
 historyBtn.addEventListener("click", () => {
   historyBtn.disabled = true;
