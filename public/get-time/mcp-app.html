@@ -13,7 +13,7 @@
         padding: 2rem; 
         max-width: 1200px; 
         margin: 0 auto; 
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        background: linear-gradient(135deg, #1c3162 0%, #1e293b 50%, #4b6589 100%);
         min-height: 100vh;
         color: #e2e8f0; 
       }
@@ -443,8 +443,7 @@
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #0a0f1a !important;
-        min-height: 100vh;
+        background: transparent !important;
         display: flex !important;
         align-items: flex-start;
         justify-content: center;
@@ -454,11 +453,14 @@
       }
       .card { display: none !important; }
       .app-card {
-        background: #111827;
+        background: linear-gradient(160deg, #161f35 0%, #111827 60%, #1d2d43 100%);
         border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.08);
+        border: 1px solid #f97316;
         width: 100%;
         max-width: 720px;
+        height: 480px;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
         box-shadow: 0 25px 60px rgba(0,0,0,0.5);
       }
@@ -480,8 +482,8 @@
       .new-tab:hover { color: #9ca3af; background: none; box-shadow: none; transform: none; }
       .new-tab.active { color: #f97316; border-bottom-color: #f97316; }
       /* Tab content */
-      .new-tab-content { display: none; padding: 1.25rem 1.5rem 1.5rem; }
-      .new-tab-content.active { display: block; }
+      .new-tab-content { display: none; padding: 1.25rem 1.5rem 1.5rem; overflow-y: auto; flex: 1; }
+      .new-tab-content.active { display: flex; flex-direction: column; }
       /* Scrollable list area */
       .scroll-area { max-height: 55vh; overflow-y: auto; margin-top: 0.75rem; }
       .scroll-area::-webkit-scrollbar { width: 5px; }
@@ -489,15 +491,16 @@
       .scroll-area::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.25); border-radius: 3px; }
       /* BUY button */
       .buy-stamp-btn-main {
-        width: 100%; background: transparent;
-        border: 2px dashed #10b981 !important; color: #10b981 !important;
-        font-family: monospace; font-size: 0.85rem; font-weight: 700;
-        letter-spacing: 0.12em; padding: 0.85rem; border-radius: 12px;
+        width: 100%; background: rgba(16,185,129,0.12) !important;
+        border: 1px solid rgba(16,185,129,0.4) !important; color: #10b981 !important;
+        font-family: monospace; font-size: 0.9rem; font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        padding: 1rem; border-radius: 14px !important;
         cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
         box-shadow: none !important; margin: 0; position: relative; overflow: hidden;
       }
       .buy-stamp-btn-main::before { display: none; }
-      .buy-stamp-btn-main:hover { background: rgba(16,185,129,0.07) !important; box-shadow: 0 0 20px rgba(16,185,129,0.15) !important; }
+      .buy-stamp-btn-main:hover { background: rgba(16,185,129,0.2) !important; box-shadow: 0 0 22px rgba(16,185,129,0.18) !important; }
       .buy-stamp-btn-main span { position: relative; z-index: 1; }
       /* Stamp cards */
       .stamp-card {
@@ -509,6 +512,9 @@
       }
       .stamp-card:hover { background: #1e2a40; border-color: rgba(249,115,22,0.25); }
       .stamp-card-bar { width: 4px; align-self: stretch; background: #f97316; flex-shrink: 0; }
+      .stamp-card-bar.ok       { background: #10b981; }
+      .stamp-card-bar.warn     { background: #f97316; }
+      .stamp-card-bar.critical { background: #ef4444; }
       .stamp-card-inner {
         display: flex; align-items: center; gap: 0.75rem;
         padding: 0.6rem 0.85rem; width: 100%; overflow: hidden;
@@ -518,9 +524,14 @@
         color: #f97316; width: 130px; flex-shrink: 0;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
+      .stamp-label.ok       { color: #10b981; }
+      .stamp-label.warn     { color: #f97316; }
+      .stamp-label.critical { color: #ef4444; }
       .stamp-progress-wrap { flex: 1; display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
       .stamp-progress-bar-bg { flex: 1; height: 5px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; min-width: 0; }
       .stamp-progress-bar-fill { height: 100%; border-radius: 999px; background: #f97316; transition: width 0.4s ease; }
+      .stamp-progress-bar-fill.fill-ok       { background: #10b981; }
+      .stamp-progress-bar-fill.fill-warn     { background: #f97316; }
       .stamp-progress-bar-fill.fill-critical { background: #ef4444; }
       .stamp-pct { font-family: monospace; font-size: 0.75rem; color: #6b7280; width: 32px; text-align: right; flex-shrink: 0; }
       .stamp-size-badge {
@@ -528,14 +539,14 @@
         border-radius: 8px; padding: 0.28rem 0.6rem;
         font-family: monospace; font-size: 0.72rem; color: #9ca3af;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        max-width: 150px; flex-shrink: 0;
+        width: 150px; flex-shrink: 0; text-align: right;
       }
       .stamp-ttl-badge {
-        display: flex; align-items: center; gap: 0.4rem;
+        display: flex; align-items: center; justify-content: center; gap: 0.4rem;
         border-radius: 8px; padding: 0.28rem 0.65rem;
         font-family: monospace; font-size: 0.72rem; font-weight: 600;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        max-width: 110px; flex-shrink: 0; border: 1px solid;
+        width: 110px; flex-shrink: 0; border: 1px solid;
       }
       .stamp-ttl-badge.ok    { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
       .stamp-ttl-badge.warn  { color: #f97316; border-color: rgba(249,115,22,0.3);  background: rgba(249,115,22,0.08); }
@@ -544,6 +555,7 @@
       .stamp-ttl-badge.ok       .stamp-ttl-dot { background: #10b981; }
       .stamp-ttl-badge.warn     .stamp-ttl-dot { background: #f97316; }
       .stamp-ttl-badge.critical .stamp-ttl-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.7); }
+      @media (max-width: 680px) { .stamp-size-badge, .stamp-pct { display: none; } }
       /* State messages */
       .state-text { color: #4b5563; font-size: 0.875rem; font-style: italic; text-align: center; padding: 2rem 1rem; }
       .state-error {
@@ -552,7 +564,7 @@
         padding: 0.8rem 1rem; font-size: 0.875rem; margin-top: 0.75rem;
       }
       /* ---- Upload Tab ---- */
-      .upload-tab-wrap { padding: 1.5rem 0 0.5rem; }
+      .upload-tab-wrap { padding: 0; }
       .upload-gateway-title {
         text-align: center; font-size: 1.5rem; font-weight: 800;
         color: #e2e8f0; letter-spacing: -0.02em; margin-bottom: 0.55rem;
@@ -759,14 +771,9 @@
       .swarm-link:hover { text-decoration: underline; }
       .mono { font-family: monospace; }
       /* Modal overrides */
-      .modal { background: #111827 !important; overflow: hidden; }
+      .modal { background: linear-gradient(160deg, #161f35 0%, #111827 60%, #1d2d43 100%) !important; overflow: hidden; }
       .modal-inner { padding: 1.75rem; overflow-y: auto; max-height: 88vh; }
-      /* Rainbow bar */
-      .modal-rainbow {
-        height: 4px; width: 100%;
-        background: linear-gradient(90deg, #f97316 0%, #fbbf24 35%, #10b981 70%, #06b6d4 100%);
-        flex-shrink: 0;
-      }
+
       /* New modal title */
       .modal-title { color: #e2e8f0; font-size: 1.35rem; font-weight: 800; letter-spacing: 0.01em; margin-bottom: 1.1rem; }
       /* Detail inner card */
@@ -817,18 +824,31 @@
       .d-stat-value { font-size: 0.92rem; font-weight: 700; color: #e2e8f0; }
       /* Target upload button */
       .d-target-upload-btn {
-        width: 100%; background: rgba(249,115,22,0.08) !important;
-        border: 1px solid rgba(249,115,22,0.35) !important;
+        width: 100%; background: rgba(249,115,22,0.1) !important;
+        border: 1px solid rgba(249,115,22,0.3) !important;
         color: #f97316 !important; font-family: monospace;
-        font-size: 0.82rem; font-weight: 700; letter-spacing: 0.12em;
-        padding: 0.85rem; border-radius: 999px !important;
-        cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
-        box-shadow: none !important; margin: 0; position: relative; overflow: hidden;
+        font-size: 0.85rem; font-weight: 700; letter-spacing: 0.14em;
+        padding: 0.9rem; border-radius: 12px !important;
+        cursor: pointer; transition: background 0.2s; box-shadow: none !important;
+        position: relative; overflow: hidden;
       }
       .d-target-upload-btn::before { display: none; }
-      .d-target-upload-btn:hover { background: rgba(249,115,22,0.15) !important; }
-      .d-target-upload-btn:disabled { opacity: 0.5; }
+      .d-target-upload-btn:hover { background: rgba(249,115,22,0.18) !important; }
+      .d-target-upload-btn:disabled { opacity: 0.35; cursor: not-allowed; }
       .d-target-upload-btn span { position: relative; z-index: 1; }
+      /* Accordion */
+      .d-accordion { border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; margin-bottom: 0.75rem; overflow: hidden; }
+      .d-accordion-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.7rem 1rem; cursor: pointer; user-select: none;
+        background: rgba(255,255,255,0.03); transition: background 0.15s;
+      }
+      .d-accordion-header:hover { background: rgba(255,255,255,0.06); }
+      .d-accordion-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #4b5563; font-weight: 700; }
+      .d-accordion-chevron { font-size: 0.7rem; color: #4b5563; transition: transform 0.2s; }
+      .d-accordion.open .d-accordion-chevron { transform: rotate(180deg); }
+      .d-accordion-body { display: none; padding: 0.75rem 1rem 1rem; }
+      .d-accordion.open .d-accordion-body { display: block; }
       /* Extend row */
       .d-extend-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
       .d-extend-input {
@@ -886,19 +906,6 @@
         text-decoration: none; display: block;
       }
       .hi-url-value:hover { text-decoration: underline; }
-      .hi-copy-btn {
-        width: 100%; background: rgba(255,255,255,0.05) !important;
-        border: none !important; border-top: 1px solid rgba(255,255,255,0.07) !important;
-        color: #9ca3af !important; font-family: monospace;
-        font-size: 0.82rem; font-weight: 700; letter-spacing: 0.14em;
-        padding: 1rem; border-radius: 0 0 18px 18px !important;
-        cursor: pointer; margin-top: 0.75rem; margin-bottom: 0;
-        transition: background 0.2s; box-shadow: none !important;
-        position: relative; overflow: hidden;
-      }
-      .hi-copy-btn::before { display: none; }
-      .hi-copy-btn:hover { background: rgba(255,255,255,0.1) !important; }
-      .hi-copy-btn span { position: relative; z-index: 1; }
       /* ---- Buy Stamp Modal ---- */
       .buy-modal-wrap { padding: 0; border-radius: 18px; display: flex; flex-direction: column; overflow: hidden; max-height: 92vh; }
       /* ensure the base .modal max-height doesn't clip buy modal */
@@ -1031,8 +1038,7 @@
   <body>
     <!-- History Item Modal -->
     <div class="modal-overlay" id="hist-item-modal">
-      <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column">
-        <div class="modal-rainbow"></div>
+      <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column;border:1px solid #f97316">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:1.4rem 1.6rem 1.2rem;border-bottom:1px solid rgba(255,255,255,0.07)">
           <div style="font-size:1.2rem;font-weight:800;color:#e2e8f0;letter-spacing:0.02em;font-family:monospace">
             INSPECTOR <span style="color:#4b5563">//</span> UPLOAD RECORD
@@ -1059,14 +1065,12 @@
             <a class="hi-url-value" id="hi-url" href="#" target="_blank">—</a>
           </div>
         </div>
-        <button class="hi-copy-btn" id="hi-copy-btn"><span>COPY HASH</span></button>
       </div>
     </div>
 
     <!-- Buy Stamp Modal -->
     <div class="modal-overlay" id="buy-stamp-modal">
-      <div class="modal buy-modal-wrap">
-        <div class="modal-rainbow"></div>
+      <div class="modal buy-modal-wrap" style="border:1px solid #f97316">
         <div class="buy-modal-header">
           <div class="buy-modal-title">Buy Postage Stamp</div>
           <button class="buy-modal-close-btn" id="buy-modal-close">&#x2715;</button>
@@ -1098,7 +1102,7 @@
             <span id="buy-cost-value" style="font-family:monospace;font-size:1rem;font-weight:600">—</span>
             <span style="margin-left:0.3rem;font-size:0.75rem;opacity:0.75">BZZ</span>
           </div>
-          <button id="buy-submit-btn" class="buy-stamp-submit-btn"><span>BUY STAMP</span></button>
+          <button id="buy-submit-btn" class="buy-stamp-submit-btn"><span>BUY POSTAGE STAMP</span></button>
           <div id="buy-result"></div>
         </div>
       </div>
@@ -1106,16 +1110,15 @@
 
     <!-- Stamp Detail Modal -->
     <div class="modal-overlay" id="stamp-modal">
-      <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column">
-        <div class="modal-rainbow"></div>
+      <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column;border:1px solid #f97316">
         <div class="modal-inner">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.1rem">
             <div class="modal-title" id="modal-title" style="margin-bottom:0">Stamp Details</div>
-            <button class="modal-close" id="modal-close" style="position:static;margin-left:0.75rem;flex-shrink:0">&#x2715;</button>
+            <button class="buy-modal-close-btn" id="modal-close" style="flex-shrink:0">&#x2715;</button>
           </div>
           <div id="modal-body"></div>
           <input type="file" id="modal-file-input" accept="*/*" style="display:none" />
-          <button id="modal-upload-btn" class="d-target-upload-btn"><span>TARGET UPLOAD</span></button>
+          <button id="modal-upload-btn" class="d-target-upload-btn"><span>UPLOAD FILE</span></button>
           <div id="modal-upload-result" class="d-modal-upload-result"></div>
           <div class="d-extend-row">
             <input type="number" id="extend-size" class="d-extend-input" min="1" step="1" placeholder="+ Size" />
@@ -1141,15 +1144,13 @@
 
       <!-- Stamps tab -->
       <div id="stamps-tab" class="new-tab-content active">
-        <button id="buy-stamp-btn" class="buy-stamp-btn-main"><span>+ BUY POSTAGE STAMP</span></button>
+        <button id="buy-stamp-btn" class="buy-stamp-btn-main"><span>BUY POSTAGE STAMP</span></button>
         <div class="scroll-area" id="stamps-table"></div>
       </div>
 
       <!-- Upload tab -->
       <div id="upload-tab" class="new-tab-content">
         <div class="upload-tab-wrap">
-          <div class="upload-gateway-title">Decentralized Storage Gateway</div>
-          <div class="upload-gateway-sub">Initialize secure upload sequence to the Swarm network.</div>
           <!-- Step indicator -->
           <div class="upload-steps">
             <div class="upload-step active" id="upload-step-1-indicator">
@@ -1162,7 +1163,7 @@
           <!-- Step 1: Stamp selection -->
           <div id="upload-step-1">
             <div class="upload-stamp-list" id="upload-stamp-list"><div class="state-text">Loading stamps…</div></div>
-            <button id="upload-continue-btn" class="upload-stamp-continue-btn" disabled><span>CONTINUE →</span></button>
+            <button id="upload-continue-btn" class="upload-stamp-continue-btn" disabled><span>CONTINUE</span></button>
           </div>
           <!-- Step 2: File selection + upload -->
           <div id="upload-step-2" style="display:none">
@@ -1178,8 +1179,8 @@
                 <button id="select-asset-btn" class="upload-select-btn"><span>SELECT ASSET</span></button>
                 <div class="upload-file-display" id="file-name-display">// No file selected</div>
               </div>
-              <button id="upload-btn" class="upload-submit-btn" disabled><span>UPLOAD</span></button>
             </div>
+            <button id="upload-btn" class="upload-stamp-continue-btn" disabled style="margin-top:0.75rem;"><span>UPLOAD</span></button>
             <input type="file" id="file-input" accept="*/*" style="display:none" />
             <div id="upload-result" class="upload-result" style="margin-top:0.75rem"></div>
             <div id="preview-area" class="preview-area" style="display:none"></div>
