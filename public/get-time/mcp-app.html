@@ -475,7 +475,8 @@
         padding: 0.75rem 1.25rem; background: none; border: none;
         border-bottom: 2px solid transparent; margin-bottom: -1px;
         font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-        color: #4b5563; cursor: pointer; transition: color 0.2s, border-color 0.2s;
+        /* color: #4b5563; cursor: pointer; transition: color 0.2s, border-color 0.2s; */
+        color: #b5b5b5; cursor: pointer; transition: color 0.2s, border-color 0.2s;
         box-shadow: none; border-radius: 0; margin-right: 0;
       }
       .new-tab::before { display: none; }
@@ -533,11 +534,11 @@
       .stamp-progress-bar-fill.fill-ok       { background: #10b981; }
       .stamp-progress-bar-fill.fill-warn     { background: #f97316; }
       .stamp-progress-bar-fill.fill-critical { background: #ef4444; }
-      .stamp-pct { font-family: monospace; font-size: 0.75rem; color: #6b7280; width: 32px; text-align: right; flex-shrink: 0; }
+      .stamp-pct { font-family: monospace; font-size: 0.75rem; color: #b5b5b5; width: 32px; text-align: right; flex-shrink: 0; }
       .stamp-size-badge {
         background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
         border-radius: 8px; padding: 0.28rem 0.6rem;
-        font-family: monospace; font-size: 0.72rem; color: #9ca3af;
+        font-family: monospace; font-size: 0.72rem; color: #b5b5b5;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         width: 150px; flex-shrink: 0; text-align: right;
       }
@@ -645,12 +646,12 @@
       .upload-selected-stamp-label { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #f97316; }
       .upload-change-stamp-btn {
         font-family: monospace; font-size: 0.72rem; font-weight: 700;
-        letter-spacing: 0.08em; color: #4b5563 !important; background: none !important;
+        letter-spacing: 0.08em; color: #b5b5b5 !important; background: none !important;
         border: none !important; cursor: pointer; padding: 0; box-shadow: none !important;
         transition: color 0.15s; text-transform: uppercase;
       }
       .upload-change-stamp-btn::before { display: none; }
-      .upload-change-stamp-btn:hover { color: #9ca3af !important; box-shadow: none !important; }
+      .upload-change-stamp-btn:hover { color: #b5b5b5 !important; box-shadow: none !important; }
       /* Upload panel */
       .upload-panel {
         border: 1px solid rgba(249,115,22,0.25); border-radius: 16px;
@@ -784,7 +785,7 @@
       }
       .d-section-label {
         font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
-        color: #4b5563; font-weight: 700; margin-bottom: 0.5rem;
+        color: #b5b5b5; font-weight: 700; margin-bottom: 0.5rem;
       }
       .d-batch-value {
         font-family: monospace; font-size: 0.78rem; color: #10b981;
@@ -797,7 +798,7 @@
       }
       .d-metric-label {
         font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
-        color: #4b5563; font-weight: 700; margin-bottom: 0.15rem;
+        color: #b5b5b5; font-weight: 700; margin-bottom: 0.15rem;
       }
       .d-metric-value { font-size: 1rem; font-weight: 700; color: #e2e8f0; }
       /* Capacity load */
@@ -819,7 +820,7 @@
       .d-stat:first-child { padding-left: 0; }
       .d-stat-label {
         font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
-        color: #4b5563; font-weight: 700; margin-bottom: 0.2rem;
+        color: #b5b5b5; font-weight: 700; margin-bottom: 0.2rem;
       }
       .d-stat-value { font-size: 0.92rem; font-weight: 700; color: #e2e8f0; }
       /* Target upload button */
@@ -844,17 +845,21 @@
         background: rgba(255,255,255,0.03); transition: background 0.15s;
       }
       .d-accordion-header:hover { background: rgba(255,255,255,0.06); }
-      .d-accordion-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #4b5563; font-weight: 700; }
-      .d-accordion-chevron { font-size: 0.7rem; color: #4b5563; transition: transform 0.2s; }
+      .d-accordion-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #b5b5b5; font-weight: 700; }
+      .d-accordion-chevron { font-size: 0.7rem; color: #b5b5b5; transition: transform 0.25s ease; }
       .d-accordion.open .d-accordion-chevron { transform: rotate(180deg); }
-      .d-accordion-body { display: none; padding: 0.75rem 1rem 1rem; }
-      .d-accordion.open .d-accordion-body { display: block; }
+      .d-accordion-body {
+        max-height: 0; overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+        padding: 0 1rem;
+      }
+      .d-accordion.open .d-accordion-body { max-height: 600px; padding: 0.75rem 1rem 1rem; }
       /* Extend row */
       .d-extend-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
       .d-extend-input {
         flex: 1; background: rgba(15,23,42,0.9) !important; border: 1px solid rgba(255,255,255,0.1) !important;
         border-radius: 10px; padding: 0.65rem 0.9rem;
-        color: #6b7280 !important; font-size: 0.875rem;
+        color: #b5b5b5 !important; font-size: 0.875rem;
         transition: border-color 0.2s, color 0.2s;
       }
       .d-extend-input:focus { outline: none; border-color: #f97316 !important; color: #e2e8f0 !important; }
@@ -882,7 +887,7 @@
       }
       .hi-field-label {
         font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
-        color: #4b5563; font-weight: 700; margin-bottom: 0.4rem;
+        color: #b5b5b5; font-weight: 700; margin-bottom: 0.4rem;
       }
       .hi-field-value {
         font-family: monospace; font-size: 0.95rem; font-weight: 700;
@@ -896,10 +901,11 @@
         border-radius: 8px; padding: 0.7rem 0.9rem;
         word-break: break-all; user-select: all; line-height: 1.5;
       }
-      .hi-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem 1rem; }
-      .hi-meta-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #4b5563; font-weight: 700; margin-bottom: 0.25rem; }
-      .hi-meta-value { font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #e2e8f0; }
-      .hi-meta-value.orange { color: #f97316; }
+      .hi-meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem 1rem; }
+      .hi-meta-grid-full { margin-top: 0.8rem; }
+      .hi-meta-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #b5b5b5; font-weight: 700; margin-bottom: 0.25rem; }
+      .hi-meta-value { font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .hi-meta-value.orange { color: #f97316; white-space: normal; word-break: break-all; }
       .hi-url-value {
         font-family: monospace; font-size: 0.82rem;
         color: #f97316; word-break: break-all; line-height: 1.5;
@@ -911,8 +917,8 @@
       /* ensure the base .modal max-height doesn't clip buy modal */
       .modal.buy-modal-wrap { max-height: 92vh; overflow: hidden; }
       .buy-modal-header {
-        display: flex; align-items: flex-start; justify-content: space-between;
-        padding: 1.6rem 1.75rem 1.5rem;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.6rem 1.75rem;
         border-bottom: 1px solid rgba(255,255,255,0.07);
       }
       .buy-modal-title {
@@ -923,7 +929,7 @@
       .buy-modal-close-btn {
         background: rgba(255,255,255,0.08) !important;
         border: none !important; border-radius: 14px !important;
-        color: #9ca3af !important; font-size: 1.1rem; font-weight: 600;
+        color: #b5b5b5 !important; font-size: 1.1rem; font-weight: 600;
         width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
         cursor: pointer; flex-shrink: 0; margin-left: 1rem;
         transition: background 0.2s; box-shadow: none !important;
@@ -931,13 +937,13 @@
       }
       .buy-modal-close-btn::before { display: none; }
       .buy-modal-close-btn:hover { background: rgba(255,255,255,0.14) !important; }
-      .buy-form-body { padding: 1.5rem 1.75rem 1.75rem; overflow-y: auto; }
+      .buy-form-body { padding: 1.6rem 1.75rem 1.75rem; overflow-y: auto; }
       .buy-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
       .buy-field { display: flex; flex-direction: column; gap: 0.55rem; }
       .buy-field-label {
         display: flex; align-items: center; justify-content: space-between;
         font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.1em; color: #6b7280;
+        letter-spacing: 0.1em; color: #b5b5b5;
       }
       .buy-field-label-left { display: flex; align-items: center; gap: 0.45rem; }
       .buy-label-dot { width: 7px; height: 7px; border-radius: 50%; background: #f97316; flex-shrink: 0; }
@@ -949,7 +955,7 @@
       .buy-input {
         background: #0d1117 !important; border: 1px solid rgba(255,255,255,0.08) !important;
         border-radius: 12px; padding: 0.85rem 1rem;
-        color: #4b5563 !important; font-size: 0.95rem; font-family: monospace;
+        color: #b5b5b5 !important; font-size: 0.95rem; font-family: monospace;
         width: 100%; transition: border-color 0.2s, color 0.2s;
       }
       .buy-input:focus { outline: none; border-color: rgba(249,115,22,0.4) !important; color: #e2e8f0 !important; }
@@ -1041,7 +1047,7 @@
       <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column;border:1px solid #f97316">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:1.4rem 1.6rem 1.2rem;border-bottom:1px solid rgba(255,255,255,0.07)">
           <div style="font-size:1.2rem;font-weight:800;color:#e2e8f0;letter-spacing:0.02em;font-family:monospace">
-            INSPECTOR <span style="color:#4b5563">//</span> UPLOAD RECORD
+            UPLOADED FILE DATA
           </div>
           <button class="buy-modal-close-btn" id="hist-item-close">&#x2715;</button>
         </div>
@@ -1057,7 +1063,10 @@
               <div><div class="hi-meta-label">SIZE</div><div class="hi-meta-value" id="hi-size">—</div></div>
               <div><div class="hi-meta-label">DATE</div><div class="hi-meta-value" id="hi-date">—</div></div>
               <div><div class="hi-meta-label">TIME</div><div class="hi-meta-value" id="hi-time">—</div></div>
-              <div><div class="hi-meta-label">USED STAMP</div><div class="hi-meta-value orange" id="hi-stamp">—</div></div>
+            </div>
+            <div class="hi-meta-grid-full">
+              <div class="hi-meta-label">USED STAMP</div>
+              <div class="hi-meta-value orange" id="hi-stamp">—</div>
             </div>
           </div>
           <div class="hi-card">
@@ -1111,11 +1120,11 @@
     <!-- Stamp Detail Modal -->
     <div class="modal-overlay" id="stamp-modal">
       <div class="modal" style="padding:0;border-radius:18px;display:flex;flex-direction:column;border:1px solid #f97316">
-        <div class="modal-inner">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.1rem">
-            <div class="modal-title" id="modal-title" style="margin-bottom:0">Stamp Details</div>
-            <button class="buy-modal-close-btn" id="modal-close" style="flex-shrink:0">&#x2715;</button>
-          </div>
+        <div class="buy-modal-header">
+          <div class="buy-modal-title" id="modal-title">Stamp Details</div>
+          <button class="buy-modal-close-btn" id="modal-close">&#x2715;</button>
+        </div>
+        <div class="modal-inner" style="padding-top:1.25rem">
           <div id="modal-body"></div>
           <input type="file" id="modal-file-input" accept="*/*" style="display:none" />
           <button id="modal-upload-btn" class="d-target-upload-btn"><span>UPLOAD FILE</span></button>
