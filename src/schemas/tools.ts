@@ -857,6 +857,58 @@ export const SwarmToolsSchema = [
     execution: { taskSupport: "forbidden" },
   },
   {
+    name: "gsoc_send",
+    title: "Send GSOC message",
+    description:
+      "Sends a GSOC message via bee.gsocSend. Caller provides a mined GSOC signer (resourceId = 32-byte hex private key) and a human-readable topic (hashed into an Identifier internally). The message body is decoded per `encoding` (utf8 default; base64 / hex also supported). Returns the chunk reference plus the signerAddress a subscriber would plug into gsocSubscribe. Requires a full Bee node — gateways refuse GSOC writes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          description: "Message body. Decoded per `encoding`.",
+        },
+        resourceId: {
+          type: "string",
+          description:
+            "32-byte hex private key, mined for the target overlay (the GSOC signer). Same value a subscriber uses on the receiving end. 0x-prefix accepted.",
+        },
+        topic: {
+          type: "string",
+          description:
+            "Human-readable topic label. Hashed into a 32-byte Identifier via Identifier.fromString. The subscriber must use the same string.",
+        },
+        encoding: {
+          type: "string",
+          enum: ["utf8", "base64", "hex"],
+          default: "utf8",
+          description:
+            "How to decode `message` bytes. Default utf8. Use base64 or hex for binary payloads.",
+        },
+        postageBatchId: {
+          type: "string",
+          description:
+            "Postage stamp ID for the chunk. Falls back to AUTO_ASSIGN_STAMP if unset.",
+        },
+      },
+      required: ["message", "resourceId", "topic"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        reference: { type: "string" },
+        bytesSent: { type: "number" },
+        encoding: { type: "string" },
+        topic: { type: "string" },
+        topicHex: { type: "string" },
+        signerAddress: { type: "string" },
+        message: { type: "string" },
+      },
+      required: ["reference", "bytesSent", "signerAddress"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
     name: "query_upload_progress",
     title: "Query upload progress",
     description:
