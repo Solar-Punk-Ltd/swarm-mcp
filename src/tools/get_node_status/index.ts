@@ -6,12 +6,13 @@ import { Bee } from "@ethersphere/bee-js";
 import { getResponseWithStructuredContent, ToolResponse } from "../../utils";
 
 export async function getNodeStatus(bee: Bee): Promise<ToolResponse> {
-  const [status, health, nodeInfo, wallet, chain] = await Promise.allSettled([
+  const [status, health, nodeInfo, wallet, chain, topology] = await Promise.allSettled([
     bee.getStatus(),
     bee.getHealth(),
     bee.getNodeInfo(),
     bee.getWalletBalance(),
     bee.getChainState(),
+    bee.getTopology(),
   ]);
 
   const rawWallet = wallet.status === "fulfilled" ? wallet.value : null;
@@ -29,6 +30,7 @@ export async function getNodeStatus(bee: Bee): Promise<ToolResponse> {
     nodeInfo: nodeInfo.status === "fulfilled" ? nodeInfo.value : null,
     wallet:   serializedWallet,
     chain:    chain.status    === "fulfilled" ? chain.value    : null,
+    topology: topology.status === "fulfilled" ? topology.value : null,
   };
 
   return getResponseWithStructuredContent(result);
