@@ -29,7 +29,7 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
-import { normalizeGranteeList } from "../../utils/act";
+import { normalizeGranteeList, normalizePublicKeyHex } from "../../utils/act";
 import {
   decodeMarketplaceFeedPayload,
   encodeMarketplaceFeedPayload,
@@ -46,11 +46,24 @@ export async function publishMarketplaceFeed(
   bee: Bee,
   transport: unknown
 ): Promise<ToolResponse> {
-  if (!args.feedTopic) {
-    return getToolErrorResponse("Missing required parameter: feedTopic.");
+  const feedTopic = args.feedTopic ?? config.bee.metadataFeedTopic;
+  if (!feedTopic) {
+    return getToolErrorResponse(
+      "Missing feedTopic: pass it explicitly or set METADATA_FEED_TOPIC in the environment."
+    );
   }
   if (!args.displayName) {
     return getToolErrorResponse("Missing required parameter: displayName.");
+  }
+  if (
+    args.agentId === undefined ||
+    args.agentId === null ||
+    !Number.isFinite(args.agentId) ||
+    !Number.isInteger(args.agentId)
+  ) {
+    return getToolErrorResponse(
+      "Missing required parameter: agentId (must be an integer)."
+    );
   }
   if (!args.data && !args.filePath) {
     return getToolErrorResponse(
@@ -84,6 +97,30 @@ export async function publishMarketplaceFeed(
     );
   }
 
+  // Resolve publisher public key: honour an explicit arg, otherwise derive
+  // from the local Bee node (which is also the ACT publisher identity).
+  let publisherPublicKey: string;
+  let nodePublicKey: string | null = null;
+  if (args.publisherPublicKey) {
+    try {
+      publisherPublicKey = normalizePublicKeyHex(args.publisherPublicKey);
+    } catch (e) {
+      return getToolErrorResponse(
+        `Invalid publisherPublicKey: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  } else {
+    try {
+      const addresses = await bee.getNodeAddresses();
+      nodePublicKey = addresses.publicKey.toCompressedHex();
+      publisherPublicKey = nodePublicKey;
+    } catch (err) {
+      return getToolErrorResponse(
+        `publisherPublicKey not provided and derivation from node failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
   // Auto-seed: Bee requires a non-empty grantees list at createGrantees time,
   // and only refs produced by createGrantees are patchable by patchGrantees
   // later (Bee 2.7.x behavior). If the caller omitted grantees, seed the list
@@ -91,8 +128,11 @@ export async function publishMarketplaceFeed(
   let autoSeededGrantee: string | null = null;
   if (grantees.length === 0) {
     try {
-      const addresses = await bee.getNodeAddresses();
-      autoSeededGrantee = addresses.publicKey.toCompressedHex();
+      if (nodePublicKey === null) {
+        const addresses = await bee.getNodeAddresses();
+        nodePublicKey = addresses.publicKey.toCompressedHex();
+      }
+      autoSeededGrantee = nodePublicKey;
       grantees = [autoSeededGrantee];
     } catch (err) {
       return getToolErrorResponse(
@@ -103,7 +143,7 @@ export async function publishMarketplaceFeed(
 
   // Read existing feed state FIRST (before any upload) so we can detect
   // incompatible prior payloads without burning a stamp.
-  const topic = normalizeFeedTopic(args.feedTopic);
+  const topic = normalizeFeedTopic(feedTopic);
   const feedPrivateKey = hexToBytes(
     config.bee.feedPrivateKey.startsWith("0x")
       ? config.bee.feedPrivateKey.slice(2)
@@ -215,9 +255,11 @@ export async function publishMarketplaceFeed(
 
   // Assemble and write the marketplace payload.
   const newItem: MarketplaceDataItem = {
+    agentId: args.agentId,
     swarmHash: uploadResult.reference.toHex(),
     actHistoryRef: finalHistoryRef,
     granteeRef: granteeListRef,
+    publisherPublicKey,
     displayName: args.displayName,
     metadata,
     tags,
@@ -244,7 +286,7 @@ export async function publishMarketplaceFeed(
   }
 
   return getResponseWithStructuredContent({
-    feedTopic: args.feedTopic,
+    feedTopic,
     feedTopicHex: topic.topicHex,
     feedOwner: owner,
     feedUrl: `${config.bee.endpoint}/feeds/${owner}/${topic.topicHex}`,

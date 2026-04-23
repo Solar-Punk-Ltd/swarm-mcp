@@ -17,6 +17,7 @@ export interface ServerConfig {
 export interface BeeConfig {
   endpoint: string;
   feedPrivateKey?: string;
+  metadataFeedTopic?: string;
   autoAssignStamp: boolean;
   deferredUploadSizeThreshold: number;
   taskTtlMs: number;
@@ -37,6 +38,7 @@ const config: Config = {
   bee: {
     endpoint: process.env.BEE_API_URL || DEFAULT_GATEWAY_URL,
     feedPrivateKey: process.env.BEE_FEED_PK,
+    metadataFeedTopic: process.env.METADATA_FEED_TOPIC,
     autoAssignStamp:
       process.env.AUTO_ASSIGN_STAMP !== undefined
         ? process.env.AUTO_ASSIGN_STAMP === "true"
