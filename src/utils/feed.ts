@@ -68,12 +68,19 @@ export function decodeFeedActPayload(raw: Uint8Array | string): FeedActPayload {
  * Marketplace feed schema v1. A single feed entry carries a catalog of data
  * items that consumers browse and (after x402 payment) access.
  */
+export interface MarketplaceMetadataEntry {
+  key: string;
+  value: string;
+}
+
 export interface MarketplaceDataItem {
+  agentId: number;
   swarmHash: string;
   actHistoryRef: string;
   granteeRef: string;
+  publisherPublicKey: string;
   displayName: string;
-  metadata: string[];
+  metadata: MarketplaceMetadataEntry[];
   tags: string[];
 }
 
@@ -84,13 +91,16 @@ export interface MarketplaceFeedPayload {
 
 export const MARKETPLACE_SCHEME_VERSION = "v1";
 const MARKETPLACE_ITEM_FIELDS = new Set([
+  "agentId",
   "swarmHash",
   "actHistoryRef",
   "granteeRef",
+  "publisherPublicKey",
   "displayName",
   "metadata",
   "tags",
 ]);
+const MARKETPLACE_METADATA_FIELDS = new Set(["key", "value"]);
 const MARKETPLACE_PAYLOAD_FIELDS = new Set(["schemeVersion", "dataItems"]);
 
 export function encodeMarketplaceFeedPayload(
@@ -139,6 +149,13 @@ export function decodeMarketplaceFeedPayload(
       }
       return value;
     };
+    const asNumber = (field: string): number => {
+      const value = item[field];
+      if (typeof value !== "number" || !Number.isFinite(value)) {
+        throw new Error(`dataItems[${i}].${field} must be a finite number`);
+      }
+      return value;
+    };
     const asStringArray = (field: string): string[] => {
       const value = item[field];
       if (!Array.isArray(value)) {
@@ -151,12 +168,46 @@ export function decodeMarketplaceFeedPayload(
         return entry;
       });
     };
+    const asMetadataArray = (field: string): MarketplaceMetadataEntry[] => {
+      const value = item[field];
+      if (!Array.isArray(value)) {
+        throw new Error(`dataItems[${i}].${field} must be an array`);
+      }
+      return value.map((entry, j) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+          throw new Error(
+            `dataItems[${i}].${field}[${j}] must be an object { key, value }`
+          );
+        }
+        const entryObj = entry as Record<string, unknown>;
+        for (const k of Object.keys(entryObj)) {
+          if (!MARKETPLACE_METADATA_FIELDS.has(k)) {
+            throw new Error(
+              `dataItems[${i}].${field}[${j}] has unknown field: ${k}`
+            );
+          }
+        }
+        if (typeof entryObj.key !== "string") {
+          throw new Error(
+            `dataItems[${i}].${field}[${j}].key must be a string`
+          );
+        }
+        if (typeof entryObj.value !== "string") {
+          throw new Error(
+            `dataItems[${i}].${field}[${j}].value must be a string`
+          );
+        }
+        return { key: entryObj.key, value: entryObj.value };
+      });
+    };
     return {
+      agentId: asNumber("agentId"),
       swarmHash: asString("swarmHash"),
       actHistoryRef: asString("actHistoryRef"),
       granteeRef: asString("granteeRef"),
+      publisherPublicKey: asString("publisherPublicKey"),
       displayName: asString("displayName"),
-      metadata: asStringArray("metadata"),
+      metadata: asMetadataArray("metadata"),
       tags: asStringArray("tags"),
     };
   });

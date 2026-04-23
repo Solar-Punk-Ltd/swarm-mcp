@@ -105,6 +105,58 @@ const refHexSchema = z.string().min(64, {
   message: "reference must be a hex string of 64 or 128 chars",
 });
 
+/**
+ * Some MCP clients stringify array params before sending. Accept either a
+ * native array OR a JSON-encoded string that decodes to an array. Normalizes
+ * to array on the way in.
+ */
+function stringArrayInput() {
+  return z.preprocess((value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed === "") return [];
+      if (trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {
+          /* fall through -- zod will report the invalid type */
+        }
+      }
+    }
+    return value;
+  }, z.array(z.string()));
+}
+
+const marketplaceMetadataEntry = z.object({
+  key: z.string(),
+  value: z.string(),
+});
+
+/**
+ * Accept either a native array of { key, value } objects OR a JSON-encoded
+ * string that decodes to one. Mirrors stringArrayInput for client symmetry.
+ */
+function metadataEntryArrayInput() {
+  return z.preprocess((value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed === "") return [];
+      if (trimmed.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {
+          /* fall through -- zod will report the invalid type */
+        }
+      }
+    }
+    return value;
+  }, z.array(marketplaceMetadataEntry));
+}
+
 export const getNodePublicKeySchema = z.object({});
 
 export const getWalletAddressSchema = z.object({});
@@ -210,9 +262,11 @@ export const publishToFeedWithActSchema = z.object({
 });
 
 export const publishMarketplaceFeedSchema = z.object({
-  feedTopic: z
-    .string()
-    .min(1, { message: "Missing required parameter: feedTopic." }),
+  feedTopic: z.string().optional(),
+  agentId: z.coerce
+    .number({ invalid_type_error: "agentId must be a number." })
+    .int({ message: "agentId must be an integer." }),
+  publisherPublicKey: pubKeyHexSchema.optional(),
   data: z.string().optional(),
   filePath: z.string().optional(),
   isPath: z
@@ -227,9 +281,9 @@ export const publishMarketplaceFeedSchema = z.object({
   displayName: z
     .string()
     .min(1, { message: "Missing required parameter: displayName." }),
-  metadata: z.array(z.string()).optional().default([]),
-  tags: z.array(z.string()).optional().default([]),
-  grantees: z.array(pubKeyHexSchema).optional().default([]),
+  metadata: metadataEntryArrayInput().optional().default([]),
+  tags: stringArrayInput().optional().default([]),
+  grantees: stringArrayInput().optional().default([]),
   append: z
     .preprocess((value) => {
       if (typeof value === "string") {
@@ -244,9 +298,7 @@ export const publishMarketplaceFeedSchema = z.object({
 });
 
 export const fetchMarketplaceFeedSchema = z.object({
-  feedTopic: z
-    .string()
-    .min(1, { message: "Missing required parameter: feedTopic." }),
+  feedTopic: z.string().optional(),
   publisherPubKey: pubKeyHexSchema,
   feedOwner: z.string().optional(),
 });

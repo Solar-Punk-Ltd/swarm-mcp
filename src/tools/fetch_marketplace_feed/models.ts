@@ -1,5 +1,5 @@
 export interface FetchMarketplaceFeedArgs {
-  feedTopic: string;
+  feedTopic?: string;
   publisherPubKey: string;
   feedOwner?: string;
 }
