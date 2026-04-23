@@ -784,7 +784,7 @@ buySubmitBtn.addEventListener("click", async () => {
   try {
     const args: Record<string, any> = { size, duration };
     if (label) args.label = label;
-    if (buyImmutableInput.checked) args.immutable = true;
+    args.immutable = buyImmutableInput.checked;
     const response = await app.callServerTool({ name: "create_postage_stamp", arguments: args });
     let batchId = ""; let message = "";
     if (response.structuredContent) { batchId = sc(response).batchID || sc(response).stampID || ""; message = sc(response).message || ""; }
@@ -818,14 +818,16 @@ app.ontoolinput = async (params) => {
   const modal       = args?.modal as string | undefined;
   const prefillSize = args?.size as number | undefined;
   const prefillDur  = args?.duration as string | undefined;
+  const prefillLabel = args?.label as string | undefined;
+  const prefillImmutable = args?.immutable as boolean | undefined;
 
   if (modal === "buy-stamp") {
     activateTab("stamps");
     buySizeInput.value     = prefillSize != null ? String(prefillSize) : "";
     buyDurationInput.value = prefillDur  ?? "";
-    buyLabelInput.value    = "";
+    buyLabelInput.value    = prefillLabel ?? "";
     buyResult.innerHTML    = "";
-    buyImmutableInput.checked = false;
+    buyImmutableInput.checked = prefillImmutable ?? false;
     buyCostEstimate.style.display = "none";
     buyCostValue.textContent = "—";
     openModal(buyStampModal);
