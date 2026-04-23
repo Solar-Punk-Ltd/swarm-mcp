@@ -10,6 +10,7 @@
  * Strict: throws on unknown fields and on schemeVersion !== "v1".
  */
 import { Bee, PublicKey } from "@ethersphere/bee-js";
+import config from "../../config";
 import {
   errorHasStatus,
   getResponseWithStructuredContent,
@@ -28,8 +29,11 @@ export async function fetchMarketplaceFeed(
   args: FetchMarketplaceFeedArgs,
   bee: Bee
 ): Promise<ToolResponse> {
-  if (!args.feedTopic) {
-    return getToolErrorResponse("Missing required parameter: feedTopic.");
+  const feedTopic = args.feedTopic ?? config.bee.metadataFeedTopic;
+  if (!feedTopic) {
+    return getToolErrorResponse(
+      "Missing feedTopic: pass it explicitly or set METADATA_FEED_TOPIC in the environment."
+    );
   }
   if (!args.publisherPubKey) {
     return getToolErrorResponse("Missing required parameter: publisherPubKey.");
@@ -63,7 +67,7 @@ export async function fetchMarketplaceFeed(
     }
   }
 
-  const topic = normalizeFeedTopic(args.feedTopic);
+  const topic = normalizeFeedTopic(feedTopic);
 
   let raw: Uint8Array;
   try {
@@ -91,7 +95,7 @@ export async function fetchMarketplaceFeed(
   }
 
   return getResponseWithStructuredContent({
-    feedTopic: args.feedTopic,
+    feedTopic,
     feedTopicHex: topic.topicHex,
     feedOwner,
     publisherPubKey,

@@ -772,7 +772,17 @@ export const SwarmToolsSchema = [
         feedTopic: {
           type: "string",
           description:
-            "Plain-text topic label (hashed with SHA-256) or a 64-char hex topic.",
+            "Plain-text topic label (hashed with SHA-256) or a 64-char hex topic. Optional: defaults to METADATA_FEED_TOPIC env var if set.",
+        },
+        agentId: {
+          type: "integer",
+          description:
+            "Integer ID of the publishing agent (e.g. ERC-8004 NFT token ID).",
+        },
+        publisherPublicKey: {
+          type: "string",
+          description:
+            "Compressed secp256k1 public key (33 bytes / 66 hex chars) of the publisher. Optional: defaults to the local Bee node's public key.",
         },
         data: { type: "string", description: "Text content to upload." },
         filePath: {
@@ -786,8 +796,17 @@ export const SwarmToolsSchema = [
         },
         metadata: {
           type: "array",
-          items: { type: "string" },
-          description: "Free-form metadata array (e.g. category labels).",
+          description:
+            "Array of { key, value } metadata entries describing the data item.",
+          items: {
+            type: "object",
+            properties: {
+              key: { type: "string" },
+              value: { type: "string" },
+            },
+            required: ["key", "value"],
+            additionalProperties: false,
+          },
         },
         tags: {
           type: "array",
@@ -809,7 +828,7 @@ export const SwarmToolsSchema = [
         redundancyLevel: { type: "number", default: 0 },
         postageBatchId: { type: "string" },
       },
-      required: ["feedTopic", "displayName"],
+      required: ["agentId", "displayName"],
     },
     execution: { taskSupport: "forbidden" },
   },
@@ -821,7 +840,11 @@ export const SwarmToolsSchema = [
     inputSchema: {
       type: "object",
       properties: {
-        feedTopic: { type: "string" },
+        feedTopic: {
+          type: "string",
+          description:
+            "Optional: defaults to METADATA_FEED_TOPIC env var if set.",
+        },
         publisherPubKey: { type: "string" },
         feedOwner: {
           type: "string",
@@ -829,7 +852,7 @@ export const SwarmToolsSchema = [
             "Optional ETH address of the feed owner. Defaults to ethAddress(publisherPubKey).",
         },
       },
-      required: ["feedTopic", "publisherPubKey"],
+      required: ["publisherPubKey"],
     },
     execution: { taskSupport: "forbidden" },
   },
