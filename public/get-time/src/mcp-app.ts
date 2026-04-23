@@ -603,19 +603,17 @@ function openHistoryItemModal(entry: any) {
   else           { hiUrl.removeAttribute("href"); hiUrl.textContent = "—"; }
   hiPreview.style.display = "none";
   hiPreview.innerHTML = "";
-  const imgExts = /\.(png|jpg|jpeg|gif|webp|svg)(\?|$)/i;
-  if (entry.url && imgExts.test(entry.url)) {
-    hiPreview.innerHTML = `<img src="${esc(entry.url)}" style="max-width:100%;border-radius:8px;margin-top:0.5rem" />`;
-    hiPreview.style.display = "block";
-  }
   openModal(histItemModal);
 }
 
 histItemClose.addEventListener("click", () => closeModal(histItemModal));
 histItemModal.addEventListener("click", (e) => { if (e.target === histItemModal) closeModal(histItemModal); });
 
-hiUrl.addEventListener("click", (e) => {
-  const href = hiUrl.getAttribute("href");
+// Intercept all .swarm-link and #hi-url clicks — open via system browser (works in VS Code embedded webview)
+document.addEventListener("click", (e) => {
+  const anchor = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.swarm-link, a#hi-url");
+  if (!anchor) return;
+  const href = anchor.getAttribute("href");
   if (!href || href === "#") return;
   e.preventDefault();
   app.callServerTool({ name: "open_url", arguments: { url: href } }).catch(() => {});

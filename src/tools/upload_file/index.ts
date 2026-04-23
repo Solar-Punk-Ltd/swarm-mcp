@@ -7,6 +7,7 @@ import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "fs";
 import { promisify } from "util";
+import mime from "mime-types";
 import config from "../../config";
 import {
   errorHasStatus,
@@ -72,6 +73,11 @@ export async function uploadFile(
   const redundancyLevel = args.redundancyLevel;
   const options: FileUploadOptions = {};
 
+  if (name) {
+    const detectedType = mime.lookup(name);
+    if (detectedType) options.contentType = detectedType;
+  }
+
   const deferred =
     binaryData.length > config.bee.deferredUploadSizeThreshold * 1024 * 1024;
   options.deferred = deferred;
@@ -104,7 +110,7 @@ export async function uploadFile(
   }
 
   const reference = result.reference.toString();
-  const url = config.bee.endpoint + "/bzz/" + reference;
+  const url = config.bee.endpoint + "/bzz/" + reference + (name ? "/" + encodeURIComponent(name) : "");
 
   addUploadEntry({
     type: "file",
