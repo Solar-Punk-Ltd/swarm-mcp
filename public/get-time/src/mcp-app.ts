@@ -125,12 +125,7 @@ tabs.forEach((tab) => {
     if (name === "history") loadHistory();
     if (name === "status") loadNodeStatus();
     if (name === "upload") {
-      resetUploadWorkflow();
-      if (lastStampsData.length === 0) {
-        loadStamps().then(() => renderUploadStampPicker()).catch(() => {});
-      } else {
-        renderUploadStampPicker();
-      }
+      prepareUploadTab().catch(() => {});
     }
   });
 });
@@ -228,19 +223,22 @@ async function loadStamps() {
   }
 }
 
-// Auto-load on startup
-loadStamps();
+// Auto-load on startup after app connection is established.
+// Calling tools before connect can fail and leave the stamps view empty.
 
 // ---------------------------------------------------------------------------
 // Stamp detail modal
 // ---------------------------------------------------------------------------
-function openStampModal(stamp: any) {
+function openStampModal(stamp: any, prefill?: { size?: number; duration?: string }) {
   const batchId       = stamp.batchID || stamp.stampID || "";
   const label         = stamp.label || "Stamp";
   const usagePct      = typeof stamp.usage === "number" ? Math.round(stamp.usage * 100) : 0;
-  const usedMB        = stamp.size?.bytes           ? (stamp.size.bytes           / 1_000_000).toFixed(2) + " MB" : "N/A";
-  const freeMB        = stamp.remainingSize?.bytes  ? (stamp.remainingSize.bytes  / 1_000_000).toFixed(2) + " MB" : "N/A";
-  const maxMB         = stamp.theoreticalSize?.bytes ? (stamp.theoreticalSize.bytes / 1_000_000).toFixed(0) + " MB" : "N/A";
+  const totalBytes    = stamp.size?.bytes ?? stamp.theoreticalSize?.bytes;
+  const remainingBytes = stamp.remainingSize?.bytes;
+  const usedBytes     = totalBytes != null && remainingBytes != null ? Math.max(0, totalBytes - remainingBytes) : undefined;
+  const usedMB        = usedBytes != null ? formatMB(usedBytes) : "N/A";
+  const freeMB        = remainingBytes != null ? formatMB(remainingBytes) : "N/A";
+  const maxMB         = totalBytes != null ? formatMB(totalBytes) : "N/A";
   const ttlObj        = stamp.duration?.seconds ? ttlFromSeconds(stamp.duration.seconds) : null;
   const ttlText       = ttlObj ? ttlObj.text : "N/A";
   const lockColor     = stamp.immutableFlag ? "#f97316" : "#b5b5b5";
@@ -250,6 +248,8 @@ function openStampModal(stamp: any) {
   modalUploadResult.innerHTML = "";
   extendSizeInput.value = "";
   extendDurationInput.value = "";
+  if (prefill?.size != null) extendSizeInput.value = String(prefill.size);
+  if (prefill?.duration) extendDurationInput.value = prefill.duration;
   extendResult.innerHTML = "";
   modalTitle.textContent = `${label.toUpperCase()} DETAILS`;
 
@@ -409,6 +409,47 @@ let selectedFile: File | null = null;
 let fileBase64: string | null = null;
 let uploadSelectedBatchId = "";
 
+function resolveStampSelectionToBatchId(selection: string): string | undefined {
+  const token = selection.toLowerCase();
+  const stamp = lastStampsData.find((s: any) =>
+    (s.label ?? "").toLowerCase() === token ||
+    (s.batchID ?? "").toLowerCase() === token ||
+    (s.stampID ?? "").toLowerCase() === token ||
+    (s.batchID ?? "").toLowerCase().startsWith(token) ||
+    (s.stampID ?? "").toLowerCase().startsWith(token)
+  );
+  return stamp ? (stamp.batchID || stamp.stampID || "") : undefined;
+}
+
+async function syncUploadSelectionFromServer() {
+  try {
+    const response = await app.callServerTool({ name: "list_selected_stamps", arguments: {} });
+    let selectedStamps: string[] = [];
+    if (response.structuredContent) {
+      selectedStamps = sc(response).selectedStamps || [];
+    } else if (response.content?.[0]) {
+      try {
+        selectedStamps = JSON.parse(tc(response.content)).selectedStamps || [];
+      } catch {
+        selectedStamps = [];
+      }
+    }
+
+    if (selectedStamps.length === 0) return;
+    const batchId = resolveStampSelectionToBatchId(selectedStamps[0]);
+    if (batchId) uploadSelectedBatchId = batchId;
+  } catch {
+    // Keep upload flow usable even when selected-stamp sync is unavailable.
+  }
+}
+
+async function prepareUploadTab() {
+  resetUploadWorkflow();
+  if (lastStampsData.length === 0) await loadStamps();
+  if (!uploadSelectedBatchId) await syncUploadSelectionFromServer();
+  renderUploadStampPicker();
+}
+
 // ---- Step 1: Stamp picker ----
 function renderUploadStampPicker() {
   const stamps = lastStampsData;
@@ -455,6 +496,37 @@ function renderUploadStampPicker() {
     });
   });
   uploadContinueBtn.disabled = !uploadSelectedBatchId;
+}
+
+function findStampByQuery(query: string): any | undefined {
+  const q = query.toLowerCase();
+  return lastStampsData.find((s: any) =>
+    (s.label ?? "").toLowerCase() === q ||
+    (s.batchID ?? "").toLowerCase().startsWith(q) ||
+    (s.stampID ?? "").toLowerCase().startsWith(q)
+  );
+}
+
+function findSuitableUploadStampBySize(sizeMb: number): any | undefined {
+  const requiredBytes = Math.max(0, sizeMb) * 1_000_000;
+  const candidates = lastStampsData
+    .filter((s: any) => {
+      const remaining = s.remainingSize?.bytes ?? 0;
+      const ttlSeconds = s.duration?.seconds ?? 0;
+      const usable = s.usable !== false;
+      return usable && ttlSeconds > 0 && remaining >= requiredBytes;
+    })
+    .sort((a: any, b: any) => {
+      const remA = a.remainingSize?.bytes ?? 0;
+      const remB = b.remainingSize?.bytes ?? 0;
+      // Best-fit first to avoid wasting large-capacity stamps.
+      if (remA !== remB) return remA - remB;
+      const ttlA = a.duration?.seconds ?? 0;
+      const ttlB = b.duration?.seconds ?? 0;
+      return ttlB - ttlA;
+    });
+
+  return candidates[0];
 }
 
 function goToUploadStep2() {
@@ -550,6 +622,8 @@ uploadBtn.addEventListener("click", async () => {
 // ---------------------------------------------------------------------------
 const FILE_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
 
+let lastHistoryEntries: any[] = [];
+
 async function loadHistory() {
   historyTable.innerHTML = `<div class="state-text">Loading history…</div>`;
   try {
@@ -560,9 +634,11 @@ async function loadHistory() {
       try { entries = JSON.parse(tc(response.content)).history || []; } catch { entries = []; }
     }
     if (entries.length === 0) {
+      lastHistoryEntries = [];
       historyTable.innerHTML = `<div class="state-text">No uploads yet in this session.</div>`;
       return;
     }
+    lastHistoryEntries = entries;
     const fileIcon = FILE_ICON;
     let html = "";
     entries.forEach((entry: any) => {
@@ -815,11 +891,18 @@ app.ontoolinput = async (params) => {
   const args        = params.arguments as any;
   const tab         = args?.tab as string | undefined;
   const stampQuery  = args?.stamp as string | undefined;
+  const historyItem = args?.historyItem as string | undefined;
   const modal       = args?.modal as string | undefined;
   const prefillSize = args?.size as number | undefined;
   const prefillDur  = args?.duration as string | undefined;
   const prefillLabel = args?.label as string | undefined;
   const prefillImmutable = args?.immutable as boolean | undefined;
+
+  if (!tab && !stampQuery && !historyItem && !modal) {
+    activateTab("stamps");
+    await loadStamps();
+    return;
+  }
 
   if (modal === "buy-stamp") {
     activateTab("stamps");
@@ -835,23 +918,39 @@ app.ontoolinput = async (params) => {
     return;
   }
 
+  if (tab === "upload") {
+    activateTab("upload");
+    resetUploadWorkflow();
+    if (lastStampsData.length === 0) await loadStamps();
+    if (stampQuery) {
+      const stamp = findStampByQuery(stampQuery);
+      if (stamp) uploadSelectedBatchId = stamp.batchID || stamp.stampID || "";
+    } else if (prefillSize != null && prefillSize > 0) {
+      const stamp = findSuitableUploadStampBySize(prefillSize);
+      if (stamp) uploadSelectedBatchId = stamp.batchID || stamp.stampID || "";
+    }
+    if (!uploadSelectedBatchId) await syncUploadSelectionFromServer();
+    renderUploadStampPicker();
+    return;
+  }
+
   if (stampQuery) {
     activateTab("stamps");
     if (lastStampsData.length === 0) await loadStamps();
-    const query = stampQuery.toLowerCase();
-    const stamp = lastStampsData.find((s: any) =>
-      (s.label ?? "").toLowerCase() === query ||
-      (s.batchID ?? "").toLowerCase().startsWith(query) ||
-      (s.stampID ?? "").toLowerCase().startsWith(query)
-    );
-    if (stamp) openStampModal(stamp);
+    const stamp = findStampByQuery(stampQuery);
+    if (stamp) openStampModal(stamp, { size: prefillSize, duration: prefillDur });
     return;
   }
 
   if (tab) {
     activateTab(tab);
     if (tab === "stamps") loadStamps();
-    if (tab === "history") loadHistory();
+    if (tab === "history") {
+      await loadHistory();
+      if (historyItem === "latest" && lastHistoryEntries.length > 0) {
+        openHistoryItemModal(lastHistoryEntries[0]);
+      }
+    }
     if (tab === "status") loadNodeStatus();
     if (tab === "upload") {
       if (lastStampsData.length === 0) {
@@ -864,4 +963,6 @@ app.ontoolinput = async (params) => {
 };
 
 // Connect to host
-app.connect();
+Promise.resolve(app.connect())
+  .then(() => loadStamps())
+  .catch(() => {});

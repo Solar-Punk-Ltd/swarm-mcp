@@ -512,7 +512,7 @@ export const SwarmToolsSchema = [
   },
   {
     name: "swarm-mcp-app-tool",
-    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history, 'status' for node network status. When opening the buy-stamp modal, extract any size (MB) and duration the user mentioned and pass them as 'size' and 'duration' to pre-fill the form.",
+    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history, 'status' for node network status. When opening the buy-stamp modal, extract any requested size (MB), duration, label, and immutable flag and pass them as prefill values.",
     inputSchema: {
       type: "object",
       properties: {
@@ -537,6 +537,14 @@ export const SwarmToolsSchema = [
         duration: {
           type: "string",
           description: "Pre-fill the TTL field in the Buy Postage Stamp dialog (e.g. 1d, 1w, 1month).",
+        },
+        label: {
+          type: "string",
+          description: "Pre-fill the label field in the Buy Postage Stamp dialog.",
+        },
+        immutable: {
+          type: "boolean",
+          description: "Pre-fill the immutable checkbox in the Buy Postage Stamp dialog.",
         },
       },
       required: [],

@@ -3,11 +3,13 @@
  */
 
 export interface GetTimeArgs {
-  tab?: "stamps" | "upload" | "history";
+  tab?: "stamps" | "upload" | "history" | "status";
   stamp?: string;
   modal?: "buy-stamp";
   size?: number;
   duration?: string;
+  label?: string;
+  immutable?: boolean;
 }
 
 export interface GetTimeResult {

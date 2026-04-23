@@ -497,12 +497,13 @@
         font-family: monospace; font-size: 0.9rem; font-weight: 700;
         letter-spacing: 0.14em; text-transform: uppercase;
         padding: 1rem; border-radius: 14px !important;
+        display: flex; align-items: center; justify-content: center;
         cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
         box-shadow: none !important; margin: 0; position: relative; overflow: hidden;
       }
       .buy-stamp-btn-main::before { display: none; }
       .buy-stamp-btn-main:hover { background: rgba(16,185,129,0.2) !important; box-shadow: 0 0 22px rgba(16,185,129,0.18) !important; }
-      .buy-stamp-btn-main span { position: relative; z-index: 1; }
+      .buy-stamp-btn-main span { position: relative; z-index: 1; display: inline-flex; align-items: center; }
       /* Stamp cards */
       .stamp-card {
         display: flex; align-items: center;
@@ -976,6 +977,12 @@
       .buy-stamp-submit-btn:hover { background: rgba(16,185,129,0.2) !important; box-shadow: 0 0 22px rgba(16,185,129,0.18) !important; }
       .buy-stamp-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
       .buy-stamp-submit-btn span { position: relative; z-index: 1; }
+      #buy-result .result-success,
+      #buy-result .result-error,
+      #buy-result .loading-text {
+        margin-top: 0.75rem;
+      }
+      #buy-result .loading-text { display: block; }
       .buy-toggle-row { display:flex;align-items:center;gap:0.6rem;cursor:pointer;margin-top:1rem;margin-bottom:0.75rem;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b5b5b5;user-select:none; }
       .buy-toggle-input { appearance:none;width:2.4rem;height:1.2rem;background:#1f2937;border:1px solid #374151;border-radius:999px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0; }
       .buy-toggle-input:checked { background:#f97316;border-color:#f97316; }
