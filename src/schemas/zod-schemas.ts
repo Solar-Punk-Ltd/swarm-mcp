@@ -343,3 +343,15 @@ export const fetchFromFeedWithActSchema = z.object({
   filePath: z.string().optional(),
   actTimestamp: z.coerce.number().optional(),
 });
+
+export const gsocSendSchema = z.object({
+  message: z
+    .string()
+    .min(1, { message: "Missing required parameter: message." }),
+  resourceId: z
+    .string()
+    .min(1, { message: "Missing required parameter: resourceId." }),
+  topic: z.string().min(1, { message: "Missing required parameter: topic." }),
+  encoding: z.enum(["utf8", "base64", "hex"]).optional().default("utf8"),
+  postageBatchId: z.string().optional(),
+});
