@@ -667,11 +667,16 @@ function renderNodeStatus(data: any): string {
   const ni = data.nodeInfo ?? {};
   const w  = data.wallet   ?? {};
   const c  = data.chain    ?? {};
+  const t  = data.topology ?? {};
 
   const isHealthy = h.status === "ok";
   const connected = s.connectedPeers ?? null;
   const mode: string = ni.beeMode ?? "unknown";
   const modeClass = ["full", "light", "dev"].includes(mode) ? mode : "unknown";
+
+  const blockDisplay = (c.block != null && c.chainTip != null)
+    ? `${c.block} / ${c.chainTip}`
+    : c.block ?? null;
 
   return `
     <div class="status-panel">
@@ -689,9 +694,10 @@ function renderNodeStatus(data: any): string {
 
       <div class="status-section">
         <div class="status-section-label">Network</div>
-        ${row("peers", statusVal(s.connectedPeers ?? null, connected > 0 ? "green" : "orange"))}
+        ${row("connected peers", statusVal(s.connectedPeers ?? null, connected > 0 ? "green" : "orange"))}
+        ${row("population", statusVal(t.population ?? null))}
         ${row("neighborhood", statusVal(s.neighborhoodSize ?? null))}
-        ${row("depth", statusVal(s.storageRadius ?? null))}
+        ${row("depth", statusVal(s.storageRadius ?? t.depth ?? null))}
       </div>
 
       <div class="status-section">
@@ -702,9 +708,8 @@ function renderNodeStatus(data: any): string {
 
       <div class="status-section">
         <div class="status-section-label">Chain</div>
-        ${row("block", statusVal(c.currentBlock ?? null))}
-        ${row("gas", statusVal(c.gasPrice ?? null))}
-        ${row("time", statusVal(c.blockTime ? new Date(Number(c.blockTime) * 1000).toLocaleTimeString() : null))}
+        ${row("block", statusVal(blockDisplay))}
+        ${row("gas price (PLUR per block)", statusVal(c.currentPrice ?? null))}
       </div>
     </div>`;
 }
