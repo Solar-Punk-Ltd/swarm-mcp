@@ -468,7 +468,7 @@ export const SwarmToolsSchema = [
     },
   },
   {
-    name: "swarm-mcp-app-tool",
+    name: "open_app",
     description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history, 'status' for node network status. When opening the buy-stamp modal, extract any requested size (MB), duration, label, and immutable flag and pass them as prefill values.",
     inputSchema: {
       type: "object",
@@ -518,7 +518,7 @@ export const SwarmToolsSchema = [
     },
     _meta: {
       ui: {
-        resourceUri: "content://get-time-ui",
+        resourceUri: "content://open-app-ui",
       },
     },
   },

@@ -20,6 +20,7 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 - Get a postage stamp batch.
 - List postage stamp batches.
 - Extend storage and duration of a postage stamp batch.
+- **[Interactive UI Widget](./docs/mcp-app-widget.md)** — embedded graphical dashboard for managing stamps, uploading files, viewing history, and monitoring node status.
 
 ## Configuration Options
 
