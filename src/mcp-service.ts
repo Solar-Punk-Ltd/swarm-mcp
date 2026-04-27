@@ -23,7 +23,7 @@ import { downloadFiles } from "./tools/download_files";
 import { queryUploadProgress } from "./tools/query_upload_progress";
 import { listPostageStamps } from "./tools/list-postage-stamps";
 import { getPostageStamp } from "./tools/get_postage_stamp";
-import { getTime } from "./tools/get_time";
+import { openApp } from "./tools/open_app";
 import { openUrl } from "./tools/open_url";
 import { ListPostageStampsArgs } from "./tools/list-postage-stamps/models";
 import { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
@@ -46,7 +46,7 @@ import { UploadFileArgs } from "./tools/upload_file/models";
 import { UploadFolderArgs } from "./tools/upload_folder/models";
 import { DownloadFilesArgs } from "./tools/download_files/models";
 import { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
-import { GetTimeArgs } from "./tools/get_time/models";
+import { OpenAppArgs } from "./tools/open_app/models";
 import { OpenUrlArgs } from "./tools/open_url/models";
 import { selectPostageStamp, getSelectedStamps } from "./tools/select_postage_stamp";
 import { SelectPostageStampArgs } from "./tools/select_postage_stamp/models";
@@ -59,14 +59,14 @@ import { getStorageCost } from "./tools/get_storage_cost";
 import { GetStorageCostArgs } from "./tools/get_storage_cost/models";
 import { determineIfGateway } from "./utils";
 
-const GET_TIME_RESOURCE_URI = "content://get-time-ui";
-const GET_TIME_RESOURCE_MIME_TYPE = "text/html";
+const OPEN_APP_RESOURCE_URI = "content://open-app-ui";
+const OPEN_APP_RESOURCE_MIME_TYPE = "text/html";
 const SELECTED_STAMPS_RESOURCE_URI = "selected-stamps://list";
 const SELECTED_STAMPS_RESOURCE_MIME_TYPE = "application/json";
 // CommonJS környezetben (mivel a tsconfig szerint ez az) a __dirname használatos
-const GET_TIME_RESOURCE_DIST_PATH = path.join(
+const OPEN_APP_RESOURCE_DIST_PATH = path.join(
   process.cwd(),
-  "public/get-time/dist/mcp-app.html",
+  "public/open-app/dist/mcp-app.html",
 );
 /**
  * Swarm MCP Server class
@@ -203,8 +203,8 @@ export class SwarmMCPServer {
               this.bee,
             );
 
-          case "swarm-mcp-app-tool":
-            return getTime(args as unknown as GetTimeArgs);
+          case "open_app":
+            return openApp(args as unknown as OpenAppArgs);
 
           case "open_url":
             return openUrl(args as unknown as OpenUrlArgs);
@@ -236,17 +236,17 @@ export class SwarmMCPServer {
   
   private registerResources() {
     this.server.registerResource(
-      "get-time-ui",
-      GET_TIME_RESOURCE_URI,
+      "open-app-ui",
+      OPEN_APP_RESOURCE_URI,
       {
         title: "Swarm MCP App UI",
-        description: "Static HTML interface for the swarm-mcp-app-tool.",
-        mimeType: GET_TIME_RESOURCE_MIME_TYPE,
+        description: "Static HTML interface for the open_app tool.",
+        mimeType: OPEN_APP_RESOURCE_MIME_TYPE,
       },
       async () => {
         try {
-         
-          const html = await readFile(GET_TIME_RESOURCE_DIST_PATH, "utf-8");
+
+          const html = await readFile(OPEN_APP_RESOURCE_DIST_PATH, "utf-8");
 
           
           if (html.includes('src="/src/')) {
@@ -258,8 +258,8 @@ export class SwarmMCPServer {
           return {
             contents: [
               {
-                uri: GET_TIME_RESOURCE_URI,
-                mimeType: GET_TIME_RESOURCE_MIME_TYPE,
+                uri: OPEN_APP_RESOURCE_URI,
+                mimeType: OPEN_APP_RESOURCE_MIME_TYPE,
                 text: html,
               },
             ],
@@ -274,7 +274,7 @@ export class SwarmMCPServer {
 
           throw new McpError(
             ErrorCode.InternalError,
-            `Unable to load resource at ${GET_TIME_RESOURCE_URI}: ${message}`,
+            `Unable to load resource at ${OPEN_APP_RESOURCE_URI}: ${message}`,
           );
         }
       },

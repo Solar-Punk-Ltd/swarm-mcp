@@ -8,7 +8,7 @@
   "scripts": {
     "build": "npm run build:server && npm run build:ui",
     "build:server": "tsc",
-    "build:ui": "cd public/get-time && INPUT=mcp-app.html vite build",
+    "build:ui": "cd public/open-app && INPUT=mcp-app.html vite build",
     "start": "npm run start:stdio",
     "start:stdio": "node dist/index.js",
     "start:web": "node dist/web.js",

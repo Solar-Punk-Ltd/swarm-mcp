@@ -1,8 +1,8 @@
 /**
- * Types for swarm-mcp-app-tool (formerly get-time)
+ * Types for open_app
  */
 
-export interface GetTimeArgs {
+export interface OpenAppArgs {
   tab?: "stamps" | "upload" | "history" | "status";
   stamp?: string;
   modal?: "buy-stamp";
@@ -10,8 +10,4 @@ export interface GetTimeArgs {
   duration?: string;
   label?: string;
   immutable?: boolean;
-}
-
-export interface GetTimeResult {
-  time: string;
 }

@@ -1,11 +1,11 @@
 /**
- * MCP Tool: swarm-mcp-app-tool (formerly get-time)
+ * MCP Tool: open_app
  * Triggers the Swarm MCP App UI interface.
  */
 import { ToolResponse } from "../../utils";
-import { GetTimeArgs } from "./models";
+import { OpenAppArgs } from "./models";
 
-export async function getTime(_args: GetTimeArgs): Promise<ToolResponse> {
+export async function openApp(_args: OpenAppArgs): Promise<ToolResponse> {
   return {
     content: [
       {
