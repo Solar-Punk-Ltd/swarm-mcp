@@ -230,7 +230,11 @@ tools is also visible)
 5. You can set the whole of the MCP disabled with the toggle opposite to the "Swarm" MCP name (displayed with an "
    Enabled" tag when it is enabled)
 
+<<<<<<< HEAD
 _Note_: You can access the list of enabled tools from the "Customizations" menu of "Cascade" too (see 'Verify MCP is
+=======
+_Note_: You can view which individual tools are enabled on the "MCP Servers" tab of "Cascade" too (see 'Verify MCP is
+>>>>>>> 75099f2 (docs: Cursor MCP client setup (#2))
 running' under [Windsurf](#windsurf))
 
 ## Cursor
@@ -253,15 +257,26 @@ features.
   "mcpServers": {
     "Swarm": {
       "command": "npx",
+<<<<<<< HEAD
       "args": ["/path/to/your/swarm-mcp/dist/index.js"],
       "env": {}
+=======
+      "args": [
+        "/path/to/your/swarm-mcp/dist/index.js"
+      ],
+      "env": {
+      }
+>>>>>>> 75099f2 (docs: Cursor MCP client setup (#2))
     }
   }
 }
 ```
 
+<<<<<<< HEAD
 8. Save the `mcp.json` file
 
+=======
+>>>>>>> 75099f2 (docs: Cursor MCP client setup (#2))
 #### Verify MCP is running
 
 1. Open Cursor
@@ -285,4 +300,8 @@ You can refer to the [Cursor documentation](https://docs.cursor.com/en/welcome) 
 using MCP tools in Cursor.
 
 To check if the AI model you intend to use supports tools, look at
+<<<<<<< HEAD
 the [Available models in Cursor](https://docs.cursor.com/en/models).
+=======
+the [Available models in Cursor](https://docs.cursor.com/en/models).
+>>>>>>> 75099f2 (docs: Cursor MCP client setup (#2))

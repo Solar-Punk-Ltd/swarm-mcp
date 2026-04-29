@@ -27,7 +27,7 @@ export async function createPostageStamp(
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
-  const { size, duration, label } = args;
+  const { size, duration, label, immutable } = args;
 
   if (!size) {
     return getToolErrorResponse("Missing required parameter: size.");
@@ -56,6 +56,7 @@ export async function createPostageStamp(
     bee
       .buyStorage(parsedSize, parsedDuration, {
         label,
+        immutableFlag: immutable,
       })
       .then(async (result) => {
         const buyStorageResponse = result as BatchId;
@@ -93,6 +94,7 @@ export async function createPostageStamp(
   try {
     const buyStoragePromise = bee.buyStorage(parsedSize, parsedDuration, {
       label,
+      immutableFlag: immutable,
     });
     const [response, hasTimedOut] = await runWithTimeout(
       buyStoragePromise,

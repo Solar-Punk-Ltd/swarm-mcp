@@ -198,6 +198,10 @@ export const SwarmToolsSchema = [
             "Whether the data parameter is a path. If it is path pass: true, if it is file content: false. Default is false.",
           default: false,
         },
+        name: {
+          type: "string",
+          description: "The file name to associate with the upload.",
+        },
         redundancyLevel: {
           type: "number",
           description:
@@ -379,6 +383,12 @@ export const SwarmToolsSchema = [
           description:
             "Sets label for the postage batch (omit if the user didn't ask for one). Do not set a label with with specific capacity values because they can get misleading.",
         },
+        immutable: {
+          type: "boolean",
+          description:
+            "If true, data uploaded with this stamp cannot be overwritten. Defaults to false.",
+          default: false,
+        },
       },
       required: ["size", "duration"],
     },
@@ -452,6 +462,233 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["processedPercentage", "tagAddress"],
+    },
+    execution: {
+      taskSupport: "forbidden",
+    },
+  },
+  {
+    name: "open_app",
+    description: "Opens the Swarm MCP App UI interface. Use the 'tab' parameter to open a specific section: 'stamps' for managing postage stamps, 'upload' for uploading files to Swarm, 'history' for viewing upload history, 'status' for node network status. When opening the buy-stamp modal, extract any requested size (MB), duration, label, and immutable flag and pass them as prefill values.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tab: {
+          type: "string",
+          enum: ["stamps", "upload", "history"],
+          description: "Which tab to open: 'stamps' for Postage Stamps, 'upload' for Upload File, 'history' for Upload History.",
+        },
+        stamp: {
+          type: "string",
+          description: "Stamp label or batch ID to open in the detail modal. Automatically switches to the stamps tab and loads stamps if needed.",
+        },
+        modal: {
+          type: "string",
+          enum: ["buy-stamp"],
+          description: "Which modal to open: 'buy-stamp' opens the Buy Postage Stamp dialog.",
+        },
+        size: {
+          type: "number",
+          description: "Pre-fill the capacity field (in MB) in the Buy Postage Stamp dialog.",
+        },
+        duration: {
+          type: "string",
+          description: "Pre-fill the TTL field in the Buy Postage Stamp dialog (e.g. 1d, 1w, 1month).",
+        },
+        label: {
+          type: "string",
+          description: "Pre-fill the label field in the Buy Postage Stamp dialog.",
+        },
+        immutable: {
+          type: "boolean",
+          description: "Pre-fill the immutable checkbox in the Buy Postage Stamp dialog.",
+        },
+      },
+      required: [],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          description: "Status message.",
+        },
+      },
+      required: ["message"],
+    },
+    _meta: {
+      ui: {
+        resourceUri: "content://open-app-ui",
+      },
+    },
+  },
+  {
+    name: "open_url",
+    description: "Opens a URL in the default browser on the server machine.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "The URL to open in the browser.",
+        },
+      },
+      required: ["url"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        success: {
+          type: "boolean",
+          description: "Whether the URL was successfully opened.",
+        },
+        message: {
+          type: "string",
+          description: "Success or error message.",
+        },
+        url: {
+          type: "string",
+          description: "The URL that was opened.",
+        },
+      },
+      required: ["success", "message"],
+    },
+  },
+  {
+    name: "select_postage_stamp",
+    description: "Toggle selection of a postage stamp. Called when user checks/unchecks a stamp in the UI.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        label: {
+          type: "string",
+          description: "The label of the postage stamp to select/deselect.",
+        },
+        selected: {
+          type: "boolean",
+          description: "Whether the stamp should be selected (true) or deselected (false).",
+        },
+      },
+      required: ["label", "selected"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        success: {
+          type: "boolean",
+          description: "Whether the selection was successful.",
+        },
+        label: {
+          type: "string",
+          description: "The label that was selected/deselected.",
+        },
+        selected: {
+          type: "boolean",
+          description: "The new selection state.",
+        },
+        selectedStamps: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of all currently selected stamp labels.",
+        },
+      },
+      required: ["success", "label", "selected", "selectedStamps"],
+    },
+  },
+  {
+    name: "list_selected_stamps",
+    description: "Get the list of currently selected postage stamp labels.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        selectedStamps: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of all currently selected stamp labels.",
+        },
+        count: {
+          type: "number",
+          description: "Number of selected stamps.",
+        },
+      },
+      required: ["selectedStamps", "count"],
+    },
+  },
+  {
+    name: "list_upload_history",
+    description: "List the upload history of files and data uploaded to Swarm in this session.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        history: {
+          type: "array",
+          description: "List of upload history entries, newest first.",
+        },
+        count: {
+          type: "number",
+          description: "Total number of uploads in history.",
+        },
+      },
+      required: ["history", "count"],
+    },
+  },
+  {
+    name: "get_node_status",
+    description: "Fetches the current status of the connected Bee node including health, connectivity, wallet balances and chain state.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [] as string[],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "object", description: "Node connectivity and reserve status." },
+        health: { type: "object", description: "Node health and version info." },
+        nodeInfo: { type: "object", description: "Node mode and feature flags." },
+        wallet: { type: "object", description: "BZZ and native token balances." },
+        chain: { type: "object", description: "Chain tip, block and gas price." },
+      },
+      required: [] as string[],
+    },
+    execution: {
+      taskSupport: "forbidden",
+    },
+  },
+  {
+    name: "get_storage_cost",
+    description: "Estimate the BZZ cost of buying a postage stamp for a given size (MB) and duration.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        size: {
+          type: "number",
+          description: "The storage size in MB.",
+        },
+        duration: {
+          type: "string",
+          description: "Duration string, e.g. 1d, 1w, 1month.",
+        },
+      },
+      required: ["size", "duration"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        bzz: { type: "string", description: "Estimated cost in BZZ." },
+        plur: { type: "string", description: "Estimated cost in PLUR." },
+      },
+      required: ["bzz"],
     },
     execution: {
       taskSupport: "forbidden",
