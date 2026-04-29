@@ -27,7 +27,7 @@ describe("can list tools", () => {
     const tools = await client.listTools();
 
     expect(tools).toBeDefined();
-    expect(tools.tools).toHaveLength(12);
+    expect(tools.tools).toHaveLength(19);
     expect(tools.tools.map((t) => t.name)).toEqual([
       "upload_data",
       "update_feed",
@@ -41,17 +41,23 @@ describe("can list tools", () => {
       "create_postage_stamp",
       "extend_postage_stamp",
       "query_upload_progress",
+      "open_app",
+      "open_url",
+      "select_postage_stamp",
+      "list_selected_stamps",
+      "list_upload_history",
+      "get_node_status",
+      "get_storage_cost",
     ]);
   });
   test("Should fail validation with invalid parameters", async () => {
-    await expect(
-      client.callTool({
-        name: "upload_data",
-        arguments: {
-          // Missing required 'data' field
-          redundancyLevel: 0,
-        },
-      })
-    ).rejects.toThrow();
+    const result = await client.callTool({
+      name: "upload_data",
+      arguments: {
+        // Missing required 'data' field
+        redundancyLevel: 0,
+      },
+    });
+    expect(result.isError).toBe(true);
   });
 });

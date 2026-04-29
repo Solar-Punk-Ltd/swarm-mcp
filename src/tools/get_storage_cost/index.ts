@@ -4,7 +4,7 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, Duration, Size } from "@ethersphere/bee-js";
-import { getErrorMessage, getResponseWithStructuredContent, makeDate, ToolResponse } from "../../utils";
+import { getErrorMessage, getResponseWithStructuredContent, ToolResponse } from "../../utils";
 import { GetStorageCostArgs } from "./models";
 
 export async function getStorageCost(
@@ -18,9 +18,9 @@ export async function getStorageCost(
     throw new McpError(ErrorCode.InvalidParams, "Missing required parameter: duration");
   }
 
-  let durationMs: number;
+  let parsedDuration: Duration;
   try {
-    durationMs = makeDate(args.duration);
+    parsedDuration = Duration.parseFromString(args.duration);
   } catch {
     throw new McpError(ErrorCode.InvalidParams, "Invalid parameter: duration");
   }
@@ -28,7 +28,7 @@ export async function getStorageCost(
   try {
     const bzz = await bee.getStorageCost(
       Size.fromMegabytes(args.size),
-      Duration.fromMilliseconds(durationMs)
+      parsedDuration
     );
 
     const plurPerBzz = BigInt("10000000000000000"); // 1 BZZ = 10^16 PLUR

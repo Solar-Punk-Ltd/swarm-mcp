@@ -642,4 +642,56 @@ export const SwarmToolsSchema = [
       required: ["history", "count"],
     },
   },
+  {
+    name: "get_node_status",
+    description: "Fetches the current status of the connected Bee node including health, connectivity, wallet balances and chain state.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [] as string[],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "object", description: "Node connectivity and reserve status." },
+        health: { type: "object", description: "Node health and version info." },
+        nodeInfo: { type: "object", description: "Node mode and feature flags." },
+        wallet: { type: "object", description: "BZZ and native token balances." },
+        chain: { type: "object", description: "Chain tip, block and gas price." },
+      },
+      required: [] as string[],
+    },
+    execution: {
+      taskSupport: "forbidden",
+    },
+  },
+  {
+    name: "get_storage_cost",
+    description: "Estimate the BZZ cost of buying a postage stamp for a given size (MB) and duration.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        size: {
+          type: "number",
+          description: "The storage size in MB.",
+        },
+        duration: {
+          type: "string",
+          description: "Duration string, e.g. 1d, 1w, 1month.",
+        },
+      },
+      required: ["size", "duration"],
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        bzz: { type: "string", description: "Estimated cost in BZZ." },
+        plur: { type: "string", description: "Estimated cost in PLUR." },
+      },
+      required: ["bzz"],
+    },
+    execution: {
+      taskSupport: "forbidden",
+    },
+  },
 ];

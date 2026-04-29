@@ -12,6 +12,7 @@ export interface UploadHistoryEntry {
   postageBatchId?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ListUploadHistoryArgs {}
 
 export interface ListUploadHistoryResult {
