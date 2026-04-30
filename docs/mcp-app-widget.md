@@ -31,6 +31,7 @@ Create `.vscode/mcp.json` in the project root:
 ```
 
 To restart: open the Command Palette (`Cmd+Shift+P`) and run **MCP: Restart Server**.
+If you don't find that option, you can also start the server manually by clicking start in the .vscode/mcp.json file.
 
 ### Other clients
 
@@ -47,8 +48,8 @@ Open the Swarm storage dashboard.
 Show me my postage stamps.
 I want to upload a file to Swarm.
 ```
-
 ---
+If the visual interface fails to open, try indicating in the prompt that you want a visual interface or mcp app.
 
 ## Sample Prompts
 
