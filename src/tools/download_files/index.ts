@@ -48,9 +48,7 @@ export async function downloadFiles(
   }
 
   if (!isManifest) {
-    return getToolErrorResponse(
-      "Try download_data tool instead since the given reference is not a manifest."
-    );
+    return await downloadRawData(args, bee);
   }
 
   const isRunningAsTask = taskManager && createTaskModel;
@@ -82,6 +80,38 @@ export async function downloadFiles(
 
   return await downloadFilesHelper(args, bee, node!);
 }
+
+const downloadRawData = async (args: DownloadFilesArgs, bee: Bee): Promise<ToolResponse> => {
+  try {
+    const data = await bee.downloadData(args.reference);
+
+    if (args.filePath) {
+      const parentDir = path.dirname(args.filePath);
+      if (!fs.existsSync(parentDir)) {
+        await mkdir(parentDir, { recursive: true });
+      }
+      await writeFile(args.filePath, data.toUint8Array());
+      return getResponseWithStructuredContent({
+        reference: args.reference,
+        type: "raw",
+        savedTo: args.filePath,
+        message: `Raw data successfully downloaded to ${args.filePath}`,
+      });
+    }
+
+    return getResponseWithStructuredContent({
+      reference: args.reference,
+      type: "raw",
+      textData: data.toUtf8(),
+      message: "This reference points to raw data, not a manifest.",
+    });
+  } catch (error) {
+    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
+      ? getErrorMessage(error)
+      : "Unable to download data.";
+    return getToolErrorResponse(errorMsg);
+  }
+};
 
 const downloadFilesHelper = async (
   args: DownloadFilesArgs,
