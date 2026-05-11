@@ -47,11 +47,22 @@ export async function downloadFiles(
     // ignore
   }
 
+  const isRunningAsTask = taskManager && createTaskModel;
+
   if (!isManifest) {
+    if (isRunningAsTask) {
+      const task = await taskManager.createTask(createTaskModel, null, null);
+      downloadRawData(args, bee)
+        .then(async (result) => {
+          await taskManager.setTaskResult(task.taskId, result);
+        })
+        .catch(() => {
+          taskManager.updateTaskStatus(task.taskId, TaskState.FAILED, "Unable to download data.");
+        });
+      return { task };
+    }
     return await downloadRawData(args, bee);
   }
-
-  const isRunningAsTask = taskManager && createTaskModel;
 
   if (isRunningAsTask) {
     const task = await taskManager.createTask(createTaskModel, null, null);
