@@ -259,8 +259,9 @@ export const SwarmToolsSchema = [
     name: "download_files",
     title: "Download files",
     description:
-      "Download folder, files from a Swarm reference and save to file path or return file list of the reference " +
-      "prioritizes this tool over download_data if there is no assumption about the data type",
+      "Download any content from a Swarm reference: manifests (folders/files) or raw data. " +
+      "Handles both manifest references (from upload_file, upload_folder) and raw data references (from upload_data). " +
+      "Use this tool for all downloads unless the reference is known to be raw data only.",
     inputSchema: {
       type: "object",
       properties: {
