@@ -364,7 +364,7 @@ export const SwarmToolsSchema = [
       type: "object",
       properties: {
         size: {
-          type: "number",
+          type: "string",
           description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
         },
         duration: {
@@ -399,7 +399,7 @@ export const SwarmToolsSchema = [
           description: "The id of the batch for which extend is performed.",
         },
         size: {
-          type: "number",
+          type: "string",
           description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
         },
         duration: {
