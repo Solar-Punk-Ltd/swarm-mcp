@@ -1,4 +1,6 @@
 import { Bee } from "@ethersphere/bee-js";
+import { readdir } from "fs/promises";
+import path from "path";
 import {
   ExtendedTask,
   TaskState,
@@ -56,3 +58,23 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
     );
   }
 };
+
+
+export const collectFilesRelative = async (
+  dir: string,
+  relative = ""
+): Promise<string[]> => {
+  const entries = await readdir(path.join(dir, relative), {
+    withFileTypes: true,
+  });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const entryRelative = relative ? `${relative}/${entry.name}` : entry.name;
+    if (entry.isFile()) {
+      files.push(entryRelative);
+    } else if (entry.isDirectory()) {
+      files.push(...(await collectFilesRelative(dir, entryRelative)));
+    }
+  }
+  return files;
+}
