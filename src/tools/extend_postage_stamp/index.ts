@@ -116,9 +116,15 @@ export async function extendPostageStamp(
 
     extendStorageResponse = response as BatchId;
   } catch (error) {
-    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
-      ? getErrorMessage(error)
-      : "Extend failed.";
+    let errorMsg = "Extend failed.";
+    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+      errorMsg = getErrorMessage(error);
+    } else if (extendDuration === Duration.ZERO) {
+      // A likely cause of the extension failing when extension duration is 0
+      // is an extension size smaller than the current one.
+      errorMsg =
+        "Extend failed. Please make sure the passed in size is larger than current one.";
+    }
 
     return getToolErrorResponse(errorMsg);
   }
