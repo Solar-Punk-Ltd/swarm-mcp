@@ -120,6 +120,8 @@ export async function extendPostageStamp(
     if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
       errorMsg = getErrorMessage(error);
     } else if (extendDuration === Duration.ZERO) {
+      // A likely cause of the extension failing when extension duration is 0
+      // is an extension size smaller than the current one.
       errorMsg =
         "Extend failed. Please make sure the passed in size is larger than current one.";
     }
