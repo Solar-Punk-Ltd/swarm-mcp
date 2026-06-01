@@ -190,7 +190,7 @@ export const SwarmToolsSchema = [
       properties: {
         data: {
           type: "string",
-          description: "base64 encoded file content or file path",
+          description: "File content or file path.",
         },
         isPath: {
           type: "boolean",

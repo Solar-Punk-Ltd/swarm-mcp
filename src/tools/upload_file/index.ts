@@ -33,8 +33,6 @@ export async function uploadFile(
     return getToolErrorResponse("Missing required parameter: data.22");
   }
 
-  // return getToolErrorResponse(`args.data: ${args.data}`);
-
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
     bee
@@ -65,7 +63,7 @@ export async function uploadFile(
     }
     name = path.basename(args.data);
   } else {
-    binaryData = Buffer.from(args.data, "base64");
+    binaryData = Buffer.from(args.data);
   }
 
   const redundancyLevel = args.redundancyLevel;

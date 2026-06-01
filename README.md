@@ -165,7 +165,7 @@ Upload a file to Swarm.
 
 **Parameters:**
 
-- `data`: base64 encoded file content or file path.
+- `data`: File content or file path.
 - `isPath`: Wether the data parameter is a path.
 - `redundancyLevel`: (Optional) Redundancy level for fault tolerance (higher values provide better fault tolerance but increase storage overhead). 0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid.
 - `postageBatchId`: (Optional) The postage stamp batch ID which will be used to perform the upload, if it is provided.
