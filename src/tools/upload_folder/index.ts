@@ -13,7 +13,7 @@ import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFolderArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
-import { updateUploadFolderTaskStatus } from "./utils";
+import { collectFilesRelative, updateUploadFolderTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
 import { CreateTaskModel, TaskState } from "../../tasks/models";
 
@@ -61,6 +61,14 @@ export async function uploadFolder(
 
   const deferred = true; // Folders are always deferred if possible/requested
   options.deferred = deferred;
+
+  // Single-file collections return raw manifest bytes from the Bee node unless an
+  // index document is set, so auto-detect and set it to avoid garbled downloads.
+  const allFiles = await collectFilesRelative(args.folderPath);
+  if (allFiles.length === 1) {
+    options.indexDocument = allFiles[0];
+  }
+
   let message = "Folder successfully uploaded to Swarm";
 
   let tagId: string | undefined = undefined;
