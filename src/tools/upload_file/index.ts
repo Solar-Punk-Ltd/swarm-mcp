@@ -29,8 +29,6 @@ export async function uploadFile(
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
-  // return getToolErrorResponse("Echo  " + args.data);
-
   if (!args.data) {
     return getToolErrorResponse("Missing required parameter: data.22");
   }
