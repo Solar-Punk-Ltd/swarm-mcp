@@ -5,7 +5,7 @@
 import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { readFile } from "fs/promises";
+import { readFile, stat } from "fs/promises";
 import path from "path";
 import config from "../../config";
 import {
@@ -30,7 +30,7 @@ export async function uploadFile(
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
   if (!args.data) {
-    return getToolErrorResponse("Missing required parameter: data.22");
+    return getToolErrorResponse("Missing required parameter: data.");
   }
 
   const { postageBatchId, error } = await getUploadPostageBatchId(
@@ -47,7 +47,15 @@ export async function uploadFile(
   let binaryData: Buffer;
   let name: string | undefined;
 
-  if (args.isPath) {
+  let isPath = false;
+  try {
+    isPath = (await stat(args.data)).isFile();
+  } catch {
+    isPath = false;
+  }
+
+
+  if (isPath) {
     // Check if in stdio mode for file path uploads
     if (!(transport instanceof StdioServerTransport)) {
       return getToolErrorResponse(

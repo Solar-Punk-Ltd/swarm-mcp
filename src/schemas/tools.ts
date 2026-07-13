@@ -73,7 +73,7 @@ export const SwarmToolsSchema = [
         memoryTopic: {
           type: "string",
           description:
-            "If provided, uploads the data to a feed with this topic. " +
+            "Required. Must be supplied by the user. If missing, ask the user — never invent, hash, or derive from the data. " +
             "It is the label of the memory that can be used later to retrieve the data instead of its content hash. " +
             "If not a hex string, it will be hashed to create a feed topic",
         },
@@ -182,7 +182,6 @@ export const SwarmToolsSchema = [
     title: "Upload file",
     description:
       "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
-      "isPath: Whether the data parameter is a path. If it is path pass: true, if it is file content: false. Default is false. " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {
@@ -191,12 +190,6 @@ export const SwarmToolsSchema = [
         data: {
           type: "string",
           description: "File content or file path.",
-        },
-        isPath: {
-          type: "boolean",
-          description:
-            "Whether the data parameter is a path. If it is path pass: true, if it is file content: false. Default is false.",
-          default: false,
         },
         redundancyLevel: {
           type: "number",

@@ -53,7 +53,7 @@ export const getUploadPostageBatchId = async (
   }
 
   return {
-    postageBatchId,
+    postageBatchId: postageBatchId!,
     error: null,
   };
 };
