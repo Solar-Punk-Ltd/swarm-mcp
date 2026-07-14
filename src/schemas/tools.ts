@@ -266,8 +266,8 @@ export const SwarmToolsSchema = [
           description:
             "Optional destination FOLDER (not a filename) to save the downloaded content into (only available in stdio mode). " +
             "Files from the manifest are written inside this folder using their original names. " +
-            "Absolute paths are recommended; relative paths resolve against the server's configured upload root. " +
-            "If omitted, a list of files in the manifest is returned instead of saving.",
+            "Absolute paths are recommended; relative paths resolve against the server's current working directory. " +
+            "If omitted, files are saved into the server's current working directory.",
         },
       },
       required: ["reference"],
