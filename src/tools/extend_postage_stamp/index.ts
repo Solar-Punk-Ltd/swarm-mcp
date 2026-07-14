@@ -77,8 +77,11 @@ export async function extendPostageStamp(
       })
       .catch((error) => {
         let errorMessage = "Extend failed.";
-        if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-          errorMessage = getErrorMessage(error);
+        if (
+          errorHasStatus(error, BAD_REQUEST_STATUS) ||
+          errorHasStatus(error, 402)
+        ) {
+          errorMessage = `Extend failed: ${getErrorMessage(error)}`;
         }
 
         taskManager!.updateTaskStatus(
@@ -117,7 +120,10 @@ export async function extendPostageStamp(
     extendStorageResponse = response as BatchId;
   } catch (error) {
     let errorMsg = "Extend failed.";
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
+    if (
+      errorHasStatus(error, BAD_REQUEST_STATUS) ||
+      errorHasStatus(error, 402)
+    ) {
       errorMsg = `Extend failed: ${getErrorMessage(error)}`;
     } else if (extendDuration === Duration.ZERO) {
       // A likely cause of the extension failing when extension duration is 0

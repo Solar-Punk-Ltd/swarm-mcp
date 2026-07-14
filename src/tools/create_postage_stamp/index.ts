@@ -73,7 +73,7 @@ export async function createPostageStamp(
       .catch((error) => {
         let errorMessage = "Unable to buy storage.";
         if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-          errorMessage = getErrorMessage(error);
+          errorMessage = `Unable to buy storage: ${getErrorMessage(error)}`;
         }
 
         taskManager!.updateTaskStatus(
