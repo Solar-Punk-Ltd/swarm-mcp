@@ -264,8 +264,10 @@ export const SwarmToolsSchema = [
         filePath: {
           type: "string",
           description:
-            "Optional file path to save the downloaded content (only available in stdio mode). " +
-            "if not provided list of files in the manifest will be returned",
+            "Optional destination FOLDER (not a filename) to save the downloaded content into (only available in stdio mode). " +
+            "Files from the manifest are written inside this folder using their original names. " +
+            "Absolute paths are recommended; relative paths resolve against the server's configured upload root. " +
+            "If omitted, a list of files in the manifest is returned instead of saving.",
         },
       },
       required: ["reference"],

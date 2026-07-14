@@ -33,6 +33,17 @@ export async function uploadFile(
     return getToolErrorResponse("Missing required parameter: data.");
   }
 
+  if (
+    args.redundancyLevel !== undefined &&
+    (!Number.isInteger(args.redundancyLevel) ||
+      args.redundancyLevel < 0 ||
+      args.redundancyLevel > 4)
+  ) {
+    return getToolErrorResponse(
+      "Invalid redundancyLevel. Must be an integer between 0 and 4 (0=OFF, 1=MEDIUM, 2=STRONG, 3=INSANE, 4=PARANOID)."
+    );
+  }
+
   const { postageBatchId, error } = await getUploadPostageBatchId(
     args.postageBatchId,
     bee

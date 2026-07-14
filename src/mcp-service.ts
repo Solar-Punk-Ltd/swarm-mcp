@@ -130,7 +130,8 @@ export class SwarmMCPServer {
           "Only call tools with parameter values explicitly provided by the user. " +
           "Never invent, guess, or fill in values (postage batch IDs, references, addresses, " +
           "labels, etc.) that the user did not supply. If a required value is missing, ask the " +
-          "user for it instead of fabricating one. Omit optional parameters unless the user asked for them.",
+          "user for it instead of fabricating one. Omit optional parameters unless the user asked for them." + 
+          "Always display the references in the response.",
       }
     );
 
