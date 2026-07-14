@@ -118,7 +118,7 @@ export async function extendPostageStamp(
   } catch (error) {
     let errorMsg = "Extend failed.";
     if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      errorMsg = getErrorMessage(error);
+      errorMsg = `Extend failed: ${getErrorMessage(error)}`;
     } else if (extendDuration === Duration.ZERO) {
       // A likely cause of the extension failing when extension duration is 0
       // is an extension size smaller than the current one.

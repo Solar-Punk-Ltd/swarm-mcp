@@ -113,7 +113,7 @@ export async function createPostageStamp(
     buyStorageResponse = response as BatchId;
   } catch (error) {
     const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
-      ? getErrorMessage(error)
+      ? `Unable to buy storage: ${getErrorMessage(error)}`
       : "Unable to buy storage.";
 
     return getToolErrorResponse(errorMsg);
