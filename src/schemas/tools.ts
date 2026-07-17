@@ -1,7 +1,28 @@
+import config from "../config";
 import {
   PostageBatchCuratedSchema,
   PostageBatchSummarySchema,
 } from "./postage-batch";
+
+/**
+ * Tool names hidden when SWARM_MCP_ENABLE_ACT is not "true". Covers the
+ * grantee CRUD, ACT-aware feed helpers, marketplace feed tools, GSOC, and
+ * the publisher-identity helper -- the ACT params on upload_data / upload_file
+ * / upload_folder / download_data / download_files remain available in both
+ * modes since those tools also serve the plain-upload/download paths.
+ */
+export const ACT_ADJACENT_TOOLS = [
+  "create_grantees",
+  "list_grantees",
+  "patch_grantees",
+  "publish_to_feed_with_act",
+  "fetch_from_feed_with_act",
+  "patch_feed_access",
+  "publish_marketplace_feed",
+  "fetch_marketplace_feed",
+  "gsoc_send",
+  "get_node_public_key",
+];
 
 export const SwarmToolsSchema = [
   {
@@ -925,3 +946,19 @@ export const SwarmToolsSchema = [
     },
   },
 ];
+
+/**
+ * SwarmToolsSchema filtered by feature flags. Use this everywhere the tool
+ * list crosses the wire to the MCP client (tools/list, prompts/list) so that
+ * hidden tools never reach the LLM's context window.
+ */
+export const getEnabledTools = () => {
+  if (config.features.enableAct) {
+    return SwarmToolsSchema;
+  }
+
+  return SwarmToolsSchema.filter(
+    (item) => !ACT_ADJACENT_TOOLS.includes(item.name)
+  );
+};
+

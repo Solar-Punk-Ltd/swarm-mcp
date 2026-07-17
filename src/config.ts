@@ -23,9 +23,14 @@ export interface BeeConfig {
   taskTtlMs: number;
 }
 
+export interface FeaturesConfig {
+  enableAct: boolean;
+}
+
 export interface Config {
   server: ServerConfig;
   bee: BeeConfig;
+  features: FeaturesConfig;
 }
 
 const config: Config = {
@@ -48,6 +53,12 @@ const config: Config = {
       Number(process.env.DEFERRED_UPLOAD_SIZE_THRESHOLD_MB) ||
       DEFERRED_UPLOAD_SIZE_THRESHOLD_MB,
     taskTtlMs: Number(process.env.TASK_TTL_MS) || DEFAULT_TASK_TTL_MS,
+  },
+
+  // Feature flags. Off by default to keep the MCP tool list compact for
+  // small-context LLMs; enable when the client can afford the extra tokens.
+  features: {
+    enableAct: process.env.SWARM_MCP_ENABLE_ACT === "true",
   },
 };
 

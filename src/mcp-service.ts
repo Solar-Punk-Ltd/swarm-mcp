@@ -21,7 +21,7 @@ import {
 import { ZodError } from "zod";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
-import { SwarmToolsSchema } from "./schemas";
+import { getEnabledTools } from "./schemas";
 import {
   determineIfGateway,
   getToolsWithTaskSupport,
@@ -660,7 +660,7 @@ export class SwarmMCPServer {
     // List tools
     this.server.server.setRequestHandler(ListToolsRequestSchema, async () => {
       const isGateway = await determineIfGateway(this.bee);
-      let tools = [...SwarmToolsSchema];
+      let tools = [...getEnabledTools()];
 
       if (isGateway) {
         const nodeOnlyTools = [
