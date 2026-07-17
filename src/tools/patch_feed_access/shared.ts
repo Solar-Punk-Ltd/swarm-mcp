@@ -1,5 +1,5 @@
 /**
- * Shared helper for grant_feed_access and revoke_feed_access.
+ * Shared helper for patch_feed_access (mode: "add" | "revoke").
  *
  * Reads the latest entry from the publisher's feed, dispatches on payload
  * shape:

@@ -13,7 +13,7 @@
  * x402 context: consumers read this feed as a catalog, pick an item, and
  * initiate an x402 payment against the publisher's x402 server. On settlement
  * the server calls patchGrantees(granteeRef, ...) to add the buyer and serves
- * back the actHistoryRef so the buyer can download_data_act.
+ * back the actHistoryRef so the buyer can download_data with ACT params.
  */
 import { Bee, UploadOptions, UploadResult } from "@ethersphere/bee-js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";

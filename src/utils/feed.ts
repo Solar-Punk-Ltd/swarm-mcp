@@ -216,8 +216,8 @@ export function decodeMarketplaceFeedPayload(
 
 /**
  * Tagged union for "what kind of payload is this feed entry?".
- * Tools that need to support both shapes (grant_feed_access, revoke_feed_access)
- * dispatch on `kind`.
+ * Tools that need to support both shapes (patch_feed_access) dispatch on
+ * `kind`.
  */
 export type DetectedFeedPayload =
   | { kind: "marketplace-v1"; payload: MarketplaceFeedPayload }

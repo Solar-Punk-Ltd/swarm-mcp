@@ -2,6 +2,16 @@ import { z } from "zod";
 
 export const uploadDataSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
+  act: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional(),
+  grantees: z.array(z.string()).optional(),
+  historyAddress: z.string().optional(),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
@@ -18,6 +28,9 @@ export const downloadDataSchema = z.object({
   reference: z
     .string()
     .min(1, { message: "Missing required parameter: reference." }),
+  actPublisher: z.string().optional(),
+  actHistoryAddress: z.string().optional(),
+  actTimestamp: z.coerce.number().optional(),
 });
 
 export const readFeedSchema = z.object({
@@ -29,6 +42,16 @@ export const readFeedSchema = z.object({
 
 export const uploadFileSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
+  act: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional(),
+  grantees: z.array(z.string()).optional(),
+  historyAddress: z.string().optional(),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
@@ -37,6 +60,16 @@ export const uploadFolderSchema = z.object({
   folderPath: z
     .string()
     .min(1, { message: "Missing required parameter: data." }),
+  act: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional(),
+  grantees: z.array(z.string()).optional(),
+  historyAddress: z.string().optional(),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
@@ -46,6 +79,9 @@ export const downloadFilesSchema = z.object({
     .string()
     .min(1, { message: "Missing required parameter: reference." }),
   filePath: z.string().optional(),
+  actPublisher: z.string().optional(),
+  actHistoryAddress: z.string().optional(),
+  actTimestamp: z.coerce.number().optional(),
 });
 
 export const listPostageStampsSchema = z.object({
@@ -171,56 +207,6 @@ export const estimateStampCostSchema = z.object({
   depth: z.coerce.number().int().positive().optional(),
 });
 
-export const uploadDataActSchema = z.object({
-  data: z.string().min(1, { message: "Missing required parameter: data." }),
-  grantees: z.array(pubKeyHexSchema).optional(),
-  historyAddress: refHexSchema.optional(),
-  redundancyLevel: z.coerce.number().optional().default(0),
-  postageBatchId: z.string().optional(),
-});
-
-export const uploadFileActSchema = z.object({
-  data: z.string().min(1, { message: "Missing required parameter: data." }),
-  isPath: z
-    .preprocess((value) => {
-      if (typeof value === "string") {
-        return value.trim().toLowerCase() === "true";
-      }
-      return value;
-    }, z.boolean())
-    .optional()
-    .default(false),
-  grantees: z.array(pubKeyHexSchema).optional(),
-  historyAddress: refHexSchema.optional(),
-  redundancyLevel: z.coerce.number().optional().default(0),
-  postageBatchId: z.string().optional(),
-});
-
-export const uploadFolderActSchema = z.object({
-  folderPath: z
-    .string()
-    .min(1, { message: "Missing required parameter: folderPath." }),
-  grantees: z.array(pubKeyHexSchema).optional(),
-  historyAddress: refHexSchema.optional(),
-  redundancyLevel: z.coerce.number().optional().default(0),
-  postageBatchId: z.string().optional(),
-});
-
-export const downloadDataActSchema = z.object({
-  reference: refHexSchema,
-  actPublisher: pubKeyHexSchema,
-  actHistoryAddress: refHexSchema,
-  actTimestamp: z.coerce.number().optional(),
-});
-
-export const downloadFilesActSchema = z.object({
-  reference: refHexSchema,
-  actPublisher: pubKeyHexSchema,
-  actHistoryAddress: refHexSchema,
-  actTimestamp: z.coerce.number().optional(),
-  filePath: z.string().optional(),
-});
-
 export const createGranteesSchema = z.object({
   grantees: z.array(pubKeyHexSchema).min(1, {
     message: "grantees must be a non-empty array of public keys",
@@ -303,19 +289,14 @@ export const fetchMarketplaceFeedSchema = z.object({
   feedOwner: z.string().optional(),
 });
 
-export const grantFeedAccessSchema = z.object({
+export const patchFeedAccessSchema = z.object({
   feedTopic: z
     .string()
     .min(1, { message: "Missing required parameter: feedTopic." }),
   granteePubKey: pubKeyHexSchema,
-  postageBatchId: z.string().optional(),
-});
-
-export const revokeFeedAccessSchema = z.object({
-  feedTopic: z
-    .string()
-    .min(1, { message: "Missing required parameter: feedTopic." }),
-  granteePubKey: pubKeyHexSchema,
+  mode: z.enum(["add", "revoke"], {
+    errorMap: () => ({ message: "mode must be either 'add' or 'revoke'." }),
+  }),
   postageBatchId: z.string().optional(),
 });
 

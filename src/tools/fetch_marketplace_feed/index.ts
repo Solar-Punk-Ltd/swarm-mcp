@@ -5,7 +5,7 @@
  * payload. Returns the full `dataItems[]` catalog so the caller can browse
  * and pick items to purchase / download. Does NOT auto-download anything --
  * the consumer uses `swarmHash` + `actHistoryRef` + publisherPubKey with
- * download_data_act after they've been granted access.
+ * download_data after they've been granted access.
  *
  * Strict: throws on unknown fields and on schemeVersion !== "v1".
  */

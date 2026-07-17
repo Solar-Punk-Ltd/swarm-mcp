@@ -10,12 +10,22 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
+import { normalizeGranteeList, normalizeReferenceHex } from "../../utils/act";
 import { UploadFolderArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
 import { collectFilesRelative, updateUploadFolderTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
 import { CreateTaskModel, TaskState } from "../../tasks/models";
+import config from "../../config";
+
+function isActRequested(args: UploadFolderArgs): boolean {
+  return (
+    args.act === true ||
+    (Array.isArray(args.grantees) && args.grantees.length > 0) ||
+    typeof args.historyAddress === "string"
+  );
+}
 
 export async function uploadFolder(
   args: UploadFolderArgs,
@@ -61,6 +71,10 @@ export async function uploadFolder(
     return getToolErrorResponse(error);
   } else if (postageBatchId === null) {
     return getToolErrorResponse("No postage batch id.");
+  }
+
+  if (isActRequested(args)) {
+    return uploadFolderAct(args, bee, postageBatchId);
   }
 
   const redundancyLevel = args.redundancyLevel;
@@ -167,5 +181,90 @@ export async function uploadFolder(
     reference: result.reference.toString(),
     message,
     tagId,
+  });
+}
+
+async function uploadFolderAct(
+  args: UploadFolderArgs,
+  bee: Bee,
+  postageBatchId: string
+): Promise<ToolResponse> {
+  let grantees: string[];
+  try {
+    grantees = normalizeGranteeList(args.grantees);
+  } catch (e) {
+    return getToolErrorResponse(
+      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+
+  let initialHistoryAddress: string | undefined;
+  if (args.historyAddress) {
+    try {
+      initialHistoryAddress = normalizeReferenceHex(args.historyAddress);
+    } catch (e) {
+      return getToolErrorResponse(
+        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+
+  let granteeListRef: string | null = null;
+  let actHistoryAddress = initialHistoryAddress;
+
+  if (grantees.length > 0) {
+    try {
+      const g = await bee.createGrantees(postageBatchId, grantees);
+      granteeListRef = g.ref.toHex();
+      actHistoryAddress = g.historyref.toHex();
+    } catch (err) {
+      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+        ? getErrorMessage(err)
+        : "Unable to create grantees list.";
+      return getToolErrorResponse(msg);
+    }
+  }
+
+  const options: CollectionUploadOptions = { act: true };
+  if (actHistoryAddress) options.actHistoryAddress = actHistoryAddress;
+  if (args.redundancyLevel !== undefined) {
+    options.redundancyLevel = args.redundancyLevel;
+  }
+
+  const allFiles = await collectFilesRelative(args.folderPath);
+  if (allFiles.length === 1) {
+    options.indexDocument = allFiles[0];
+  }
+
+  let uploadResult;
+  try {
+    uploadResult = await bee.uploadFilesFromDirectory(
+      postageBatchId,
+      args.folderPath,
+      options
+    );
+  } catch (err) {
+    const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+      ? getErrorMessage(err)
+      : "Unable to upload folder.";
+    return getToolErrorResponse(msg);
+  }
+
+  let uploadHistHex: string | undefined;
+  uploadResult.historyAddress?.ifPresent((r) => {
+    uploadHistHex = r.toHex();
+  });
+  const finalHistory = uploadHistHex ?? actHistoryAddress ?? null;
+
+  return getResponseWithStructuredContent({
+    reference: uploadResult.reference.toHex(),
+    historyAddress: finalHistory,
+    granteeListRef,
+    url: config.bee.endpoint + "/bzz/" + uploadResult.reference.toHex(),
+    grantees,
+    message:
+      grantees.length > 0
+        ? "Folder uploaded with ACT and granted access to the provided public keys."
+        : "Folder uploaded with ACT (publisher-only decryption -- no grantees attached).",
   });
 }

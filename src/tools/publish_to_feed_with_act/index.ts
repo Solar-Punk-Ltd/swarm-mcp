@@ -7,7 +7,7 @@
  * payload, and decrypt via ACT using the publisher pubkey + h.
  *
  * Flow when grantees are provided (required for the wizard -- without them
- * there's no grantee-list ref to patch later via grant_feed_access):
+ * there's no grantee-list ref to patch later via patch_feed_access):
  *   1. bee.createGrantees(stamp, grantees) -> { granteeListRef, historyref }
  *   2. bee.uploadFile/uploadData(..., { act: true, actHistoryAddress: historyref })
  *   3. bee.makeFeedWriter(...).uploadPayload(JSON { r, g, h })
@@ -79,7 +79,7 @@ export async function publishToFeedWithAct(
   }
   if (hasUpload && !hasCustomPayload && grantees.length === 0) {
     return getToolErrorResponse(
-      "Default-payload publish (upload with { r, g, h }) requires at least one grantee public key. Without one there is no grantee-list to patch later via grant_feed_access. Pass `customPayload` for a grantee-less feed write, or use upload_data_act + update_feed for a publisher-only upload."
+      "Default-payload publish (upload with { r, g, h }) requires at least one grantee public key. Without one there is no grantee-list to patch later via patch_feed_access. Pass `customPayload` for a grantee-less feed write, or use upload_data (with ACT params) + update_feed for a publisher-only upload."
     );
   }
 

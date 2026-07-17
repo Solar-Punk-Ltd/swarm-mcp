@@ -1,6 +1,9 @@
 /**
  * MCP Tool: upload_file
- * Upload a file to Swarm
+ * Upload a file to Swarm. If any ACT parameter is provided (act=true,
+ * grantees, or historyAddress), runs the ACT upload flow (no deferred/task
+ * support in the ACT path; grantee-list creation happens first when
+ * grantees[] is non-empty).
  */
 import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
@@ -16,11 +19,20 @@ import {
   ToolResponse,
 } from "../../utils";
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
+import { normalizeGranteeList, normalizeReferenceHex } from "../../utils/act";
 import { UploadFileArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 import { updateUploadFileTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
 import { CreateTaskModel, TaskState } from "../../tasks/models";
+
+function isActRequested(args: UploadFileArgs): boolean {
+  return (
+    args.act === true ||
+    (Array.isArray(args.grantees) && args.grantees.length > 0) ||
+    typeof args.historyAddress === "string"
+  );
+}
 
 export async function uploadFile(
   args: UploadFileArgs,
@@ -83,6 +95,10 @@ export async function uploadFile(
     name = path.basename(args.data);
   } else {
     binaryData = Buffer.from(args.data);
+  }
+
+  if (isActRequested(args)) {
+    return uploadFileAct(args, bee, postageBatchId, binaryData, name);
   }
 
   const redundancyLevel = args.redundancyLevel;
@@ -178,5 +194,89 @@ export async function uploadFile(
     url: config.bee.endpoint + "/bzz/" + result.reference.toString(),
     message,
     tagId,
+  });
+}
+
+async function uploadFileAct(
+  args: UploadFileArgs,
+  bee: Bee,
+  postageBatchId: string,
+  binaryData: Buffer,
+  name: string | undefined
+): Promise<ToolResponse> {
+  let grantees: string[];
+  try {
+    grantees = normalizeGranteeList(args.grantees);
+  } catch (e) {
+    return getToolErrorResponse(
+      `Invalid grantee: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+
+  let initialHistoryAddress: string | undefined;
+  if (args.historyAddress) {
+    try {
+      initialHistoryAddress = normalizeReferenceHex(args.historyAddress);
+    } catch (e) {
+      return getToolErrorResponse(
+        `Invalid historyAddress: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+
+  let granteeListRef: string | null = null;
+  let actHistoryAddress = initialHistoryAddress;
+
+  if (grantees.length > 0) {
+    try {
+      const g = await bee.createGrantees(postageBatchId, grantees);
+      granteeListRef = g.ref.toHex();
+      actHistoryAddress = g.historyref.toHex();
+    } catch (err) {
+      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+        ? getErrorMessage(err)
+        : "Unable to create grantees list.";
+      return getToolErrorResponse(msg);
+    }
+  }
+
+  const options: FileUploadOptions = { act: true };
+  if (actHistoryAddress) options.actHistoryAddress = actHistoryAddress;
+  if (args.redundancyLevel !== undefined) {
+    options.redundancyLevel = args.redundancyLevel;
+  }
+
+  let uploadResult;
+  try {
+    uploadResult = await bee.uploadFile(
+      postageBatchId,
+      binaryData,
+      name,
+      options
+    );
+  } catch (err) {
+    const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+      ? getErrorMessage(err)
+      : "Unable to upload file.";
+    return getToolErrorResponse(msg);
+  }
+
+  let uploadHistHex: string | undefined;
+  uploadResult.historyAddress?.ifPresent((r) => {
+    uploadHistHex = r.toHex();
+  });
+  const finalHistory = uploadHistHex ?? actHistoryAddress ?? null;
+
+  return getResponseWithStructuredContent({
+    reference: uploadResult.reference.toHex(),
+    historyAddress: finalHistory,
+    granteeListRef,
+    url: config.bee.endpoint + "/bzz/" + uploadResult.reference.toHex(),
+    name,
+    grantees,
+    message:
+      grantees.length > 0
+        ? "File uploaded with ACT and granted access to the provided public keys."
+        : "File uploaded with ACT (publisher-only decryption -- no grantees attached).",
   });
 }
