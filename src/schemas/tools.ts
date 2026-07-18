@@ -74,8 +74,7 @@ export const SwarmToolsSchema = [
           type: "string",
           description:
             "Required. Must be supplied by the user. If missing, ask the user — never invent, hash, or derive from the data. " +
-            "It is the label of the memory that can be used later to retrieve the data instead of its content hash. " +
-            "If not a hex string, it will be hashed to create a feed topic",
+            "The feed topic. Pass exactly whatever the user names it as a plain string (e.g. 'notes', 'Topic1', 'game-state') -- the server hashes non-hex strings into a topic automatically. Do NOT derive it from the data. Only ask the user if they gave no topic at all.",
         },
         postageBatchId: {
           type: "string",
