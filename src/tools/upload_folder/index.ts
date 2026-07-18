@@ -146,21 +146,39 @@ export async function uploadFolder(
     };
   }
 
+  // Fire-and-forget path when a tag was created (folders always request
+  // deferred). Return immediately with the tagId so the MCP client doesn't
+  // time out; progress + final reference are discoverable via
+  // query_upload_progress.
+  if (deferred && tagId) {
+    bee
+      .uploadFilesFromDirectory(postageBatchId, args.folderPath, options)
+      .catch(() => {
+        /* failure surfaces via query_upload_progress on the tag */
+      });
+    return getResponseWithStructuredContent({
+      tagId,
+      message:
+        "Folder upload started in the background. Poll query_upload_progress with this tagId to check completion; the final reference is available on the tag once processed=true.",
+    });
+  }
+
   let result;
 
   try {
-    // Start the deferred upload
     result = await bee.uploadFilesFromDirectory(
       postageBatchId,
       args.folderPath,
       options
     );
   } catch (error) {
-    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
-      ? getErrorMessage(error)
-      : "Unable to upload folder.";
-
-    return getToolErrorResponse(errorMsg);
+    const detail =
+      errorHasStatus(error, BAD_REQUEST_STATUS) && getErrorMessage(error)
+        ? getErrorMessage(error)
+        : error instanceof Error
+          ? error.message
+          : String(error);
+    return getToolErrorResponse(`Unable to upload folder: ${detail}`);
   }
 
   return getResponseWithStructuredContent({

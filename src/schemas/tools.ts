@@ -180,7 +180,8 @@ export const SwarmToolsSchema = [
     name: "upload_file",
     title: "Upload file",
     description:
-      "Upload a file to Swarm. Optional options (ignore if they are not requested): " +
+      "Upload a file to Swarm. Small files upload synchronously and return { reference, url }. Large files (over the server's deferred-upload threshold) upload in the background and return { tagId } immediately -- poll query_upload_progress with that tagId to get the final reference. " +
+      "Optional options (ignore if they are not requested): " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {
@@ -215,7 +216,8 @@ export const SwarmToolsSchema = [
     name: "upload_folder",
     title: "Upload folder",
     description:
-      "Upload a folder to Swarm. Optional options (ignore if they are not requested): " +
+      "Upload a folder to Swarm. Uploads run in the background and return { tagId } immediately -- poll query_upload_progress with that tagId to get the final reference. " +
+      "Optional options (ignore if they are not requested): " +
       "folderPath: path to the folder to upload. " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
