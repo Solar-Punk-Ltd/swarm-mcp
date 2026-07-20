@@ -123,8 +123,7 @@ export const SwarmToolsSchema = [
           type: "string",
           description:
             "Required. Must be supplied by the user. If missing, ask the user — never invent, hash, or derive from the data. " +
-            "It is the label of the memory that can be used later to retrieve the data instead of its content hash. " +
-            "If not a hex string, it will be hashed to create a feed topic",
+            "The feed topic. Pass exactly whatever the user names it as a plain string (e.g. 'notes', 'Topic1', 'game-state') -- the server hashes non-hex strings into a topic automatically. Do NOT derive it from the data. Only ask the user if they gave no topic at all.",
         },
         postageBatchId: {
           type: "string",
@@ -252,7 +251,10 @@ export const SwarmToolsSchema = [
       "Upload a file to Swarm. Plain upload by default; pass any of `act`, " +
       "`grantees`, or `historyAddress` to upload with ACT encryption (grantee " +
       "list is created first when grantees[] is non-empty). Note: ACT uploads " +
-      "do not use deferred/task mode.",
+      "do not use deferred/task mode." +
+      "Optional options (ignore if they are not requested): " +
+      "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+      "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {
       type: "object",
       properties: {
@@ -304,7 +306,11 @@ export const SwarmToolsSchema = [
       "Upload a folder to Swarm. Plain upload by default; pass any of `act`, " +
       "`grantees`, or `historyAddress` to upload with ACT encryption (grantee " +
       "list is created first when grantees[] is non-empty). Note: ACT uploads " +
-      "do not use deferred/task mode.",
+      "do not use deferred/task mode." +
+      "Optional options (ignore if they are not requested): " +
+      "folderPath: path to the folder to upload. " +
+      "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
+      "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {
       type: "object",
       properties: {

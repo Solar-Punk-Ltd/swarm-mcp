@@ -67,51 +67,54 @@ export async function uploadFile(
     return getToolErrorResponse("No postage batch id.");
   }
 
-  let binaryData: Buffer;
-  let name: string | undefined;
-
+  // Detect path + size WITHOUT reading the file yet. For huge files, reading
+  // 100+ MB into memory before returning would blow past the MCP client's
+  // request timeout on its own -- we need to know the size to decide whether
+  // to defer, but not the bytes.
   let isPath = false;
+  let sizeBytes = 0;
   try {
-    isPath = (await stat(args.data)).isFile();
+    const s = await stat(args.data);
+    if (s.isFile()) {
+      isPath = true;
+      sizeBytes = s.size;
+    }
   } catch {
     isPath = false;
   }
 
-
-  if (isPath) {
-    // Check if in stdio mode for file path uploads
-    if (!(transport instanceof StdioServerTransport)) {
-      return getToolErrorResponse(
-        "File path uploads are only supported in stdio mode."
-      );
-    }
-
-    // Read file from path
-    try {
-      binaryData = await readFile(args.data);
-    } catch (fileError) {
-      return getToolErrorResponse(`Unable to read file at path: ${args.data}.`);
-    }
-    name = path.basename(args.data);
-  } else {
-    binaryData = Buffer.from(args.data);
+  if (isPath && !(transport instanceof StdioServerTransport)) {
+    return getToolErrorResponse(
+      "File path uploads are only supported in stdio mode."
+    );
   }
+
+  const name = isPath ? path.basename(args.data) : undefined;
 
   if (isActRequested(args)) {
-    return uploadFileAct(args, bee, postageBatchId, binaryData, name);
+    return uploadFileAct(
+      args,
+      bee,
+      postageBatchId,
+      Buffer.from(args.data),
+      name
+    );
   }
+
+  const effectiveSize = isPath
+    ? sizeBytes
+    : Buffer.byteLength(args.data, "utf8");
 
   const redundancyLevel = args.redundancyLevel;
   const options: FileUploadOptions = {};
 
   const deferred =
-    binaryData.length > config.bee.deferredUploadSizeThreshold * 1024 * 1024;
+    effectiveSize > config.bee.deferredUploadSizeThreshold * 1024 * 1024;
   options.deferred = deferred;
   options.redundancyLevel = redundancyLevel;
 
   let message = "File successfully uploaded to Swarm";
   let tagId: string | undefined = undefined;
-  // Create tag for deferred uploads or when explicitly requested
   if (deferred) {
     try {
       const tag = await bee.createTag();
@@ -124,7 +127,40 @@ export async function uploadFile(
     }
   }
 
+  // Fire-and-forget path for deferred uploads: return immediately with the
+  // tagId so the MCP client doesn't time out on large files. The file read
+  // AND the upload both happen in the background; progress and the final
+  // reference are discoverable via query_upload_progress.
   const isRunningAsTask = taskManager && createTaskModel;
+  if (!isRunningAsTask && deferred && tagId) {
+    (async () => {
+      try {
+        const bytes = isPath
+          ? await readFile(args.data)
+          : Buffer.from(args.data);
+        await bee.uploadFile(postageBatchId, bytes, name, options);
+      } catch {
+        /* failure surfaces via query_upload_progress on the tag */
+      }
+    })();
+    return getResponseWithStructuredContent({
+      tagId,
+      message:
+        "Upload started in the background. Poll query_upload_progress with this tagId to check completion; the final reference is available on the tag once processed=true.",
+    });
+  }
+
+  // Small-file / inline sync path: read now, upload now.
+  let binaryData: Buffer;
+  if (isPath) {
+    try {
+      binaryData = await readFile(args.data);
+    } catch {
+      return getToolErrorResponse(`Unable to read file at path: ${args.data}.`);
+    }
+  } else {
+    binaryData = Buffer.from(args.data);
+  }
 
   if (isRunningAsTask) {
     const task = await taskManager.createTask(
@@ -179,14 +215,15 @@ export async function uploadFile(
   let result;
 
   try {
-    // Start the deferred upload
     result = await bee.uploadFile(postageBatchId, binaryData, name, options);
   } catch (error) {
-    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
-      ? getErrorMessage(error)
-      : "Unable to upload file.";
-
-    return getToolErrorResponse(errorMsg);
+    const detail =
+      errorHasStatus(error, BAD_REQUEST_STATUS) && getErrorMessage(error)
+        ? getErrorMessage(error)
+        : error instanceof Error
+          ? error.message
+          : String(error);
+    return getToolErrorResponse(`Unable to upload file: ${detail}`);
   }
 
   return getResponseWithStructuredContent({
