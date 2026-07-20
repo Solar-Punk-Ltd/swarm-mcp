@@ -19,18 +19,12 @@ export async function patchFeedAccess(
   const outcome = await patchFeedAcl(args, bee);
   if (!outcome.ok) return outcome.error;
 
-  const isMarketplace = outcome.kind === "marketplace-v1";
   const message =
     args.mode === "add"
-      ? isMarketplace
-        ? `Grantee added to all ${outcome.result.itemsPatched} item(s) in the marketplace feed. Consumer can now decrypt via fetch_marketplace_feed + download_data.`
-        : "Grantee added to the latest feed entry. Consumer can now decrypt via fetch_from_feed_with_act."
-      : isMarketplace
-        ? `Grantee revoked from all ${outcome.result.itemsPatched} item(s) in the marketplace feed. Note: old historyAddress values still decrypt -- revocation is forward-only.`
-        : "Grantee revoked from the latest feed entry. Note: old historyAddress values still decrypt -- revocation is forward-only.";
+      ? "Grantee added to the latest feed entry. Consumer can now decrypt via fetch_from_feed_with_act."
+      : "Grantee revoked from the latest feed entry. Note: old historyAddress values still decrypt -- revocation is forward-only.";
 
   return getResponseWithStructuredContent({
-    kind: outcome.kind,
     ...outcome.result,
     message,
   });

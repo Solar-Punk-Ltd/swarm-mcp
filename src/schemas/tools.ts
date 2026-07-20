@@ -18,8 +18,6 @@ export const ACT_ADJACENT_TOOLS = [
   "publish_to_feed_with_act",
   "fetch_from_feed_with_act",
   "patch_feed_access",
-  "publish_marketplace_feed",
-  "fetch_marketplace_feed",
   "gsoc_send",
   "get_node_public_key",
 ];
@@ -717,12 +715,11 @@ export const SwarmToolsSchema = [
     title: "Patch feed access",
     description:
       "Add (mode='add') or revoke (mode='revoke') a grantee public key on the " +
-      "latest feed entry's grantee list and advance the feed. This operates on " +
-      "the FEED level and dispatches on the payload shape (r-g-h or " +
-      "marketplace-v1); use patch_grantees directly when you already know the " +
-      "grantee-list reference out-of-band. Note: revocation is forward-only -- " +
-      "anyone who already knows the old historyAddress can still decrypt " +
-      "existing content.",
+      "latest feed entry's grantee list (expected shape { r, g, h }) and " +
+      "advance the feed. Use patch_grantees directly when you already know " +
+      "the grantee-list reference out-of-band. Note: revocation is " +
+      "forward-only -- anyone who already knows the old historyAddress can " +
+      "still decrypt existing content.",
     inputSchema: {
       type: "object",
       properties: {
@@ -759,101 +756,6 @@ export const SwarmToolsSchema = [
         actTimestamp: { type: "number" },
       },
       required: ["feedTopic", "publisherPubKey"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "publish_marketplace_feed",
-    title: "Publish to marketplace feed (ACT + schema v1)",
-    description:
-      "Publishes one data item to a marketplace-v1 feed. append=true (default) reads the latest feed entry and appends the new item to dataItems[]; append=false replaces. Payload shape: { schemeVersion: 'v1', dataItems: [{ swarmHash, actHistoryRef, granteeRef, displayName, metadata[], tags[] }, ...] }. Consumer-side uses fetch_marketplace_feed to browse + download_data to decrypt a picked item.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        feedTopic: {
-          type: "string",
-          description:
-            "Plain-text topic label (hashed with SHA-256) or a 64-char hex topic. Optional: defaults to METADATA_FEED_TOPIC env var if set.",
-        },
-        agentId: {
-          type: "integer",
-          description:
-            "Integer ID of the publishing agent (e.g. ERC-8004 NFT token ID).",
-        },
-        publisherPublicKey: {
-          type: "string",
-          description:
-            "Compressed secp256k1 public key (33 bytes / 66 hex chars) of the publisher. Optional: defaults to the local Bee node's public key.",
-        },
-        data: { type: "string", description: "Text content to upload." },
-        filePath: {
-          type: "string",
-          description: "Path to a file (stdio mode only).",
-        },
-        isPath: { type: "boolean", default: false },
-        displayName: {
-          type: "string",
-          description: "Human-readable name for this data item.",
-        },
-        metadata: {
-          type: "array",
-          description:
-            "Array of { key, value } metadata entries describing the data item.",
-          items: {
-            type: "object",
-            properties: {
-              key: { type: "string" },
-              value: { type: "string" },
-            },
-            required: ["key", "value"],
-            additionalProperties: false,
-          },
-        },
-        tags: {
-          type: "array",
-          items: { type: "string" },
-          description: "Distinct from metadata -- tags for search/filtering.",
-        },
-        grantees: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Public keys authorized to decrypt this item. Optional: if omitted or empty, the publisher's own pubkey is auto-seeded so the item stays patchable later via patch_feed_access / patch_grantees. Pass concrete buyer pubkeys here if you already know them at publish time.",
-        },
-        append: {
-          type: "boolean",
-          default: true,
-          description:
-            "true = read latest feed and append this item to dataItems[]; false = replace with a single-item catalog.",
-        },
-        redundancyLevel: { type: "number", default: 0 },
-        postageBatchId: { type: "string" },
-      },
-      required: ["agentId", "displayName"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "fetch_marketplace_feed",
-    title: "Fetch marketplace feed catalog",
-    description:
-      "Reads the latest feed entry and STRICT-parses it as marketplace-v1. Returns the full dataItems[] so the caller can browse the catalog. Does NOT download any item -- use download_data with swarmHash + actHistoryRef + publisherPubKey to decrypt the chosen one (assuming the consumer's pubkey is on that item's granteeRef).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        feedTopic: {
-          type: "string",
-          description:
-            "Optional: defaults to METADATA_FEED_TOPIC env var if set.",
-        },
-        publisherPubKey: { type: "string" },
-        feedOwner: {
-          type: "string",
-          description:
-            "Optional ETH address of the feed owner. Defaults to ethAddress(publisherPubKey).",
-        },
-      },
-      required: ["publisherPubKey"],
     },
     execution: { taskSupport: "forbidden" },
   },

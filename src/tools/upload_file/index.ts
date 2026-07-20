@@ -92,13 +92,19 @@ export async function uploadFile(
   const name = isPath ? path.basename(args.data) : undefined;
 
   if (isActRequested(args)) {
-    return uploadFileAct(
-      args,
-      bee,
-      postageBatchId,
-      Buffer.from(args.data),
-      name
-    );
+    let binaryData: Buffer;
+    if (isPath) {
+      try {
+        binaryData = await readFile(args.data);
+      } catch {
+        return getToolErrorResponse(
+          `Unable to read file at path: ${args.data}.`
+        );
+      }
+    } else {
+      binaryData = Buffer.from(args.data);
+    }
+    return uploadFileAct(args, bee, postageBatchId, binaryData, name);
   }
 
   const effectiveSize = isPath

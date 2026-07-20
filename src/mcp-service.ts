@@ -52,8 +52,6 @@ import { patchGrantees } from "./tools/patch_grantees";
 import { publishToFeedWithAct } from "./tools/publish_to_feed_with_act";
 import { patchFeedAccess } from "./tools/patch_feed_access";
 import { fetchFromFeedWithAct } from "./tools/fetch_from_feed_with_act";
-import { publishMarketplaceFeed } from "./tools/publish_marketplace_feed";
-import { fetchMarketplaceFeed } from "./tools/fetch_marketplace_feed";
 import { gsocSend } from "./tools/gsoc_send";
 
 // Model types
@@ -76,8 +74,6 @@ import type { PatchGranteesArgs } from "./tools/patch_grantees/models";
 import type { PublishToFeedWithActArgs } from "./tools/publish_to_feed_with_act/models";
 import type { PatchFeedAccessArgs } from "./tools/patch_feed_access/models";
 import type { FetchFromFeedWithActArgs } from "./tools/fetch_from_feed_with_act/models";
-import type { PublishMarketplaceFeedArgs } from "./tools/publish_marketplace_feed/models";
-import type { FetchMarketplaceFeedArgs } from "./tools/fetch_marketplace_feed/models";
 import type { GsocSendArgs } from "./tools/gsoc_send/models";
 
 // Zod schemas
@@ -104,8 +100,6 @@ import {
   publishToFeedWithActSchema,
   patchFeedAccessSchema,
   fetchFromFeedWithActSchema,
-  publishMarketplaceFeedSchema,
-  fetchMarketplaceFeedSchema,
   gsocSendSchema,
 } from "./schemas/zod-schemas";
 import { TASK_POLL_INTERVAL } from "./tasks/constants";
@@ -429,23 +423,6 @@ export class SwarmMCPServer {
               );
             }
 
-            case "publish_marketplace_feed": {
-              const validArgs = publishMarketplaceFeedSchema.parse(args);
-              return publishMarketplaceFeed(
-                validArgs as unknown as PublishMarketplaceFeedArgs,
-                this.bee,
-                this.server.server.transport
-              );
-            }
-
-            case "fetch_marketplace_feed": {
-              const validArgs = fetchMarketplaceFeedSchema.parse(args);
-              return fetchMarketplaceFeed(
-                validArgs as FetchMarketplaceFeedArgs,
-                this.bee
-              );
-            }
-
             case "gsoc_send": {
               const validArgs = gsocSendSchema.parse(args);
               return gsocSend(validArgs as GsocSendArgs, this.bee);
@@ -679,8 +656,6 @@ export class SwarmMCPServer {
           "publish_to_feed_with_act",
           "patch_feed_access",
           "fetch_from_feed_with_act",
-          "publish_marketplace_feed",
-          "fetch_marketplace_feed",
           "gsoc_send",
         ];
         tools = tools.filter((item) => !nodeOnlyTools.includes(item.name));
