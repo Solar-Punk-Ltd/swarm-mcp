@@ -6,19 +6,15 @@ import {
 
 /**
  * Tool names hidden when SWARM_MCP_ENABLE_ACT is not "true". Covers the
- * grantee CRUD, ACT-aware feed helpers, marketplace feed tools, GSOC, and
- * the publisher-identity helper -- the ACT params on upload_data / upload_file
- * / upload_folder / download_data / download_files remain available in both
- * modes since those tools also serve the plain-upload/download paths.
+ * grantee CRUD and the publisher-identity helper -- the ACT params on
+ * upload_data / upload_file / upload_folder / download_data / download_files
+ * remain available in both modes since those tools also serve the
+ * plain-upload/download paths.
  */
 export const ACT_ADJACENT_TOOLS = [
   "create_grantees",
   "list_grantees",
   "patch_grantees",
-  "publish_to_feed_with_act",
-  "fetch_from_feed_with_act",
-  "patch_feed_access",
-  "gsoc_send",
   "get_node_public_key",
 ];
 
@@ -553,63 +549,6 @@ export const SwarmToolsSchema = [
     execution: { taskSupport: "forbidden" },
   },
   {
-    name: "get_wallet_address",
-    title: "Get wallet address",
-    description:
-      "Returns the ETH address of the Bee node's wallet. Use this to tell a user where to send BZZ / xDAI before purchasing a postage stamp.",
-    inputSchema: { type: "object", properties: {} },
-    outputSchema: {
-      type: "object",
-      properties: {
-        address: { type: "string" },
-        chainId: { type: "number" },
-        chequebookContractAddress: { type: "string" },
-      },
-      required: ["address"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "get_wallet_balance",
-    title: "Get wallet balance",
-    description:
-      "Returns BZZ / native-token / chequebook balances of the Bee node's wallet. Use before create_postage_stamp to check funds.",
-    inputSchema: { type: "object", properties: {} },
-    outputSchema: {
-      type: "object",
-      properties: {
-        walletAddress: { type: "string" },
-        chainId: { type: "number" },
-        bzzBalance: { type: "string" },
-        nativeTokenBalance: { type: "string" },
-        chequebookAddress: { type: "string" },
-        chequebookTotalBalance: { type: "string" },
-        chequebookAvailableBalance: { type: "string" },
-      },
-      required: ["walletAddress", "bzzBalance", "nativeTokenBalance"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "estimate_stamp_cost",
-    title: "Estimate stamp cost",
-    description:
-      "Given a data size and duration (same format as create_postage_stamp: e.g. '15mb', '90d'), returns a recommended depth (with 20% headroom) and BZZ cost derived from current chain price. Read-only; does not purchase anything.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        size: { type: "string", description: "e.g. '15mb', '1gb'" },
-        duration: { type: "string", description: "e.g. '30d', '1month'" },
-        depth: {
-          type: "number",
-          description: "Override the automatically-chosen depth.",
-        },
-      },
-      required: ["size", "duration"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
     name: "create_grantees",
     title: "Create grantees list",
     description:
@@ -655,159 +594,6 @@ export const SwarmToolsSchema = [
         postageBatchId: { type: "string" },
       },
       required: ["reference", "historyAddress"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "publish_to_feed_with_act",
-    title: "Publish to feed (ACT)",
-    description:
-      "Opinionated provider flow: upload content with ACT (+ optional grantees) and publish its { r, g, h } JSON to a feed entry identified by a plain-text topic. Accepts either `data` (raw text) or `filePath` (file on disk; stdio mode only). Advanced: pass `customPayload` to write an arbitrary JSON blob to the feed instead of the default { r, g, h } shape -- upload still runs if data/filePath are provided and the ACT refs come back in the response for you to embed.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        feedTopic: {
-          type: "string",
-          description:
-            "Plain-text topic label (hashed with SHA-256) or a 64-char hex topic.",
-        },
-        data: { type: "string" },
-        filePath: { type: "string" },
-        isPath: { type: "boolean", default: false },
-        grantees: {
-          type: "array",
-          items: { type: "string" },
-          description: "Optional public keys to grant at publish time.",
-        },
-        redundancyLevel: { type: "number", default: 0 },
-        postageBatchId: { type: "string" },
-        customPayload: {
-          description:
-            "Advanced escape hatch: JSON object or stringified JSON to write to the feed verbatim, replacing the default { r, g, h } payload. Upload still runs if data/filePath provided; embed the returned swarmHash/historyAddress/granteeListRef in your custom shape if needed.",
-        },
-      },
-      required: ["feedTopic"],
-    },
-    outputSchema: {
-      type: "object",
-      properties: {
-        feedTopic: { type: "string" },
-        feedTopicHex: { type: "string" },
-        feedOwner: { type: "string" },
-        feedUrl: { type: "string" },
-        feedReference: { type: "string" },
-        reference: { type: "string" },
-        historyAddress: { type: "string" },
-        grantees: { type: "array", items: { type: "string" } },
-      },
-      required: [
-        "feedTopic",
-        "feedOwner",
-        "feedReference",
-        "reference",
-        "historyAddress",
-      ],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "patch_feed_access",
-    title: "Patch feed access",
-    description:
-      "Add (mode='add') or revoke (mode='revoke') a grantee public key on the " +
-      "latest feed entry's grantee list (expected shape { r, g, h }) and " +
-      "advance the feed. Use patch_grantees directly when you already know " +
-      "the grantee-list reference out-of-band. Note: revocation is " +
-      "forward-only -- anyone who already knows the old historyAddress can " +
-      "still decrypt existing content.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        feedTopic: { type: "string" },
-        granteePubKey: { type: "string" },
-        mode: {
-          type: "string",
-          enum: ["add", "revoke"],
-          description:
-            "'add' grants access; 'revoke' removes it (forward-only).",
-        },
-        postageBatchId: { type: "string" },
-      },
-      required: ["feedTopic", "granteePubKey", "mode"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "fetch_from_feed_with_act",
-    title: "Fetch from feed (ACT)",
-    description:
-      "Consumer flow: read the latest feed entry for a topic, resolve the { reference, historyAddress } payload, and download with ACT using the publisher's public key. If feedOwner is omitted, it's derived from publisherPubKey (aligned identity). Provide filePath to save binary / manifest content; otherwise returns text.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        feedTopic: { type: "string" },
-        publisherPubKey: { type: "string" },
-        feedOwner: {
-          type: "string",
-          description:
-            "Optional ETH address of the feed owner. Defaults to ethAddress(publisherPubKey).",
-        },
-        filePath: { type: "string" },
-        actTimestamp: { type: "number" },
-      },
-      required: ["feedTopic", "publisherPubKey"],
-    },
-    execution: { taskSupport: "forbidden" },
-  },
-  {
-    name: "gsoc_send",
-    title: "Send GSOC message",
-    description:
-      "Sends a GSOC message via bee.gsocSend. Caller provides a mined GSOC signer (resourceId = 32-byte hex private key) and a human-readable topic (hashed into an Identifier internally). The message body is decoded per `encoding` (utf8 default; base64 / hex also supported). Returns the chunk reference plus the signerAddress a subscriber would plug into gsocSubscribe. Requires a full Bee node — gateways refuse GSOC writes.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        message: {
-          type: "string",
-          description: "Message body. Decoded per `encoding`.",
-        },
-        resourceId: {
-          type: "string",
-          description:
-            "32-byte hex private key, mined for the target overlay (the GSOC signer). Same value a subscriber uses on the receiving end. 0x-prefix accepted.",
-        },
-        topic: {
-          type: "string",
-          description:
-            "Human-readable topic label. Hashed into a 32-byte Identifier via Identifier.fromString. The subscriber must use the same string.",
-        },
-        encoding: {
-          type: "string",
-          enum: ["utf8", "base64", "hex"],
-          default: "utf8",
-          description:
-            "How to decode `message` bytes. Default utf8. Use base64 or hex for binary payloads.",
-        },
-        postageBatchId: {
-          type: "string",
-          description:
-            "Postage stamp ID for the chunk. Falls back to AUTO_ASSIGN_STAMP if unset.",
-        },
-      },
-      required: ["message", "resourceId", "topic"],
-    },
-    outputSchema: {
-      type: "object",
-      properties: {
-        reference: { type: "string" },
-        bytesSent: { type: "number" },
-        encoding: { type: "string" },
-        topic: { type: "string" },
-        topicHex: { type: "string" },
-        signerAddress: { type: "string" },
-        message: { type: "string" },
-      },
-      required: ["reference", "bytesSent", "signerAddress"],
     },
     execution: { taskSupport: "forbidden" },
   },

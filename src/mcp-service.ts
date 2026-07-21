@@ -43,16 +43,9 @@ import { extendPostageStamp } from "./tools/extend_postage_stamp";
 
 // ACT + feed wizard tools + helpers
 import { getNodePublicKey } from "./tools/get_node_public_key";
-import { getWalletAddress } from "./tools/get_wallet_address";
-import { getWalletBalance } from "./tools/get_wallet_balance";
-import { estimateStampCostTool } from "./tools/estimate_stamp_cost";
 import { createGrantees } from "./tools/create_grantees";
 import { listGrantees } from "./tools/list_grantees";
 import { patchGrantees } from "./tools/patch_grantees";
-import { publishToFeedWithAct } from "./tools/publish_to_feed_with_act";
-import { patchFeedAccess } from "./tools/patch_feed_access";
-import { fetchFromFeedWithAct } from "./tools/fetch_from_feed_with_act";
-import { gsocSend } from "./tools/gsoc_send";
 
 // Model types
 import type { UploadFileArgs } from "./tools/upload_file/models";
@@ -67,14 +60,9 @@ import type { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
 import type { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
 import type { ExtendPostageStampArgs } from "./tools/extend_postage_stamp/models";
 import type { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
-import type { EstimateStampCostArgs } from "./tools/estimate_stamp_cost/models";
 import type { CreateGranteesArgs } from "./tools/create_grantees/models";
 import type { ListGranteesArgs } from "./tools/list_grantees/models";
 import type { PatchGranteesArgs } from "./tools/patch_grantees/models";
-import type { PublishToFeedWithActArgs } from "./tools/publish_to_feed_with_act/models";
-import type { PatchFeedAccessArgs } from "./tools/patch_feed_access/models";
-import type { FetchFromFeedWithActArgs } from "./tools/fetch_from_feed_with_act/models";
-import type { GsocSendArgs } from "./tools/gsoc_send/models";
 
 // Zod schemas
 import {
@@ -91,16 +79,9 @@ import {
   extendPostageStampSchema,
   queryUploadProgressSchema,
   getNodePublicKeySchema,
-  getWalletAddressSchema,
-  getWalletBalanceSchema,
-  estimateStampCostSchema,
   createGranteesSchema,
   listGranteesSchema,
   patchGranteesSchema,
-  publishToFeedWithActSchema,
-  patchFeedAccessSchema,
-  fetchFromFeedWithActSchema,
-  gsocSendSchema,
 } from "./schemas/zod-schemas";
 import { TASK_POLL_INTERVAL } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
@@ -364,24 +345,6 @@ export class SwarmMCPServer {
               return getNodePublicKey(this.bee);
             }
 
-            case "get_wallet_address": {
-              getWalletAddressSchema.parse(args);
-              return getWalletAddress(this.bee);
-            }
-
-            case "get_wallet_balance": {
-              getWalletBalanceSchema.parse(args);
-              return getWalletBalance(this.bee);
-            }
-
-            case "estimate_stamp_cost": {
-              const validArgs = estimateStampCostSchema.parse(args);
-              return estimateStampCostTool(
-                validArgs as EstimateStampCostArgs,
-                this.bee
-              );
-            }
-
             case "create_grantees": {
               const validArgs = createGranteesSchema.parse(args);
               return createGrantees(validArgs as CreateGranteesArgs, this.bee);
@@ -395,37 +358,6 @@ export class SwarmMCPServer {
             case "patch_grantees": {
               const validArgs = patchGranteesSchema.parse(args);
               return patchGrantees(validArgs as PatchGranteesArgs, this.bee);
-            }
-
-            case "publish_to_feed_with_act": {
-              const validArgs = publishToFeedWithActSchema.parse(args);
-              return publishToFeedWithAct(
-                validArgs as unknown as PublishToFeedWithActArgs,
-                this.bee,
-                this.server.server.transport
-              );
-            }
-
-            case "patch_feed_access": {
-              const validArgs = patchFeedAccessSchema.parse(args);
-              return patchFeedAccess(
-                validArgs as PatchFeedAccessArgs,
-                this.bee
-              );
-            }
-
-            case "fetch_from_feed_with_act": {
-              const validArgs = fetchFromFeedWithActSchema.parse(args);
-              return fetchFromFeedWithAct(
-                validArgs as FetchFromFeedWithActArgs,
-                this.bee,
-                this.server.server.transport
-              );
-            }
-
-            case "gsoc_send": {
-              const validArgs = gsocSendSchema.parse(args);
-              return gsocSend(validArgs as GsocSendArgs, this.bee);
             }
 
             default:
@@ -647,16 +579,9 @@ export class SwarmMCPServer {
           "extend_postage_stamp",
           "query_upload_progress",
           "get_node_public_key",
-          "get_wallet_address",
-          "get_wallet_balance",
-          "estimate_stamp_cost",
           "create_grantees",
           "list_grantees",
           "patch_grantees",
-          "publish_to_feed_with_act",
-          "patch_feed_access",
-          "fetch_from_feed_with_act",
-          "gsoc_send",
         ];
         tools = tools.filter((item) => !nodeOnlyTools.includes(item.name));
       }

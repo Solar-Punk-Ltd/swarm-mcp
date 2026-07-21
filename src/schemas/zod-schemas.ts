@@ -143,18 +143,6 @@ const refHexSchema = z.string().min(64, {
 
 export const getNodePublicKeySchema = z.object({});
 
-export const getWalletAddressSchema = z.object({});
-
-export const getWalletBalanceSchema = z.object({});
-
-export const estimateStampCostSchema = z.object({
-  size: z.string().min(1, { message: "Missing required parameter: size." }),
-  duration: z
-    .string()
-    .min(1, { message: "Missing required parameter: duration." }),
-  depth: z.coerce.number().int().positive().optional(),
-});
-
 export const createGranteesSchema = z.object({
   grantees: z.array(pubKeyHexSchema).min(1, {
     message: "grantees must be a non-empty array of public keys",
@@ -174,56 +162,3 @@ export const patchGranteesSchema = z.object({
   postageBatchId: z.string().optional(),
 });
 
-export const publishToFeedWithActSchema = z.object({
-  feedTopic: z
-    .string()
-    .min(1, { message: "Missing required parameter: feedTopic." }),
-  data: z.string().optional(),
-  filePath: z.string().optional(),
-  isPath: z
-    .preprocess((value) => {
-      if (typeof value === "string") {
-        return value.trim().toLowerCase() === "true";
-      }
-      return value;
-    }, z.boolean())
-    .optional()
-    .default(false),
-  grantees: z.array(pubKeyHexSchema).optional(),
-  redundancyLevel: z.coerce.number().optional().default(0),
-  postageBatchId: z.string().optional(),
-  customPayload: z.union([z.string(), z.record(z.unknown())]).optional(),
-});
-
-export const patchFeedAccessSchema = z.object({
-  feedTopic: z
-    .string()
-    .min(1, { message: "Missing required parameter: feedTopic." }),
-  granteePubKey: pubKeyHexSchema,
-  mode: z.enum(["add", "revoke"], {
-    errorMap: () => ({ message: "mode must be either 'add' or 'revoke'." }),
-  }),
-  postageBatchId: z.string().optional(),
-});
-
-export const fetchFromFeedWithActSchema = z.object({
-  feedTopic: z
-    .string()
-    .min(1, { message: "Missing required parameter: feedTopic." }),
-  publisherPubKey: pubKeyHexSchema,
-  feedOwner: z.string().optional(),
-  filePath: z.string().optional(),
-  actTimestamp: z.coerce.number().optional(),
-});
-
-export const gsocSendSchema = z.object({
-  message: z
-    .string()
-    .min(1, { message: "Missing required parameter: message." }),
-  resourceId: z
-    .string()
-    .min(1, { message: "Missing required parameter: resourceId." }),
-  topic: z.string().min(1, { message: "Missing required parameter: topic." }),
-  encoding: z.enum(["utf8", "base64", "hex"]).optional().default("utf8"),
-  postageBatchId: z.string().optional(),
-});
