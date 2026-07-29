@@ -21,7 +21,7 @@ import {
 import { ZodError } from "zod";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
-import { SwarmToolsSchema } from "./schemas";
+import { getEnabledTools } from "./schemas";
 import {
   determineIfGateway,
   getToolsWithTaskSupport,
@@ -41,6 +41,12 @@ import { queryUploadProgress } from "./tools/query_upload_progress";
 import { createPostageStamp } from "./tools/create_postage_stamp";
 import { extendPostageStamp } from "./tools/extend_postage_stamp";
 
+// ACT + feed wizard tools + helpers
+import { getNodePublicKey } from "./tools/get_node_public_key";
+import { createGrantees } from "./tools/create_grantees";
+import { listGrantees } from "./tools/list_grantees";
+import { patchGrantees } from "./tools/patch_grantees";
+
 // Model types
 import type { UploadFileArgs } from "./tools/upload_file/models";
 import type { UploadFolderArgs } from "./tools/upload_folder/models";
@@ -54,6 +60,9 @@ import type { GetPostageStampArgs } from "./tools/get_postage_stamp/models";
 import type { CreatePostageStampArgs } from "./tools/create_postage_stamp/models";
 import type { ExtendPostageStampArgs } from "./tools/extend_postage_stamp/models";
 import type { QueryUploadProgressArgs } from "./tools/query_upload_progress/models";
+import type { CreateGranteesArgs } from "./tools/create_grantees/models";
+import type { ListGranteesArgs } from "./tools/list_grantees/models";
+import type { PatchGranteesArgs } from "./tools/patch_grantees/models";
 
 // Zod schemas
 import {
@@ -69,6 +78,10 @@ import {
   createPostageStampSchema,
   extendPostageStampSchema,
   queryUploadProgressSchema,
+  getNodePublicKeySchema,
+  createGranteesSchema,
+  listGranteesSchema,
+  patchGranteesSchema,
 } from "./schemas/zod-schemas";
 import { TASK_POLL_INTERVAL } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
@@ -327,6 +340,26 @@ export class SwarmMCPServer {
               );
             }
 
+            case "get_node_public_key": {
+              getNodePublicKeySchema.parse(args);
+              return getNodePublicKey(this.bee);
+            }
+
+            case "create_grantees": {
+              const validArgs = createGranteesSchema.parse(args);
+              return createGrantees(validArgs as CreateGranteesArgs, this.bee);
+            }
+
+            case "list_grantees": {
+              const validArgs = listGranteesSchema.parse(args);
+              return listGrantees(validArgs as ListGranteesArgs, this.bee);
+            }
+
+            case "patch_grantees": {
+              const validArgs = patchGranteesSchema.parse(args);
+              return patchGrantees(validArgs as PatchGranteesArgs, this.bee);
+            }
+
             default:
               throw new McpError(
                 ErrorCode.MethodNotFound,
@@ -536,7 +569,7 @@ export class SwarmMCPServer {
     // List tools
     this.server.server.setRequestHandler(ListToolsRequestSchema, async () => {
       const isGateway = await determineIfGateway(this.bee);
-      let tools = [...SwarmToolsSchema];
+      let tools = [...getEnabledTools()];
 
       if (isGateway) {
         const nodeOnlyTools = [
@@ -545,6 +578,10 @@ export class SwarmMCPServer {
           "create_postage_stamp",
           "extend_postage_stamp",
           "query_upload_progress",
+          "get_node_public_key",
+          "create_grantees",
+          "list_grantees",
+          "patch_grantees",
         ];
         tools = tools.filter((item) => !nodeOnlyTools.includes(item.name));
       }

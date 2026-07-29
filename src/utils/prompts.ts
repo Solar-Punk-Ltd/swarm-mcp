@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "fs";
-import { SwarmToolsSchema } from "../schemas";
+import { getEnabledTools } from "../schemas";
 import { CreatePostageStampArgs } from "../tools/create_postage_stamp/models";
 import { DownloadDataArgs } from "../tools/download_data/models";
 import { DownloadFilesArgs } from "../tools/download_files/models";
@@ -15,7 +15,7 @@ import { UploadFolderArgs } from "../tools/upload_folder/models";
 
 export const getSwarmPromptsSchema = () => {
   return {
-    prompts: SwarmToolsSchema.map(
+    prompts: getEnabledTools().map(
       ({ name, title, description, inputSchema }) => {
         return {
           name: `${name}_prompt`,

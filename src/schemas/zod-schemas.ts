@@ -2,6 +2,16 @@ import { z } from "zod";
 
 export const uploadDataSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
+  act: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional(),
+  grantees: z.array(z.string()).optional(),
+  historyAddress: z.string().optional(),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
@@ -18,6 +28,9 @@ export const downloadDataSchema = z.object({
   reference: z
     .string()
     .min(1, { message: "Missing required parameter: reference." }),
+  actPublisher: z.string().optional(),
+  actHistoryAddress: z.string().optional(),
+  actTimestamp: z.coerce.number().optional(),
 });
 
 export const readFeedSchema = z.object({
@@ -29,6 +42,16 @@ export const readFeedSchema = z.object({
 
 export const uploadFileSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
+  act: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional(),
+  grantees: z.array(z.string()).optional(),
+  historyAddress: z.string().optional(),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
@@ -37,6 +60,16 @@ export const uploadFolderSchema = z.object({
   folderPath: z
     .string()
     .min(1, { message: "Missing required parameter: data." }),
+  act: z
+    .preprocess((value) => {
+      if (typeof value === "string") {
+        return value.trim().toLowerCase() === "true";
+      }
+      return value;
+    }, z.boolean())
+    .optional(),
+  grantees: z.array(z.string()).optional(),
+  historyAddress: z.string().optional(),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });
@@ -46,6 +79,9 @@ export const downloadFilesSchema = z.object({
     .string()
     .min(1, { message: "Missing required parameter: reference." }),
   filePath: z.string().optional(),
+  actPublisher: z.string().optional(),
+  actHistoryAddress: z.string().optional(),
+  actTimestamp: z.coerce.number().optional(),
 });
 
 export const listPostageStampsSchema = z.object({
@@ -96,3 +132,33 @@ export const queryUploadProgressSchema = z.object({
     .string()
     .regex(/^\d+$/, "Tag ID must be a numeric string representing an integer"),
 });
+
+const pubKeyHexSchema = z.string().min(66, {
+  message: "public key must be a hex string of 66 (compressed) or 128 chars",
+});
+
+const refHexSchema = z.string().min(64, {
+  message: "reference must be a hex string of 64 or 128 chars",
+});
+
+export const getNodePublicKeySchema = z.object({});
+
+export const createGranteesSchema = z.object({
+  grantees: z.array(pubKeyHexSchema).min(1, {
+    message: "grantees must be a non-empty array of public keys",
+  }),
+  postageBatchId: z.string().optional(),
+});
+
+export const listGranteesSchema = z.object({
+  reference: refHexSchema,
+});
+
+export const patchGranteesSchema = z.object({
+  reference: refHexSchema,
+  historyAddress: refHexSchema,
+  add: z.array(pubKeyHexSchema).optional(),
+  revoke: z.array(pubKeyHexSchema).optional(),
+  postageBatchId: z.string().optional(),
+});
+

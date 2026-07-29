@@ -1,22 +1,55 @@
+import config from "../config";
 import {
   PostageBatchCuratedSchema,
   PostageBatchSummarySchema,
 } from "./postage-batch";
+
+/**
+ * Tool names hidden when SWARM_MCP_ENABLE_ACT is not "true". Covers the
+ * grantee CRUD and the publisher-identity helper -- the ACT params on
+ * upload_data / upload_file / upload_folder / download_data / download_files
+ * remain available in both modes since those tools also serve the
+ * plain-upload/download paths.
+ */
+export const ACT_ADJACENT_TOOLS = [
+  "create_grantees",
+  "list_grantees",
+  "patch_grantees",
+  "get_node_public_key",
+];
 
 export const SwarmToolsSchema = [
   {
     name: "upload_data",
     title: "Upload data",
     description:
-      "Upload text data to Swarm. Optional options (ignore if they are not requested): " +
-      "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
-      "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
+      "Upload text data to Swarm. Plain upload by default; pass any of `act`, " +
+      "`grantees`, or `historyAddress` to upload with ACT (Access Control Trie) " +
+      "encryption. When grantees[] are provided, a grantee list is created " +
+      "first and the returned historyAddress is threaded into the upload. " +
+      "Optional options: redundancyLevel (0 default), postageBatchId.",
     inputSchema: {
       type: "object",
       properties: {
         data: {
           type: "string",
           description: "Arbitrary string to upload.",
+        },
+        act: {
+          type: "boolean",
+          description:
+            "Enable ACT encryption. Implicitly true if grantees[] or historyAddress is set.",
+        },
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Public keys authorized to decrypt (compressed secp256k1 hex). Triggers ACT flow.",
+        },
+        historyAddress: {
+          type: "string",
+          description:
+            "Existing ACT history to append to. Omit to create a new history. Triggers ACT flow.",
         },
         redundancyLevel: {
           type: "number",
@@ -45,6 +78,16 @@ export const SwarmToolsSchema = [
         url: {
           type: "string",
           description: "URL to access uploaded data.",
+        },
+        historyAddress: {
+          type: "string",
+          description:
+            "ACT history address (only present when uploaded with ACT).",
+        },
+        granteeListRef: {
+          type: "string",
+          description:
+            "Grantee-list reference (only present when uploaded with grantees).",
         },
         message: {
           type: "string",
@@ -118,13 +161,32 @@ export const SwarmToolsSchema = [
   {
     name: "download_data",
     title: "Download data",
-    description: "Downloads immutable data from a Swarm content address hash.",
+    description:
+      "Downloads immutable data from a Swarm content address hash. Pass both " +
+      "actPublisher and actHistoryAddress to fetch ACT-protected content (the " +
+      "local Bee node must be on the publisher's grantee list). Both ACT " +
+      "params must be provided together; supplying only one is rejected.",
     inputSchema: {
       type: "object",
       properties: {
         reference: {
           type: "string",
           description: "Swarm reference hash.",
+        },
+        actPublisher: {
+          type: "string",
+          description:
+            "Publisher's compressed secp256k1 public key. Required for ACT download.",
+        },
+        actHistoryAddress: {
+          type: "string",
+          description:
+            "ACT history address returned by the publisher. Required for ACT download.",
+        },
+        actTimestamp: {
+          type: "number",
+          description:
+            "Optional Unix timestamp to read a past version of the grantee list.",
         },
       },
       required: ["reference"],
@@ -180,7 +242,10 @@ export const SwarmToolsSchema = [
     name: "upload_file",
     title: "Upload file",
     description:
-      "Upload a file to Swarm. Small files upload synchronously and return { reference, url }. Large files (over the server's deferred-upload threshold) upload in the background and return { tagId } immediately -- poll query_upload_progress with that tagId to get the final reference. " +
+      "Upload a file to Swarm. Plain upload by default; pass any of `act`, " +
+      "`grantees`, or `historyAddress` to upload with ACT encryption (grantee " +
+      "list is created first when grantees[] is non-empty). Note: ACT uploads " +
+      "do not use deferred/task mode." +
       "Optional options (ignore if they are not requested): " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
@@ -190,6 +255,22 @@ export const SwarmToolsSchema = [
         data: {
           type: "string",
           description: "File content or file path.",
+        },
+        act: {
+          type: "boolean",
+          description:
+            "Enable ACT encryption. Implicitly true if grantees[] or historyAddress is set.",
+        },
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Public keys authorized to decrypt (compressed secp256k1 hex). Triggers ACT flow.",
+        },
+        historyAddress: {
+          type: "string",
+          description:
+            "Existing ACT history to append to. Triggers ACT flow.",
         },
         redundancyLevel: {
           type: "number",
@@ -216,7 +297,10 @@ export const SwarmToolsSchema = [
     name: "upload_folder",
     title: "Upload folder",
     description:
-      "Upload a folder to Swarm. Uploads run in the background and return { tagId } immediately -- poll query_upload_progress with that tagId to get the final reference. " +
+      "Upload a folder to Swarm. Plain upload by default; pass any of `act`, " +
+      "`grantees`, or `historyAddress` to upload with ACT encryption (grantee " +
+      "list is created first when grantees[] is non-empty). Note: ACT uploads " +
+      "do not use deferred/task mode." +
       "Optional options (ignore if they are not requested): " +
       "folderPath: path to the folder to upload. " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
@@ -227,6 +311,22 @@ export const SwarmToolsSchema = [
         folderPath: {
           type: "string",
           description: "path to the folder to upload",
+        },
+        act: {
+          type: "boolean",
+          description:
+            "Enable ACT encryption. Implicitly true if grantees[] or historyAddress is set.",
+        },
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Public keys authorized to decrypt (compressed secp256k1 hex). Triggers ACT flow.",
+        },
+        historyAddress: {
+          type: "string",
+          description:
+            "Existing ACT history to append to. Triggers ACT flow.",
         },
         redundancyLevel: {
           type: "number",
@@ -253,8 +353,11 @@ export const SwarmToolsSchema = [
     name: "download_files",
     title: "Download files",
     description:
-      "Download folder, files from a Swarm reference and save to file path or return file list of the reference " +
-      "prioritizes this tool over download_data if there is no assumption about the data type",
+      "Download folder or files from a Swarm reference and save to file path " +
+      "or return the manifest's file list. Prioritizes this tool over " +
+      "download_data if there is no assumption about the data type. Pass both " +
+      "actPublisher and actHistoryAddress to fetch ACT-protected manifests; " +
+      "both must be provided together.",
     inputSchema: {
       type: "object",
       properties: {
@@ -269,6 +372,21 @@ export const SwarmToolsSchema = [
             "Files from the manifest are written inside this folder using their original names. " +
             "Absolute paths are recommended; relative paths resolve against the server's current working directory. " +
             "If omitted, files are saved into the server's current working directory.",
+        },
+        actPublisher: {
+          type: "string",
+          description:
+            "Publisher's compressed secp256k1 public key. Required for ACT download.",
+        },
+        actHistoryAddress: {
+          type: "string",
+          description:
+            "ACT history address returned by the publisher. Required for ACT download.",
+        },
+        actTimestamp: {
+          type: "number",
+          description:
+            "Optional Unix timestamp to read a past version of the grantee list.",
         },
       },
       required: ["reference"],
@@ -412,6 +530,74 @@ export const SwarmToolsSchema = [
     },
   },
   {
+    name: "get_node_public_key",
+    title: "Get node public key",
+    description:
+      "Returns the Bee node's ACT publisher public key (hex) and related identity fields (ETH address, overlay). Share this with consumers who need to fetch ACT-protected content you publish.",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: {
+      type: "object",
+      properties: {
+        publicKey: { type: "string" },
+        publicKeyCompressed: { type: "string" },
+        pssPublicKey: { type: "string" },
+        ethAddress: { type: "string" },
+        overlay: { type: "string" },
+      },
+      required: ["publicKey", "ethAddress"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "create_grantees",
+    title: "Create grantees list",
+    description:
+      "Create an initial grantee list from an array of public keys. Returns { reference, historyAddress } usable as actHistoryAddress on subsequent upload_*_act calls.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        grantees: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+        },
+        postageBatchId: { type: "string" },
+      },
+      required: ["grantees"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "list_grantees",
+    title: "List grantees",
+    description:
+      "Returns the current grantee public keys for a grantees-list reference.",
+    inputSchema: {
+      type: "object",
+      properties: { reference: { type: "string" } },
+      required: ["reference"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
+    name: "patch_grantees",
+    title: "Patch grantees",
+    description:
+      "Add or revoke grantee public keys on an existing { reference, historyAddress } pair. Returns the new historyAddress. Revocation is forward-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        reference: { type: "string" },
+        historyAddress: { type: "string" },
+        add: { type: "array", items: { type: "string" } },
+        revoke: { type: "array", items: { type: "string" } },
+        postageBatchId: { type: "string" },
+      },
+      required: ["reference", "historyAddress"],
+    },
+    execution: { taskSupport: "forbidden" },
+  },
+  {
     name: "query_upload_progress",
     title: "Query upload progress",
     description:
@@ -454,3 +640,19 @@ export const SwarmToolsSchema = [
     },
   },
 ];
+
+/**
+ * SwarmToolsSchema filtered by feature flags. Use this everywhere the tool
+ * list crosses the wire to the MCP client (tools/list, prompts/list) so that
+ * hidden tools never reach the LLM's context window.
+ */
+export const getEnabledTools = () => {
+  if (config.features.enableAct) {
+    return SwarmToolsSchema;
+  }
+
+  return SwarmToolsSchema.filter(
+    (item) => !ACT_ADJACENT_TOOLS.includes(item.name)
+  );
+};
+
