@@ -169,10 +169,22 @@ async function downloadFilesAct(
     actOptions.actTimestamp = args.actTimestamp;
   }
 
-  let node: MantarayNode;
+  // Bypass bee-js's MantarayNode#loadRecursively — it overrides the outer
+  // actHistoryAddress with the per-fork `swarm-act-history-address` metadata baked in at
+  // upload time. After a patchGrantees the caller holds a fresh history that lists it as
+  // a grantee, but the per-fork metadata still references the pre-purchase history that
+  // does not, so nested chunk fetches 404. Bee's server-side /bzz/<ref>/<path> handler
+  // applies the outer ACT headers uniformly, which is what post-grant readers need.
+  //
+  // Enumerate top-level paths from the manifest chunk (single /bytes/ fetch, decrypts
+  // under the granted history), then let Bee resolve each file via /bzz/.
+  let topLevelPaths: string[] = [];
   try {
-    node = await MantarayNode.unmarshal(bee, reference, actOptions);
-    await node.loadRecursively(bee, actOptions);
+    const node = await MantarayNode.unmarshal(bee, reference, actOptions);
+    topLevelPaths = node
+      .collect()
+      .map((n) => n.fullPathString)
+      .filter((p) => p && p !== "/");
   } catch (err) {
     if (errorHasStatus(err, NOT_FOUND_STATUS)) {
       return getToolErrorResponse(
@@ -185,64 +197,65 @@ async function downloadFilesAct(
     return getToolErrorResponse(msg);
   }
 
-  const nodes = node.collect();
-
-  if (args.filePath) {
-    const destinationFolder = args.filePath;
-    if (!fs.existsSync(destinationFolder)) {
-      await mkdir(destinationFolder, { recursive: true });
-    }
-
-    try {
-      if (nodes.length === 1) {
-        const n = nodes[0];
-        const data = await bee.downloadData(n.targetAddress, actOptions);
-        await writeFile(
-          path.join(destinationFolder, path.basename(n.fullPathString)),
-          data.toUint8Array()
-        );
-      } else {
-        for (const n of nodes) {
-          const parsed = path.parse(n.fullPathString);
-          const nodeDest = path.join(destinationFolder, parsed.dir);
-          if (!fs.existsSync(nodeDest)) {
-            await mkdir(nodeDest, { recursive: true });
-          }
-          const data = await bee.downloadData(n.targetAddress, actOptions);
-          await writeFile(
-            path.join(destinationFolder, n.fullPathString),
-            data.toUint8Array()
-          );
-        }
-      }
-    } catch (err) {
-      const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
-        ? getErrorMessage(err)
-        : "Unable to download ACT-protected files.";
-      return getToolErrorResponse(msg);
-    }
-
-    return getResponseWithStructuredContent({
-      reference,
-      manifestNodeCount: nodes.length,
-      savedTo: destinationFolder,
-      message: `ACT manifest content (${nodes.length} files) successfully downloaded to ${destinationFolder}`,
-    });
+  const destinationFolder = args.filePath ?? process.cwd();
+  if (!fs.existsSync(destinationFolder)) {
+    await mkdir(destinationFolder, { recursive: true });
   }
 
-  const filesList = nodes.map((n) => ({
-    path: n.fullPathString || "/",
-    targetAddress: Array.from(n.targetAddress)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join(""),
-    metadata: n.metadata,
-  }));
+  const savedFiles: { path: string; size: number }[] = [];
+
+  const downloadOne = async (relPath: string): Promise<void> => {
+    // GET /bzz/<ref>/<path> with the outer ACT headers. Bee walks the manifest
+    // server-side using the granted history — no per-fork override.
+    const file = await bee.downloadFile(reference, relPath, actOptions);
+    const bytes = file.data.toUint8Array();
+    const name =
+      (file.name && file.name.trim()) ||
+      (relPath ? path.basename(relPath) : "download.bin");
+    const outSubdir = relPath ? path.dirname(relPath) : "";
+    const targetDir =
+      outSubdir && outSubdir !== "."
+        ? path.join(destinationFolder, outSubdir)
+        : destinationFolder;
+    if (targetDir !== destinationFolder && !fs.existsSync(targetDir)) {
+      await mkdir(targetDir, { recursive: true });
+    }
+    const outPath = path.join(targetDir, name);
+    await writeFile(outPath, bytes);
+    savedFiles.push({
+      path: path.relative(destinationFolder, outPath),
+      size: bytes.length,
+    });
+  };
+
+  try {
+    if (topLevelPaths.length === 0) {
+      // Single-file manifest (upload_file) — /bzz/<ref>/ resolves to the file itself.
+      await downloadOne("");
+    } else {
+      for (const p of topLevelPaths) {
+        await downloadOne(p);
+      }
+    }
+  } catch (err) {
+    if (errorHasStatus(err, NOT_FOUND_STATUS)) {
+      return getToolErrorResponse(
+        "Manifest content not found, or this node is not a grantee for the given history."
+      );
+    }
+    const msg = errorHasStatus(err, BAD_REQUEST_STATUS)
+      ? getErrorMessage(err)
+      : "Unable to download ACT-protected files.";
+    return getToolErrorResponse(msg);
+  }
 
   return getResponseWithStructuredContent({
     reference,
-    type: "manifest",
-    files: filesList,
-    message:
-      "ACT-protected manifest. Provide a filePath to download all files, or call download_data for individual chunks.",
+    manifestNodeCount: savedFiles.length,
+    savedTo: destinationFolder,
+    files: savedFiles,
+    message: `ACT manifest content (${savedFiles.length} file${
+      savedFiles.length === 1 ? "" : "s"
+    }) saved to ${destinationFolder}`,
   });
 }
