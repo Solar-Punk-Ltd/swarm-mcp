@@ -355,19 +355,25 @@ export const SwarmToolsSchema = [
   {
     name: "create_postage_stamp",
     title: "Create postage stamp",
-    description: "Buy postage stamp based on size in megabytes and duration.",
+    description:
+      "Buy a postage stamp based on size and duration. Buying a stamp spends BZZ and is not refundable. " +
+      "Both `size` and `duration` MUST be explicitly stated by the user. " +
+      "Do not infer, assume defaults, or synthesize plausible values for either. " +
+      "If the user has not stated a size, or has not stated a duration, STOP and ask the user for the missing value before calling this tool.",
     inputSchema: {
       type: "object",
       properties: {
         size: {
           type: "string",
-          description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
+          description:
+            "Storage capacity exactly as stated by the user, e.g. 1GB, 500MB, 1KB. " +
+            "Do not guess, default, or invent a value. If the user did not state a size, ask them.",
         },
         duration: {
           type: "string",
           description:
-            "Duration for which the data should be stored. " +
-            "Time to live of the postage stamp, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month ",
+            "Time to live of the postage stamp exactly as stated by the user, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month. " +
+            "Do not guess, default, or invent a value. If the user did not state a duration, ask them.",
         },
         label: {
           type: "string",
@@ -386,7 +392,11 @@ export const SwarmToolsSchema = [
     name: "extend_postage_stamp",
     title: "Extend postage stamp",
     description:
-      "Increase the duration (relative to current duration) or size (in megabytes) of a postage stamp.",
+      "Increase the duration (relative to current duration) and/or size of an existing postage stamp. " +
+      "Extending a stamp spends BZZ and is not refundable. " +
+      "Both `size` and `duration` are optional, but at least one must be provided. " +
+      "Only pass values the user has explicitly stated — do not infer, assume defaults, or synthesize plausible values. " +
+      "If the user's request is ambiguous about which dimension to extend or by how much, STOP and ask the user before calling this tool.",
     inputSchema: {
       type: "object",
       properties: {
@@ -396,13 +406,15 @@ export const SwarmToolsSchema = [
         },
         size: {
           type: "string",
-          description: "Storage capacity, e.g. 1GB, 1MB, 1KB.",
+          description:
+            "Additional storage capacity exactly as stated by the user, e.g. 1GB, 500MB, 1KB. " +
+            "Do not guess, default, or invent a value. Omit this field if the user did not state a size.",
         },
         duration: {
           type: "string",
           description:
-            "Duration for which the data should be stored. " +
-            "Time to live of the postage stamp, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month ",
+            "Additional time to live exactly as stated by the user, e.g. 1d - 1 day, 1w - 1 week, 1month - 1 month. " +
+            "Do not guess, default, or invent a value. Omit this field if the user did not state a duration.",
         },
       },
       required: ["postageBatchId"],
