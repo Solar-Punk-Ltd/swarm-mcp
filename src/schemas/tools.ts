@@ -9,7 +9,7 @@ export const SwarmToolsSchema = [
     title: "Upload data",
     description:
       "Upload arbitrary text data to Swarm as an immutable, content-addressed blob. Returns a Swarm reference hash that permanently identifies the uploaded bytes. " +
-      "Use this tool whenever the user asks to \"upload data\", \"upload text\", \"store data\", or similar, without mentioning a feed, topic, or memory. " +
+      'Use this tool whenever the user asks to "upload data", "upload text", "store data", or similar, without mentioning a feed, topic, or memory. ' +
       "This is NOT a feed operation — if the user wants mutable, topic-indexed storage (i.e. mentions a feed, topic, or memory name), use `update_feed` instead. " +
       "Only `data` is required. `redundancyLevel` and `postageBatchId` are optional — use their defaults and do NOT ask the user for them unless the user explicitly brings them up.",
     inputSchema: {
@@ -17,7 +17,10 @@ export const SwarmToolsSchema = [
       properties: {
         data: {
           type: "string",
-          description: "Arbitrary string to upload.",
+          description:
+            "The literal string content to upload, taken verbatim from the user's message. " +
+            "Pass the exact text the user provided (typically the text after phrases like \"upload data:\", \"upload:\", \"store:\", or similar), even if the value looks like a short identifier, a placeholder name (e.g. 'Text1', 'Message1', 'foo'), or otherwise seems like a variable — it is the content itself. " +
+            "Do not ask the user to clarify or expand the content; do not substitute your own text.",
         },
         redundancyLevel: {
           type: "number",
@@ -73,7 +76,10 @@ export const SwarmToolsSchema = [
       properties: {
         data: {
           type: "string",
-          description: "arbitrary string to upload",
+          description:
+            "The literal string content to write to the feed, taken verbatim from the user's message. " +
+            "Pass the exact text the user provided (typically the text after phrases like \"with:\", \"update with:\", \"set to:\", or similar), even if the value looks like a short identifier, a placeholder name (e.g. 'Message1', 'foo'), or otherwise seems like a variable — it is the content itself. " +
+            "Do not ask the user to clarify or expand the content; do not substitute your own text.",
         },
         memoryTopic: {
           type: "string",
