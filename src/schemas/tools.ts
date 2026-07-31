@@ -129,7 +129,11 @@ export const SwarmToolsSchema = [
   {
     name: "download_data",
     title: "Download data",
-    description: "Downloads immutable data from a Swarm content address hash.",
+    description:
+      "Download raw text data from a Swarm reference and return it as a string. " +
+      "Use this tool ONLY when the user explicitly asks for the text content, string content, or raw data behind a reference, or when the reference is known to have been uploaded via `upload_data`. " +
+      "If the user mentions \"file\", \"files\", \"folder\", or asks to \"download\" without specifying that they want the raw text content, use `download_files` instead. " +
+      "When in doubt about the reference type, prefer `download_files` — it handles both single files and folder manifests and can be saved to disk.",
     inputSchema: {
       type: "object",
       properties: {
@@ -264,8 +268,10 @@ export const SwarmToolsSchema = [
     name: "download_files",
     title: "Download files",
     description:
-      "Download folder, files from a Swarm reference and save to file path or return file list of the reference " +
-      "prioritizes this tool over download_data if there is no assumption about the data type",
+      "Download a file or folder from a Swarm reference. Handles both single files and folder manifests, saves them to disk (in stdio mode) or returns the file list. " +
+      "Use this tool whenever the user asks to \"download\" from a reference and mentions \"file\", \"files\", \"folder\", or does not specify the data type. " +
+      "Prefer this tool over `download_data` unless the user explicitly asks for the raw text/string content behind a reference. " +
+      "This is the safe default for downloads when the reference type is unknown.",
     inputSchema: {
       type: "object",
       properties: {
