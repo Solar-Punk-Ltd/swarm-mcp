@@ -8,9 +8,10 @@ export const SwarmToolsSchema = [
     name: "upload_data",
     title: "Upload data",
     description:
-      "Upload text data to Swarm. Optional options (ignore if they are not requested): " +
-      "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
-      "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
+      "Upload arbitrary text data to Swarm as an immutable, content-addressed blob. Returns a Swarm reference hash that permanently identifies the uploaded bytes. " +
+      "Use this tool whenever the user asks to \"upload data\", \"upload text\", \"store data\", or similar, without mentioning a feed, topic, or memory. " +
+      "This is NOT a feed operation — if the user wants mutable, topic-indexed storage (i.e. mentions a feed, topic, or memory name), use `update_feed` instead. " +
+      "Only `data` is required. `redundancyLevel` and `postageBatchId` are optional — use their defaults and do NOT ask the user for them unless the user explicitly brings them up.",
     inputSchema: {
       type: "object",
       properties: {
@@ -21,15 +22,17 @@ export const SwarmToolsSchema = [
         redundancyLevel: {
           type: "number",
           description:
-            "redundancy level for fault tolerance " +
-            "(higher values provide better fault tolerance but increase storage overhead) " +
-            "0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid",
+            "Optional redundancy level for fault tolerance " +
+            "(higher values provide better fault tolerance but increase storage overhead): " +
+            "0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid. " +
+            "Default is 0. Do not ask the user for this value; only set it if the user explicitly requests a redundancy level.",
           default: 0,
         },
         postageBatchId: {
           type: "string",
           description:
-            "The id of the batch which will be used to perform the upload.",
+            "Optional. The id of the batch which will be used to perform the upload. " +
+            "Do not ask the user for this value; only set it if the user explicitly provides a batch id.",
           default: undefined,
         },
       },
@@ -61,8 +64,10 @@ export const SwarmToolsSchema = [
     name: "update_feed",
     title: "Update feed",
     description:
-      "Update the feed of a given topic with new data. Optional options (ignore if they are not requested): " +
-      "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
+      "Update a mutable, topic-indexed Swarm feed with new data. Requires a `memoryTopic` supplied by the user. " +
+      "Use this tool ONLY when the user explicitly mentions a feed, topic, or memory name. " +
+      "If the user asks to upload data without mentioning a feed/topic/memory, use `upload_data` instead — do NOT prompt the user for a topic to route them here. " +
+      "`postageBatchId` is optional — do not ask the user for it unless they explicitly bring it up.",
     inputSchema: {
       type: "object",
       properties: {
