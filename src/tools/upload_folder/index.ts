@@ -1,6 +1,6 @@
-import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { CreateTaskResult } from "@modelcontextprotocol/server";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { stat } from "fs/promises";
 import {
   errorHasStatus,

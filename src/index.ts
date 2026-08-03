@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { SwarmMCPServer } from "./mcp-service";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 
 async function main() {
   const swarmMCPServer = new SwarmMCPServer();

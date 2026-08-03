@@ -3,7 +3,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { SwarmMCPServer } from "./mcp-service";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const host = process.env.HOST || "0.0.0.0";
@@ -17,7 +17,7 @@ app.use(express.json());
 async function main() {
   // Setup for stateless HTTP transport
   const httpSwarmMCPServer = new SwarmMCPServer();
-  const httpTransport = new StreamableHTTPServerTransport({
+  const httpTransport = new NodeStreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // Enforce stateless behavior
   });
   await httpSwarmMCPServer.server.connect(httpTransport);

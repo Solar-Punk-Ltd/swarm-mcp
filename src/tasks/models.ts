@@ -1,5 +1,6 @@
 import { Bee } from "@ethersphere/bee-js";
-import { RequestId, Result, Task } from "@modelcontextprotocol/sdk/types.js";
+import { RequestId, Result, Task } from "@modelcontextprotocol/server";
+/* @mcp-codemod-error Unknown SDK import path: @modelcontextprotocol/sdk/experimental/tasks/interfaces.js. Manual migration required. */
 import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 import { TaskManager } from "./task-manager";
 

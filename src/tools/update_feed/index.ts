@@ -17,7 +17,7 @@ import {
 import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UpdateFeedArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
 
 export async function updateFeed(
   args: UpdateFeedArgs,
@@ -77,8 +77,8 @@ export async function updateFeed(
   try {
     feedPrivateKey = hexToBytes(config.bee.feedPrivateKey);
   } catch (error) {
-    throw new McpError(
-      ErrorCode.InternalError,
+    throw new ProtocolError(
+      ProtocolErrorCode.InternalError,
       `Invalid feed private key: ${
         error instanceof Error ? error.message : String(error)
       }`

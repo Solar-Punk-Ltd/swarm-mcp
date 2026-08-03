@@ -5,17 +5,14 @@ import {
   TaskState,
   UpdateStatusFunction,
 } from "./models";
-import {
-  ErrorCode,
-  McpError,
-  Result,
-  Task,
-} from "@modelcontextprotocol/sdk/types.js";
+import { ProtocolError, Result, Task, ProtocolErrorCode } from "@modelcontextprotocol/server";
 import {
   TASK_CLEANUP_INTERVAL_MS,
   TASK_STATUS_UPDATE_INTERVAL_MS,
 } from "./constants";
+/* @mcp-codemod-error Unknown SDK import path: @modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js. Manual migration required. */
 import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
+/* @mcp-codemod-error Unknown SDK import path: @modelcontextprotocol/sdk/experimental/tasks/interfaces.js. Manual migration required. */
 import { isTerminal as isTaskTerminal } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 import config from "../config";
 
@@ -97,8 +94,8 @@ export class TaskManager {
     while (true) {
       const task = await this.store.getTask(taskId);
       if (!task) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
+        throw new ProtocolError(
+          ProtocolErrorCode.InvalidParams,
           `Task not found: ${taskId}`
         );
       }

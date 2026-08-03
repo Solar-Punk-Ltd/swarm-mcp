@@ -2,7 +2,7 @@
  * MCP Tool: extend_postage_stamp
  * Increase the duration and size of a postage stamp.
  */
-import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
+import { CreateTaskResult } from "@modelcontextprotocol/server";
 import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,

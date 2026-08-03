@@ -3,7 +3,7 @@
  * Download folder, files from a Swarm reference
  */
 import { Bee, MantarayNode } from "@ethersphere/bee-js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import fs from "fs";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";

@@ -2,22 +2,8 @@
  * MCP Service implementation for handling blob data operations with Bee (Swarm)
  * Using Experimental MCP SDK Tasks API
  */
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  CallToolRequestSchema,
-  CreateTaskResult,
-  ErrorCode,
-  GetPromptRequest,
-  GetPromptRequestSchema,
-  GetTaskPayloadRequestSchema,
-  GetTaskPayloadResult,
-  GetTaskRequestSchema,
-  GetTaskResult,
-  ListPromptsRequestSchema,
-  ListTasksRequestSchema,
-  ListToolsRequestSchema,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
+import { GetTaskPayloadRequestSchema, GetTaskRequestSchema, ListTasksRequestSchema } from "@modelcontextprotocol/core";
+import { McpServer, CreateTaskResult, GetPromptRequest, GetTaskPayloadResult, GetTaskResult, ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
 import { ZodError } from "zod";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
@@ -141,7 +127,7 @@ export class SwarmMCPServer {
 
     // Handle tool calls
     server.setRequestHandler(
-      CallToolRequestSchema,
+      'tools/call',
       async (request, ctx): Promise<ToolResponse | CreateTaskResult> => {
         const { name, arguments: args } = request.params;
         const taskParams = (request.params._meta?.task ||
@@ -160,6 +146,7 @@ export class SwarmMCPServer {
               ttl: Math.max(config.bee.taskTtlMs, taskParams.ttl || 0),
               pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
             };
+            /* @mcp-codemod-error This object looks like a v1 handler-context mock (requestId, sessionId). v2 nests the context — reshape it (requestId → mcpReq.id; sessionId stays top-level), e.g. { sendRequest: fn } → { mcpReq: { send: fn } }. Passed as-is to a migrated handler that reads ctx.mcpReq.*, the v1 shape throws "Cannot read properties of undefined". */
             const createTaskModel: CreateTaskModel = {
               taskOptions,
               requestId: ctx.requestId,
@@ -222,16 +209,16 @@ export class SwarmMCPServer {
               }
 
               default:
-                throw new McpError(
-                  ErrorCode.MethodNotFound,
+                throw new ProtocolError(
+                  ProtocolErrorCode.MethodNotFound,
                   `Unknown tool: ${request.params.name}`
                 );
             }
           }
         } catch (error) {
           if (error instanceof ZodError) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
+            throw new ProtocolError(
+              ProtocolErrorCode.InvalidRequest,
               error.errors[0].message
             );
           }
@@ -328,8 +315,8 @@ export class SwarmMCPServer {
             }
 
             default:
-              throw new McpError(
-                ErrorCode.MethodNotFound,
+              throw new ProtocolError(
+                ProtocolErrorCode.MethodNotFound,
                 `Unknown tool: ${request.params.name}`
               );
           }
@@ -361,12 +348,12 @@ export class SwarmMCPServer {
   private registerPrompts() {
     const server = this.server.server;
 
-    server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+    server.setRequestHandler('prompts/list', async () => ({
       ...getSwarmPromptsSchema(),
     }));
 
     server.setRequestHandler(
-      GetPromptRequestSchema,
+      'prompts/get',
       async (request: GetPromptRequest) => {
         const { name, arguments: args = {} } = request.params ?? {};
 
@@ -470,8 +457,8 @@ export class SwarmMCPServer {
             }
 
             default:
-              throw new McpError(
-                ErrorCode.InvalidParams,
+              throw new ProtocolError(
+                ProtocolErrorCode.InvalidParams,
                 `Unknown tool: ${request.params.name}`
               );
           }
@@ -490,8 +477,8 @@ export class SwarmMCPServer {
           };
         } catch (error) {
           if (error instanceof ZodError) {
-            throw new McpError(
-              ErrorCode.InvalidParams,
+            throw new ProtocolError(
+              ProtocolErrorCode.InvalidParams,
               error.errors[0].message
             );
           }
@@ -505,6 +492,7 @@ export class SwarmMCPServer {
     const server = this.server.server;
 
     // Handle tasks/get
+    /* @mcp-codemod-error Task handler registration: setRequestHandler(GetTaskRequestSchema, ...). The experimental tasks feature was removed in v2 (SEP-2663); the tasks/* method strings are not part of the typed RequestMethod surface. Remove this registration. See docs/migration/upgrade-to-v2.md#experimental-tasks-interception-removed. */
     server.setRequestHandler(
       GetTaskRequestSchema,
       async (request): Promise<GetTaskResult> => {
@@ -518,6 +506,7 @@ export class SwarmMCPServer {
     );
 
     // Handle tasks/result
+    /* @mcp-codemod-error Task handler registration: setRequestHandler(GetTaskPayloadRequestSchema, ...). The experimental tasks feature was removed in v2 (SEP-2663); the tasks/* method strings are not part of the typed RequestMethod surface. Remove this registration. See docs/migration/upgrade-to-v2.md#experimental-tasks-interception-removed. */
     server.setRequestHandler(
       GetTaskPayloadRequestSchema,
       async (request, ctx): Promise<GetTaskPayloadResult> => {
@@ -527,6 +516,7 @@ export class SwarmMCPServer {
       }
     );
 
+    /* @mcp-codemod-error Task handler registration: setRequestHandler(ListTasksRequestSchema, ...). The experimental tasks feature was removed in v2 (SEP-2663); the tasks/* method strings are not part of the typed RequestMethod surface. Remove this registration. See docs/migration/upgrade-to-v2.md#experimental-tasks-interception-removed. */
     server.setRequestHandler(ListTasksRequestSchema, async (request) => {
       return this.taskManager.listTasks(request.params?.cursor);
     });
@@ -534,7 +524,7 @@ export class SwarmMCPServer {
 
   private registerSyncTools() {
     // List tools
-    this.server.server.setRequestHandler(ListToolsRequestSchema, async () => {
+    this.server.server.setRequestHandler('tools/list', async () => {
       const isGateway = await determineIfGateway(this.bee);
       let tools = [...SwarmToolsSchema];
 
