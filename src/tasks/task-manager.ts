@@ -2,36 +2,42 @@ import { Bee } from "@ethersphere/bee-js";
 import {
   CreateTaskModel,
   ExtendedTask,
+  Task,
   TaskState,
   UpdateStatusFunction,
+  isTaskTerminal,
 } from "./models";
-import { ProtocolError, Result, Task, ProtocolErrorCode } from "@modelcontextprotocol/server";
+import { ProtocolError, ProtocolErrorCode, Result } from "@modelcontextprotocol/server";
 import {
   TASK_CLEANUP_INTERVAL_MS,
   TASK_STATUS_UPDATE_INTERVAL_MS,
 } from "./constants";
-/* @mcp-codemod-error Unknown SDK import path: @modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js. Manual migration required. */
-import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
-/* @mcp-codemod-error Unknown SDK import path: @modelcontextprotocol/sdk/experimental/tasks/interfaces.js. Manual migration required. */
-import { isTerminal as isTaskTerminal } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
 import config from "../config";
+import { randomUUID } from "crypto";
 
+/**
+ * In-process task store and update loop.
+ *
+ * Task state lives in this.extendedTasks — invisible across processes.
+ * tasks/get and tasks/cancel must route to the process that minted the handle.
+ * See plan §"Sticky routing required for task polling".
+ */
 export class TaskManager {
   private bee: Bee;
-  private store: InMemoryTaskStore;
   private extendedTasks: Map<string, ExtendedTask> = new Map();
   private cleanupInterval: NodeJS.Timeout;
   private statusUpdateInterval: NodeJS.Timeout;
 
-  constructor(bee: Bee, taskStore: InMemoryTaskStore) {
+  constructor(bee: Bee) {
     this.bee = bee;
-    this.store = taskStore;
 
-    // Start periodic cleanup
     this.cleanupInterval = setInterval(() => {
       this.cleanupOldTasks();
     }, TASK_CLEANUP_INTERVAL_MS);
 
+    // The status-update loop writes into the in-process Map so that the next
+    // tasks/get poll observes fresh status. No push notifications — the
+    // originating tools/call stream is closed under SEP-2663.
     this.statusUpdateInterval = setInterval(() => {
       this.updateAllSwarmTasks();
     }, TASK_STATUS_UPDATE_INTERVAL_MS);
@@ -43,12 +49,16 @@ export class TaskManager {
     result: Result | null,
     _meta?: Record<string, string | null>
   ): Promise<Task> {
-    const task = await this.store.createTask(
-      createTaskModel.taskOptions,
-      createTaskModel.requestId,
-      createTaskModel.request as unknown as Request,
-      createTaskModel.sessionId
-    );
+    const now = new Date().toISOString();
+    const task: Task = {
+      taskId: randomUUID(),
+      status: TaskState.WORKING,
+      ttl: createTaskModel.taskOptions.ttl,
+      pollInterval: createTaskModel.taskOptions.pollInterval,
+      createdAt: now,
+      lastUpdatedAt: now,
+    };
+
     const extendedTask: ExtendedTask = {
       task,
       updateStatus,
@@ -57,7 +67,6 @@ export class TaskManager {
     };
 
     this.extendedTasks.set(task.taskId, extendedTask);
-
     return task;
   }
 
@@ -66,11 +75,55 @@ export class TaskManager {
   }
 
   async getTask(taskId: string): Promise<Task | null> {
-    return this.store.getTask(taskId);
+    const extendedTask = this.extendedTasks.get(taskId);
+    return extendedTask?.task ?? null;
+  }
+
+  /**
+   * Returns the task plus its terminal result, when terminal. This is what
+   * SEP-2663's tasks/get returns: a task handle whose result is embedded
+   * once status is terminal.
+   */
+  async getTaskWithResult(
+    taskId: string
+  ): Promise<{ task: Task; result?: Result }> {
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (!extendedTask) {
+      throw new ProtocolError(
+        ProtocolErrorCode.InvalidParams,
+        `Task not found: ${taskId}`
+      );
+    }
+    if (isTaskTerminal(extendedTask.task.status) && extendedTask.result) {
+      return { task: extendedTask.task, result: extendedTask.result };
+    }
+    return { task: extendedTask.task };
+  }
+
+  async cancelTask(taskId: string): Promise<Task> {
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (!extendedTask) {
+      throw new ProtocolError(
+        ProtocolErrorCode.InvalidParams,
+        `Task not found: ${taskId}`
+      );
+    }
+    if (!isTaskTerminal(extendedTask.task.status)) {
+      extendedTask.task.status = TaskState.CANCELLED;
+      extendedTask.task.statusMessage = "Cancelled by client.";
+      extendedTask.task.lastUpdatedAt = new Date().toISOString();
+    }
+    return extendedTask.task;
   }
 
   async updateTaskStatus(taskId: string, status: TaskState, message: string) {
-    this.store.updateTaskStatus(taskId, status, message);
+    const extendedTask = this.extendedTasks.get(taskId);
+    if (!extendedTask) {
+      return;
+    }
+    extendedTask.task.status = status;
+    extendedTask.task.statusMessage = message;
+    extendedTask.task.lastUpdatedAt = new Date().toISOString();
   }
 
   async addExtendedTaskMetadata(taskId: string, key: string, value: string) {
@@ -78,65 +131,30 @@ export class TaskManager {
     if (!extendedTask) {
       return;
     }
-    if (!extendedTask._meta) {
-      extendedTask._meta = {
-        [key]: value,
-      };
-    } else {
-      extendedTask._meta = {
-        ...extendedTask._meta,
-        [key]: value,
-      };
-    }
+    extendedTask._meta = {
+      ...(extendedTask._meta ?? {}),
+      [key]: value,
+    };
   }
 
-  async getTaskResult(taskId: string, _sessionId: string): Promise<Result> {
-    while (true) {
-      const task = await this.store.getTask(taskId);
-      if (!task) {
-        throw new ProtocolError(
-          ProtocolErrorCode.InvalidParams,
-          `Task not found: ${taskId}`
-        );
-      }
-
-      if (isTaskTerminal(task.status)) {
-        const result = await this.store.getTaskResult(taskId);
-
-        return result;
-      }
-    }
-  }
-
-  async listTasks(cursor: string | undefined): Promise<{
-    tasks: Task[];
-    nextCursor?: string;
-  }> {
-    return this.store.listTasks(cursor);
-  }
-
+  /**
+   * Store a task's result. When `deferredCompletion` is true, keep status as
+   * WORKING — the poll loop marks completion once the underlying operation
+   * (e.g. Swarm tag processing) is done. Otherwise mark COMPLETED.
+   */
   async setTaskResult(
     taskId: string,
     result: Result,
-    isDeferredStoreUpdate: boolean = false
+    deferredCompletion: boolean = false
   ): Promise<void> {
     const extendedTask = this.extendedTasks.get(taskId);
-    if (extendedTask) {
-      extendedTask.result = result;
+    if (!extendedTask) {
+      return;
     }
-    if (!isDeferredStoreUpdate) {
-      await this.store.storeTaskResult(taskId, TaskState.COMPLETED, result);
-    }
-  }
-
-  async syncStoreCompletedResult(taskId: string): Promise<void> {
-    const extendedTask = this.extendedTasks.get(taskId);
-    if (extendedTask?.result) {
-      await this.store.storeTaskResult(
-        taskId,
-        TaskState.COMPLETED,
-        extendedTask.result
-      );
+    extendedTask.result = result;
+    extendedTask.task.lastUpdatedAt = new Date().toISOString();
+    if (!deferredCompletion) {
+      extendedTask.task.status = TaskState.COMPLETED;
     }
   }
 
@@ -147,7 +165,6 @@ export class TaskManager {
         !isTaskTerminal(extendedTask.task.status)
     );
 
-    // Update all active Swarm tasks in parallel
     await Promise.allSettled(
       activeTasks.map((task) => task.updateStatus!(task, this.bee, this))
     );
@@ -158,7 +175,6 @@ export class TaskManager {
     const tasksToDelete: string[] = [];
 
     for (const [taskId, extendedTask] of this.extendedTasks.entries()) {
-      // Only clean up terminal tasks
       if (isTaskTerminal(extendedTask.task.status)) {
         const lastUpdated = new Date(extendedTask.task.lastUpdatedAt).getTime();
         if (now - lastUpdated > config.bee.taskTtlMs) {
@@ -167,7 +183,6 @@ export class TaskManager {
       }
     }
 
-    // Delete old tasks
     for (const taskId of tasksToDelete) {
       this.extendedTasks.delete(taskId);
     }

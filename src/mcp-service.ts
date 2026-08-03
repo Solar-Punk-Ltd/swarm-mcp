@@ -1,10 +1,22 @@
 /**
- * MCP Service implementation for handling blob data operations with Bee (Swarm)
- * Using Experimental MCP SDK Tasks API
+ * MCP Service implementation for Swarm operations, targeting spec 2026-07-28.
+ *
+ * Task creation is server-directed under SEP-2663: the client advertises the
+ * `io.modelcontextprotocol/tasks` extension in its per-request `_meta`, and
+ * the server decides whether a task-eligible tool should run async. A scoped
+ * 2025-era compatibility branch inside `shouldRunAsTask` honors legacy
+ * `_meta.task` opt-in for 2025-era clients (option A shim; delete when
+ * 2025-era clients are gone).
  */
-import { GetTaskPayloadRequestSchema, GetTaskRequestSchema, ListTasksRequestSchema } from "@modelcontextprotocol/core";
-import { McpServer, CreateTaskResult, GetPromptRequest, GetTaskPayloadResult, GetTaskResult, ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
-import { ZodError } from "zod";
+import {
+  McpServer,
+  ProtocolError,
+  ProtocolErrorCode,
+  ServerContext,
+  CLIENT_CAPABILITIES_META_KEY,
+  PROTOCOL_VERSION_META_KEY,
+} from "@modelcontextprotocol/server";
+import { z, ZodError } from "zod";
 import { Bee } from "@ethersphere/bee-js";
 import config from "./config";
 import { SwarmToolsSchema } from "./schemas";
@@ -60,9 +72,12 @@ import { TASK_POLL_INTERVAL } from "./tasks/constants";
 import { uploadFile } from "./tools/upload_file";
 import { uploadFolder } from "./tools/upload_folder";
 import { TaskManager } from "./tasks/task-manager";
-import { CreateTaskModel } from "./tasks/models";
-import { InMemoryTaskStore } from "@modelcontextprotocol/sdk/experimental/tasks/stores/in-memory.js";
-import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/index.js";
+import {
+  CreateTaskModel,
+  CreateTaskResult,
+  CreateTaskOptions,
+  Task,
+} from "./tasks/models";
 import {
   getCreatePostageStampPrompt,
   getDownloadDataPrompt,
@@ -79,82 +94,203 @@ import {
   getUploadFolderPrompt,
 } from "./utils/prompts";
 
+const TASKS_EXTENSION_KEY = "io.modelcontextprotocol/tasks" as const;
+
+const TASK_MODE_TOOLS: ReadonlySet<string> = new Set([
+  "upload_file",
+  "upload_folder",
+  "download_files",
+  "create_postage_stamp",
+  "extend_postage_stamp",
+]);
+
+interface TaskGateResult {
+  shouldRun: boolean;
+  taskOptions?: CreateTaskOptions;
+}
+
 /**
- * Swarm MCP Server class using Experimental Tasks API
+ * Per-request task-mode gate. Reads era and client capabilities from _meta on
+ * every request — never cached on connection or server state.
+ *
+ * 2026-era branch: modern protocol version + client advertised the tasks
+ * extension in its capabilities.
+ *
+ * 2025-era branch (option A shim): honor legacy _meta.task / params.task as
+ * an implicit tasks-extension signal. Isolated here for later removal.
+ */
+function shouldRunAsTask(
+  toolName: string,
+  params: { _meta?: Record<string, unknown>; task?: unknown },
+  ctx: ServerContext
+): TaskGateResult {
+  if (!TASK_MODE_TOOLS.has(toolName)) {
+    return { shouldRun: false };
+  }
+
+  const envelope = (ctx.mcpReq as { envelope?: Record<string, unknown> })
+    .envelope;
+  const protocolVersion =
+    (envelope?.[PROTOCOL_VERSION_META_KEY] as string | undefined) ??
+    (params._meta?.[PROTOCOL_VERSION_META_KEY] as string | undefined);
+  const isModern =
+    typeof protocolVersion === "string" &&
+    protocolVersion.startsWith("2026-");
+
+  if (isModern) {
+    const clientCapabilities =
+      (envelope?.[CLIENT_CAPABILITIES_META_KEY] as
+        | { extensions?: Record<string, unknown> }
+        | undefined) ??
+      (params._meta?.[CLIENT_CAPABILITIES_META_KEY] as
+        | { extensions?: Record<string, unknown> }
+        | undefined);
+    const clientHasTasksExt =
+      !!clientCapabilities?.extensions?.[TASKS_EXTENSION_KEY];
+    if (clientHasTasksExt) {
+      return {
+        shouldRun: true,
+        taskOptions: {
+          ttl: config.bee.taskTtlMs,
+          pollInterval: TASK_POLL_INTERVAL,
+        },
+      };
+    }
+    return { shouldRun: false };
+  }
+
+  // 2025-era shim (option A). Honors legacy _meta.task / params.task so the
+  // current userbase's async-upload behavior survives the migration. Delete
+  // this branch when 2025-era clients are gone.
+  const legacyTaskParams =
+    ((params._meta as { task?: { ttl?: number; pollInterval?: number } })
+      ?.task ??
+      (params as { task?: { ttl?: number; pollInterval?: number } }).task) as
+      | { ttl?: number; pollInterval?: number }
+      | undefined;
+  if (legacyTaskParams) {
+    return {
+      shouldRun: true,
+      taskOptions: {
+        ttl: Math.max(config.bee.taskTtlMs, legacyTaskParams.ttl ?? 0),
+        pollInterval: legacyTaskParams.pollInterval ?? TASK_POLL_INTERVAL,
+      },
+    };
+  }
+
+  return { shouldRun: false };
+}
+
+// Schemas for the tasks extension (SEP-2663). Hand-rolled via
+// `setRequestHandler(method, { params, result }, handler)` because the v2 SDK
+// removed the experimental tasks interception and left task wire types
+// deprecated. When first-class extension support ships in
+// @modelcontextprotocol/server, replace these with the SDK's registration API.
+
+const GetTaskParamsSchema = z.object({
+  taskId: z.string(),
+});
+
+const CancelTaskParamsSchema = z.object({
+  taskId: z.string(),
+});
+
+const DiscoverResultSchema = z.object({
+  protocolVersions: z.array(z.string()),
+  serverInfo: z.object({
+    name: z.string(),
+    version: z.string(),
+  }),
+  capabilities: z.record(z.string(), z.unknown()),
+});
+
+const SERVER_NAME = "swarm-mcp-server";
+const SERVER_VERSION = "0.1.0";
+
+/**
+ * Swarm MCP Server class.
  */
 export class SwarmMCPServer {
   public readonly server: McpServer;
   private readonly bee: Bee;
   private readonly taskManager: TaskManager;
-  private readonly inMemoryTaskStore: InMemoryTaskStore;
 
   constructor() {
     this.bee = new Bee(config.bee.endpoint);
-    this.inMemoryTaskStore = new InMemoryTaskStore();
-    this.taskManager = new TaskManager(this.bee, this.inMemoryTaskStore);
+    this.taskManager = new TaskManager(this.bee);
 
     this.server = new McpServer(
       {
-        name: "swarm-mcp-server",
-        version: "0.1.0",
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
       },
       {
         capabilities: {
-          logging: {},
           prompts: {},
           tools: {},
-          tasks: {
-            list: {},
-            requests: {
-              tools: {
-                call: {},
-              },
-            },
+          extensions: {
+            [TASKS_EXTENSION_KEY]: {},
           },
+        } as Record<string, unknown>,
+        cacheHints: {
+          "tools/list": { ttlMs: 300_000, cacheScope: "private" },
+          "prompts/list": { ttlMs: 300_000, cacheScope: "private" },
+          "server/discover": { ttlMs: 3_600_000, cacheScope: "public" },
         },
         instructions:
           "Only call tools with parameter values explicitly provided by the user. " +
           "Never invent, guess, or fill in values (postage batch IDs, references, addresses, " +
           "labels, etc.) that the user did not supply. If a required value is missing, ask the " +
-          "user for it instead of fabricating one. Omit optional parameters unless the user asked for them." + 
+          "user for it instead of fabricating one. Omit optional parameters unless the user asked for them." +
           "Always display the references in the response.",
-      }
+      } as ConstructorParameters<typeof McpServer>[1]
     );
 
-    const server = this.server.server;
+    this.registerToolsCallHandler();
+    this.registerPrompts();
+    this.registerTaskHandlers();
+    this.registerDiscoverHandler();
+    this.registerListTools();
 
+    this.server.server.onerror = (error: Error) =>
+      console.error("[Error]", error);
+
+    process.on("SIGINT", async () => {
+      this.taskManager.destroy();
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  private registerToolsCallHandler() {
+    const server = this.server.server;
     const taskSupportTools = getToolsWithTaskSupport();
 
-    // Handle tool calls
     server.setRequestHandler(
-      'tools/call',
-      async (request, ctx): Promise<ToolResponse | CreateTaskResult> => {
-        const { name, arguments: args } = request.params;
-        const taskParams = (request.params._meta?.task ||
-          request.params.task) as
-          | { ttl?: number; pollInterval?: number }
-          | undefined;
+      "tools/call",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async (request: any, ctx): Promise<any> => {
+        const { name, arguments: args } = request.params as {
+          name: string;
+          arguments?: unknown;
+        };
 
         const isGateway = await determineIfGateway(this.bee);
 
-        const shouldExecuteAsTask =
-          !isGateway && taskParams && taskSupportTools.includes(name);
+        const gate =
+          !isGateway && taskSupportTools.includes(name)
+            ? shouldRunAsTask(name, request.params, ctx)
+            : { shouldRun: false };
 
         try {
-          if (shouldExecuteAsTask) {
-            const taskOptions: CreateTaskOptions = {
-              ttl: Math.max(config.bee.taskTtlMs, taskParams.ttl || 0),
-              pollInterval: taskParams.pollInterval ?? TASK_POLL_INTERVAL,
-            };
-            /* @mcp-codemod-error This object looks like a v1 handler-context mock (requestId, sessionId). v2 nests the context — reshape it (requestId → mcpReq.id; sessionId stays top-level), e.g. { sendRequest: fn } → { mcpReq: { send: fn } }. Passed as-is to a migrated handler that reads ctx.mcpReq.*, the v1 shape throws "Cannot read properties of undefined". */
+          if (gate.shouldRun && gate.taskOptions) {
             const createTaskModel: CreateTaskModel = {
-              taskOptions,
-              requestId: ctx.requestId,
+              taskOptions: gate.taskOptions,
+              requestId: ctx.mcpReq.id,
               request,
-              sessionId: ctx.sessionId,
             };
 
-            switch (request.params.name) {
+            switch (name) {
               case "upload_file": {
                 const validArgs = uploadFileSchema.parse(args);
                 return uploadFile(
@@ -163,7 +299,7 @@ export class SwarmMCPServer {
                   this.server.server.transport,
                   this.taskManager,
                   createTaskModel
-                );
+                ) as unknown as Promise<CreateTaskResult>;
               }
 
               case "upload_folder": {
@@ -174,7 +310,7 @@ export class SwarmMCPServer {
                   this.server.server.transport,
                   this.taskManager,
                   createTaskModel
-                );
+                ) as unknown as Promise<CreateTaskResult>;
               }
 
               case "download_files": {
@@ -211,7 +347,7 @@ export class SwarmMCPServer {
               default:
                 throw new ProtocolError(
                   ProtocolErrorCode.MethodNotFound,
-                  `Unknown tool: ${request.params.name}`
+                  `Unknown tool: ${name}`
                 );
             }
           }
@@ -219,14 +355,14 @@ export class SwarmMCPServer {
           if (error instanceof ZodError) {
             throw new ProtocolError(
               ProtocolErrorCode.InvalidRequest,
-              error.errors[0].message
+              error.issues[0].message
             );
           }
           throw error;
         }
 
         try {
-          switch (request.params.name) {
+          switch (name) {
             case "upload_data": {
               const validArgs = uploadDataSchema.parse(args);
               return uploadData(validArgs as UploadDataArgs, this.bee);
@@ -317,44 +453,29 @@ export class SwarmMCPServer {
             default:
               throw new ProtocolError(
                 ProtocolErrorCode.MethodNotFound,
-                `Unknown tool: ${request.params.name}`
+                `Unknown tool: ${name}`
               );
           }
         } catch (error) {
           if (error instanceof ZodError) {
-            return getToolErrorResponse(error.errors[0].message);
+            return getToolErrorResponse(error.issues[0].message) as ToolResponse;
           }
           throw error;
         }
       }
     );
-
-    this.registerPrompts();
-
-    this.registerTaskHandlers();
-
-    this.registerSyncTools();
-
-    this.server.server.onerror = (error: Error) =>
-      console.error("[Error]", error);
-
-    process.on("SIGINT", async () => {
-      // Clear all active polls
-      await this.server.close();
-      process.exit(0);
-    });
   }
 
   private registerPrompts() {
     const server = this.server.server;
 
-    server.setRequestHandler('prompts/list', async () => ({
+    server.setRequestHandler("prompts/list", async () => ({
       ...getSwarmPromptsSchema(),
     }));
 
     server.setRequestHandler(
-      'prompts/get',
-      async (request: GetPromptRequest) => {
+      "prompts/get",
+      async (request) => {
         const { name, arguments: args = {} } = request.params ?? {};
 
         try {
@@ -459,7 +580,7 @@ export class SwarmMCPServer {
             default:
               throw new ProtocolError(
                 ProtocolErrorCode.InvalidParams,
-                `Unknown tool: ${request.params.name}`
+                `Unknown prompt: ${name}`
               );
           }
 
@@ -479,7 +600,7 @@ export class SwarmMCPServer {
           if (error instanceof ZodError) {
             throw new ProtocolError(
               ProtocolErrorCode.InvalidParams,
-              error.errors[0].message
+              error.issues[0].message
             );
           }
           throw error;
@@ -491,40 +612,67 @@ export class SwarmMCPServer {
   private registerTaskHandlers() {
     const server = this.server.server;
 
-    // Handle tasks/get
-    /* @mcp-codemod-error Task handler registration: setRequestHandler(GetTaskRequestSchema, ...). The experimental tasks feature was removed in v2 (SEP-2663); the tasks/* method strings are not part of the typed RequestMethod surface. Remove this registration. See docs/migration/upgrade-to-v2.md#experimental-tasks-interception-removed. */
+    // tasks/get — canonical poll for task status; terminal responses embed result.
     server.setRequestHandler(
-      GetTaskRequestSchema,
-      async (request): Promise<GetTaskResult> => {
-        const { taskId } = request.params;
-        const task = await this.taskManager.getTask(taskId);
-        if (!task) {
-          throw new Error(`Task ${taskId} not found`);
-        }
-        return task;
+      "tasks/get",
+      {
+        params: GetTaskParamsSchema,
+        result: z.object({
+          task: z.unknown(),
+          result: z.unknown().optional(),
+        }),
+      },
+      async (params) => {
+        const { taskId } = params;
+        return this.taskManager.getTaskWithResult(taskId);
       }
     );
 
-    // Handle tasks/result
-    /* @mcp-codemod-error Task handler registration: setRequestHandler(GetTaskPayloadRequestSchema, ...). The experimental tasks feature was removed in v2 (SEP-2663); the tasks/* method strings are not part of the typed RequestMethod surface. Remove this registration. See docs/migration/upgrade-to-v2.md#experimental-tasks-interception-removed. */
+    // tasks/cancel — terminate a running task; returns the updated handle.
     server.setRequestHandler(
-      GetTaskPayloadRequestSchema,
-      async (request, ctx): Promise<GetTaskPayloadResult> => {
-        const { taskId } = request.params;
-
-        return this.taskManager.getTaskResult(taskId, ctx.sessionId ?? "");
+      "tasks/cancel",
+      {
+        params: CancelTaskParamsSchema,
+        result: z.object({
+          task: z.unknown(),
+        }),
+      },
+      async (params) => {
+        const { taskId } = params;
+        const task = await this.taskManager.cancelTask(taskId);
+        return { task };
       }
     );
-
-    /* @mcp-codemod-error Task handler registration: setRequestHandler(ListTasksRequestSchema, ...). The experimental tasks feature was removed in v2 (SEP-2663); the tasks/* method strings are not part of the typed RequestMethod surface. Remove this registration. See docs/migration/upgrade-to-v2.md#experimental-tasks-interception-removed. */
-    server.setRequestHandler(ListTasksRequestSchema, async (request) => {
-      return this.taskManager.listTasks(request.params?.cursor);
-    });
   }
 
-  private registerSyncTools() {
-    // List tools
-    this.server.server.setRequestHandler('tools/list', async () => {
+  private registerDiscoverHandler() {
+    // server/discover is MUST-implement (spec Major #3, SEP-2575). If the SDK
+    // registers a default that already reflects the ServerCapabilities we
+    // passed to the constructor, this override is redundant; we keep it
+    // explicit so the response shape is guaranteed regardless.
+    this.server.server.setRequestHandler(
+      "server/discover",
+      {
+        params: z.object({}).optional(),
+        result: DiscoverResultSchema,
+      },
+      async () => ({
+        protocolVersions: ["2026-07-28", "2025-11-25", "2025-06-18"],
+        serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
+        capabilities: {
+          prompts: {},
+          tools: {},
+          extensions: {
+            [TASKS_EXTENSION_KEY]: {},
+          },
+        },
+      })
+    );
+  }
+
+  private registerListTools() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.server.server.setRequestHandler("tools/list", async (): Promise<any> => {
       const isGateway = await determineIfGateway(this.bee);
       let tools = [...SwarmToolsSchema];
 
@@ -539,7 +687,14 @@ export class SwarmMCPServer {
         tools = tools.filter((item) => !nodeOnlyTools.includes(item.name));
       }
 
+      // Stable ordering (spec Minor #3) enables client-side caching and
+      // improves LLM prompt-cache hit rates.
+      tools.sort((a, b) => a.name.localeCompare(b.name));
+
       return { tools };
     });
   }
 }
+
+// Type re-exports to keep tools happy with local task types.
+export type { CreateTaskModel, CreateTaskResult, Task };

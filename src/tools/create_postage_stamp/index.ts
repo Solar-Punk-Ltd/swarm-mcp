@@ -2,7 +2,7 @@
  * MCP Tool: create_postage_stamp
  * Buy postage stamp based on size and duration.
  */
-import { CreateTaskResult } from "@modelcontextprotocol/server";
+import { CreateTaskResult } from "../../tasks/models";
 import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,

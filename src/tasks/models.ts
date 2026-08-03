@@ -1,7 +1,5 @@
 import { Bee } from "@ethersphere/bee-js";
-import { RequestId, Result, Task } from "@modelcontextprotocol/server";
-/* @mcp-codemod-error Unknown SDK import path: @modelcontextprotocol/sdk/experimental/tasks/interfaces.js. Manual migration required. */
-import { CreateTaskOptions } from "@modelcontextprotocol/sdk/experimental/tasks/interfaces.js";
+import { RequestId, Result } from "@modelcontextprotocol/server";
 import { TaskManager } from "./task-manager";
 
 export type UpdateStatusFunction = (
@@ -9,6 +7,29 @@ export type UpdateStatusFunction = (
   bee: Bee,
   taskManager: TaskManager
 ) => void;
+
+export enum TaskState {
+  WORKING = "working",
+  INPUT_REQUIRED = "input_required",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  CANCELLED = "cancelled",
+}
+
+export interface Task {
+  taskId: string;
+  status: TaskState;
+  ttl: number | null;
+  createdAt: string;
+  lastUpdatedAt: string;
+  pollInterval?: number;
+  statusMessage?: string;
+}
+
+export interface CreateTaskOptions {
+  ttl: number;
+  pollInterval: number;
+}
 
 export interface ExtendedTask {
   task: Task;
@@ -23,13 +44,28 @@ export interface CreateTaskModel {
   taskOptions: CreateTaskOptions;
   requestId: RequestId;
   request: unknown;
-  sessionId: string | undefined;
 }
 
-export enum TaskState {
-  WORKING = "working",
-  INPUT_REQUIRED = "input_required",
-  COMPLETED = "completed",
-  FAILED = "failed",
-  CANCELLED = "cancelled",
+export function isTaskTerminal(status: TaskState): boolean {
+  return (
+    status === TaskState.COMPLETED ||
+    status === TaskState.FAILED ||
+    status === TaskState.CANCELLED
+  );
+}
+
+export interface CreateTaskResult {
+  task: Task;
+  _meta?: Record<string, unknown>;
+}
+
+export interface GetTaskResult {
+  task: Task;
+  result?: Result;
+  _meta?: Record<string, unknown>;
+}
+
+export interface CancelTaskResult {
+  task: Task;
+  _meta?: Record<string, unknown>;
 }

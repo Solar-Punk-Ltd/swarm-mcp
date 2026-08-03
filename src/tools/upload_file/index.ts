@@ -3,7 +3,7 @@
  * Upload a file to Swarm
  */
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
-import { CreateTaskResult } from "@modelcontextprotocol/server";
+import { CreateTaskResult } from "../../tasks/models";
 import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
 import { readFile, stat } from "fs/promises";
 import path from "path";

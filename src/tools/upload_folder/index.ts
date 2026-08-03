@@ -1,5 +1,5 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
-import { CreateTaskResult } from "@modelcontextprotocol/server";
+import { CreateTaskResult } from "../../tasks/models";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
 import { stat } from "fs/promises";
 import {
