@@ -28,30 +28,34 @@ describe("can list tools", () => {
 
     expect(tools).toBeDefined();
     expect(tools.tools).toHaveLength(12);
-    expect(tools.tools.map((t) => t.name)).toEqual([
-      "upload_data",
-      "update_feed",
+    // Alphabetical order per spec Minor #3 (stable tools/list ordering).
+    expect(tools.tools.map((t: { name: string }) => t.name)).toEqual([
+      "create_postage_stamp",
       "download_data",
+      "download_files",
+      "extend_postage_stamp",
+      "get_postage_stamp",
+      "list_postage_stamps",
+      "query_upload_progress",
       "read_feed",
+      "update_feed",
+      "upload_data",
       "upload_file",
       "upload_folder",
-      "download_files",
-      "list_postage_stamps",
-      "get_postage_stamp",
-      "create_postage_stamp",
-      "extend_postage_stamp",
-      "query_upload_progress",
     ]);
   });
   test("Should fail validation with invalid parameters", async () => {
-    await expect(
-      client.callTool({
-        name: "upload_data",
-        arguments: {
-          // Missing required 'data' field
-          redundancyLevel: 0,
-        },
-      })
-    ).rejects.toThrow();
+    // Under v2, invalid args return an isError:true tool result rather than
+    // rejecting — the request itself succeeded, the tool's response signals
+    // the validation failure.
+    const result = (await client.callTool({
+      name: "upload_data",
+      arguments: {
+        // Missing required 'data' field
+        redundancyLevel: 0,
+      },
+    })) as { isError?: boolean; content: Array<{ text?: string }> };
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/expected string/);
   });
 });
