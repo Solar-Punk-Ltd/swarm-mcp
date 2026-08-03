@@ -21,6 +21,9 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@ethereumjs/wallet": "^10.0.0",
     "@ethersphere/bee-js": "^10.4.0",
