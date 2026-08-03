@@ -1,43 +1,36 @@
 #!/usr/bin/env node
 
-import express, { Request, Response } from "express";
+import express from "express";
 import cors from "cors";
 import { SwarmMCPServer } from "./mcp-service";
-import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { createMcpHandler } from "@modelcontextprotocol/server";
+import { toNodeHandler } from "@modelcontextprotocol/node";
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const host = process.env.HOST || "0.0.0.0";
 
 const app = express();
 
-// Enable CORS for all routes
 app.use(cors());
 app.use(express.json());
 
 async function main() {
-  // Setup for stateless HTTP transport
-  const httpSwarmMCPServer = new SwarmMCPServer();
-  const httpTransport = new NodeStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined, // Enforce stateless behavior
-  });
-  await httpSwarmMCPServer.server.connect(httpTransport);
+  // One SwarmMCPServer per process — owns the shared TaskManager. The
+  // factory returns a fresh McpServer per HTTP request (createMcpHandler
+  // contract), but all fresh instances share the same TaskManager state
+  // via closure. Task polling therefore requires sticky routing to this
+  // process (plan §"Sticky routing required for task polling").
+  const swarmMCPServer = new SwarmMCPServer();
 
-  // Handle all MCP requests on the /mcp endpoint
-  app.all("/mcp", async (req: Request, res: Response) => {
-    try {
-      await httpTransport.handleRequest(req, res, req.body);
-    } catch (error) {
-      console.error("Error handling MCP request:", error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          jsonrpc: "2.0",
-          error: { code: -32603, message: "Internal server error" },
-          id: req.body?.id,
-        });
-      }
-    }
-  });
-  // Start the server
+  const httpHandler = createMcpHandler(() => swarmMCPServer.buildFreshServer());
+  const nodeHandler = toNodeHandler(httpHandler);
+
+  // express.json() consumes the request stream; pass the parsed body through
+  // as toNodeHandler's third argument so the handler doesn't try to re-read
+  // an already-consumed stream (docs: "When a body parser already consumed
+  // the stream (express.json()), pass the parsed value as parsedBody").
+  app.all("/mcp", (req, res) => nodeHandler(req, res, req.body));
+
   app.listen(port, host, () => {});
 }
 

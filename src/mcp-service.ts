@@ -13,7 +13,6 @@ import {
   ProtocolError,
   ProtocolErrorCode,
   ServerContext,
-  CLIENT_CAPABILITIES_META_KEY,
   PROTOCOL_VERSION_META_KEY,
 } from "@modelcontextprotocol/server";
 import { z, ZodError } from "zod";
@@ -138,24 +137,14 @@ function shouldRunAsTask(
     protocolVersion.startsWith("2026-");
 
   if (isModern) {
-    const clientCapabilities =
-      (envelope?.[CLIENT_CAPABILITIES_META_KEY] as
-        | { extensions?: Record<string, unknown> }
-        | undefined) ??
-      (params._meta?.[CLIENT_CAPABILITIES_META_KEY] as
-        | { extensions?: Record<string, unknown> }
-        | undefined);
-    const clientHasTasksExt =
-      !!clientCapabilities?.extensions?.[TASKS_EXTENSION_KEY];
-    if (clientHasTasksExt) {
-      return {
-        shouldRun: true,
-        taskOptions: {
-          ttl: config.bee.taskTtlMs,
-          pollInterval: TASK_POLL_INTERVAL,
-        },
-      };
-    }
+    // Modern-era task-mode is temporarily disabled: at SDK 2.0.0 the modern
+    // wire codec rejects `tasks/get` / `tasks/cancel` with -32601 because
+    // extension-namespace method routing isn't wired in yet. Returning a
+    // task handle here would give the client nothing to poll. When the SDK
+    // ships first-class io.modelcontextprotocol/tasks routing (plan §"SEP-
+    // 2663 SDK support timing"), restore the gate: read
+    // _meta[CLIENT_CAPABILITIES_META_KEY].extensions[TASKS_EXTENSION_KEY]
+    // and route to task-mode when advertised.
     return { shouldRun: false };
   }
 
@@ -195,20 +184,20 @@ const CancelTaskParamsSchema = z.object({
   taskId: z.string(),
 });
 
-const DiscoverResultSchema = z.object({
-  protocolVersions: z.array(z.string()),
-  serverInfo: z.object({
-    name: z.string(),
-    version: z.string(),
-  }),
-  capabilities: z.record(z.string(), z.unknown()),
-});
-
 const SERVER_NAME = "swarm-mcp-server";
 const SERVER_VERSION = "0.1.0";
 
 /**
  * Swarm MCP Server class.
+ *
+ * Owns process-scoped shared state — Bee client and in-process TaskManager.
+ * `.server` is an McpServer wired for direct-transport use (stdio).
+ *
+ * For HTTP via `createMcpHandler(factory)`, use `.buildFreshServer()` — the
+ * SDK calls the factory once per HTTP request and requires a fresh McpServer
+ * each time. Shared state (bee, taskManager) is closed over so all fresh
+ * server instances observe the same tasks Map — sticky routing to this
+ * process is still required for task polling (plan §"Sticky routing").
  */
 export class SwarmMCPServer {
   public readonly server: McpServer;
@@ -219,7 +208,28 @@ export class SwarmMCPServer {
     this.bee = new Bee(config.bee.endpoint);
     this.taskManager = new TaskManager(this.bee);
 
-    this.server = new McpServer(
+    this.server = this.buildServerInstance();
+
+    this.server.server.onerror = (error: Error) =>
+      console.error("[Error]", error);
+
+    process.on("SIGINT", async () => {
+      this.taskManager.destroy();
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  /**
+   * Factory for `createMcpHandler` — returns a fresh McpServer per call,
+   * closing over this instance's shared bee + taskManager.
+   */
+  buildFreshServer(): McpServer {
+    return this.buildServerInstance();
+  }
+
+  private buildServerInstance(): McpServer {
+    const server = new McpServer(
       {
         name: SERVER_NAME,
         version: SERVER_VERSION,
@@ -232,11 +242,18 @@ export class SwarmMCPServer {
             [TASKS_EXTENSION_KEY]: {},
           },
         } as Record<string, unknown>,
+        supportedProtocolVersions: [
+          "2026-07-28",
+          "2025-11-25",
+          "2025-06-18",
+          "2025-03-26",
+        ],
         cacheHints: {
           "tools/list": { ttlMs: 300_000, cacheScope: "private" },
           "prompts/list": { ttlMs: 300_000, cacheScope: "private" },
           "server/discover": { ttlMs: 3_600_000, cacheScope: "public" },
         },
+        fallbackRequestHandler: this.buildTasksFallbackHandler(),
         instructions:
           "Only call tools with parameter values explicitly provided by the user. " +
           "Never invent, guess, or fill in values (postage batch IDs, references, addresses, " +
@@ -246,24 +263,23 @@ export class SwarmMCPServer {
       } as ConstructorParameters<typeof McpServer>[1]
     );
 
-    this.registerToolsCallHandler();
-    this.registerPrompts();
-    this.registerTaskHandlers();
-    this.registerDiscoverHandler();
-    this.registerListTools();
+    this.registerToolsCallHandler(server);
+    this.registerPrompts(server);
+    this.registerTaskHandlers(server);
+    this.registerListTools(server);
+    // server/discover is auto-registered by the SDK when
+    // supportedProtocolVersions contains a modern (>=2026-07-28) entry.
+    // It reads capabilities we passed to the constructor and returns the
+    // spec-shaped { supportedVersions, capabilities, instructions? } result.
 
-    this.server.server.onerror = (error: Error) =>
-      console.error("[Error]", error);
-
-    process.on("SIGINT", async () => {
-      this.taskManager.destroy();
-      await this.server.close();
-      process.exit(0);
-    });
+    return server;
   }
 
-  private registerToolsCallHandler() {
-    const server = this.server.server;
+  private registerToolsCallHandler(mcpServer: McpServer) {
+    const server = mcpServer.server;
+    const bee = this.bee;
+    const taskManager = this.taskManager;
+    const mcpServerRef = mcpServer;
     const taskSupportTools = getToolsWithTaskSupport();
 
     server.setRequestHandler(
@@ -296,7 +312,7 @@ export class SwarmMCPServer {
                 return uploadFile(
                   validArgs as unknown as UploadFileArgs,
                   this.bee,
-                  this.server.server.transport,
+                  mcpServerRef.server.transport,
                   this.taskManager,
                   createTaskModel
                 ) as unknown as Promise<CreateTaskResult>;
@@ -307,7 +323,7 @@ export class SwarmMCPServer {
                 return uploadFolder(
                   validArgs as unknown as UploadFolderArgs,
                   this.bee,
-                  this.server.server.transport,
+                  mcpServerRef.server.transport,
                   this.taskManager,
                   createTaskModel
                 ) as unknown as Promise<CreateTaskResult>;
@@ -318,7 +334,7 @@ export class SwarmMCPServer {
                 return downloadFiles(
                   validArgs as DownloadFilesArgs,
                   this.bee,
-                  this.server.server.transport,
+                  mcpServerRef.server.transport,
                   this.taskManager,
                   createTaskModel
                 );
@@ -388,7 +404,7 @@ export class SwarmMCPServer {
               return uploadFile(
                 validArgs as unknown as UploadFileArgs,
                 this.bee,
-                this.server.server.transport
+                mcpServerRef.server.transport
               );
             }
 
@@ -397,7 +413,7 @@ export class SwarmMCPServer {
               return uploadFolder(
                 validArgs as unknown as UploadFolderArgs,
                 this.bee,
-                this.server.server.transport
+                mcpServerRef.server.transport
               );
             }
 
@@ -406,7 +422,7 @@ export class SwarmMCPServer {
               return downloadFiles(
                 validArgs as DownloadFilesArgs,
                 this.bee,
-                this.server.server.transport
+                mcpServerRef.server.transport
               );
             }
 
@@ -466,8 +482,8 @@ export class SwarmMCPServer {
     );
   }
 
-  private registerPrompts() {
-    const server = this.server.server;
+  private registerPrompts(mcpServer: McpServer) {
+    const server = mcpServer.server;
 
     server.setRequestHandler("prompts/list", async () => ({
       ...getSwarmPromptsSchema(),
@@ -609,8 +625,52 @@ export class SwarmMCPServer {
     );
   }
 
-  private registerTaskHandlers() {
-    const server = this.server.server;
+  private buildTasksFallbackHandler(): (request: {
+    method: string;
+    params?: unknown;
+  }) => Promise<unknown> {
+    // Fallback handler for tasks/* methods.
+    //
+    // The v2 SDK's modern wire codec doesn't route the tasks/* extension
+    // methods to setRequestHandler registrations (SEP-2663 tasks moved to
+    // an extension; the SDK will add first-class routing later). Under
+    // modern era those requests bypass the typed handler map and land
+    // here as "unknown method". Under legacy era our 3-arg
+    // setRequestHandler registrations catch them directly and this
+    // fallback is not invoked. Same handler logic either way — the
+    // dispatch path differs by era.
+    const taskManager = this.taskManager;
+    return async (request) => {
+      const { method, params } = request;
+      const p = params as { taskId?: string } | undefined;
+      if (method === "tasks/get") {
+        if (!p?.taskId) {
+          throw new ProtocolError(
+            ProtocolErrorCode.InvalidParams,
+            "taskId required"
+          );
+        }
+        return taskManager.getTaskWithResult(p.taskId);
+      }
+      if (method === "tasks/cancel") {
+        if (!p?.taskId) {
+          throw new ProtocolError(
+            ProtocolErrorCode.InvalidParams,
+            "taskId required"
+          );
+        }
+        const task = await taskManager.cancelTask(p.taskId);
+        return { task };
+      }
+      throw new ProtocolError(
+        ProtocolErrorCode.MethodNotFound,
+        `Method not found: ${method}`
+      );
+    };
+  }
+
+  private registerTaskHandlers(mcpServer: McpServer) {
+    const server = mcpServer.server;
 
     // tasks/get — canonical poll for task status; terminal responses embed result.
     server.setRequestHandler(
@@ -645,34 +705,9 @@ export class SwarmMCPServer {
     );
   }
 
-  private registerDiscoverHandler() {
-    // server/discover is MUST-implement (spec Major #3, SEP-2575). If the SDK
-    // registers a default that already reflects the ServerCapabilities we
-    // passed to the constructor, this override is redundant; we keep it
-    // explicit so the response shape is guaranteed regardless.
-    this.server.server.setRequestHandler(
-      "server/discover",
-      {
-        params: z.object({}).optional(),
-        result: DiscoverResultSchema,
-      },
-      async () => ({
-        protocolVersions: ["2026-07-28", "2025-11-25", "2025-06-18"],
-        serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
-        capabilities: {
-          prompts: {},
-          tools: {},
-          extensions: {
-            [TASKS_EXTENSION_KEY]: {},
-          },
-        },
-      })
-    );
-  }
-
-  private registerListTools() {
+  private registerListTools(mcpServer: McpServer) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.server.server.setRequestHandler("tools/list", async (): Promise<any> => {
+    mcpServer.server.setRequestHandler("tools/list", async (): Promise<any> => {
       const isGateway = await determineIfGateway(this.bee);
       let tools = [...SwarmToolsSchema];
 
