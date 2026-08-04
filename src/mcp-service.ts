@@ -1,12 +1,14 @@
 /**
  * MCP Service implementation for Swarm operations, targeting spec 2026-07-28.
  *
- * Task creation is server-directed under SEP-2663: the client advertises the
- * `io.modelcontextprotocol/tasks` extension in its per-request `_meta`, and
- * the server decides whether a task-eligible tool should run async. A scoped
- * 2025-era compatibility branch inside `shouldRunAsTask` honors legacy
- * `_meta.task` opt-in for 2025-era clients (option A shim; delete when
- * 2025-era clients are gone).
+ * Task-mode status: only 2025-era clients can enter task-mode today. Under
+ * 2026-07-28, tasks/* was moved to the io.modelcontextprotocol/tasks
+ * extension (SEP-2663) and deleted from the era's method registry, so the
+ * SDK's era-registry guard rejects tasks/get and tasks/cancel with -32601
+ * before dispatch — no server handler or fallback can intercept them.
+ * `shouldRunAsTask` therefore returns false for modern clients and the
+ * 2025-era `_meta.task` shim is the only path that mints tasks. Flip the
+ * modern-era gate once the SDK ships tasks-extension support.
  */
 import {
   McpServer,
@@ -137,26 +139,26 @@ function shouldRunAsTask(
     protocolVersion.startsWith("2026-");
 
   if (isModern) {
-    // Modern-era task-mode is temporarily disabled: at SDK 2.0.0 the modern
-    // wire codec rejects `tasks/get` / `tasks/cancel` with -32601 because
-    // extension-namespace method routing isn't wired in yet. Returning a
-    // task handle here would give the client nothing to poll. When the SDK
-    // ships first-class io.modelcontextprotocol/tasks routing (plan §"SEP-
-    // 2663 SDK support timing"), restore the gate: read
+    // Modern-era task-mode is unreachable until the SDK ships tasks-extension
+    // support. Under 2026-07-28 the tasks/* methods were deleted from the
+    // era's registry (SEP-2663 moved tasks to the io.modelcontextprotocol/tasks
+    // extension), and the SDK's era-registry guard rejects `tasks/get` /
+    // `tasks/cancel` with -32601 before dispatch — no server-side registration
+    // or fallback can intercept them. Returning a task handle here would give
+    // the client a taskId it cannot poll. Restore task-mode routing once the
+    // SDK adds tasks-extension support in the negotiated 2026-era codec; at
+    // that point the gate should read
     // _meta[CLIENT_CAPABILITIES_META_KEY].extensions[TASKS_EXTENSION_KEY]
-    // and route to task-mode when advertised.
+    // and route to task-mode when the client advertises the extension.
     return { shouldRun: false };
   }
 
   // 2025-era shim (option A). Honors legacy _meta.task / params.task so the
   // current userbase's async-upload behavior survives the migration. Delete
   // this branch when 2025-era clients are gone.
-  const legacyTaskParams =
-    ((params._meta as { task?: { ttl?: number; pollInterval?: number } })
-      ?.task ??
-      (params as { task?: { ttl?: number; pollInterval?: number } }).task) as
-      | { ttl?: number; pollInterval?: number }
-      | undefined;
+  type LegacyTaskShim = { ttl?: number; pollInterval?: number };
+  const legacyTaskParams = (params._meta?.task ?? params.task) as
+    LegacyTaskShim | undefined;
   if (legacyTaskParams) {
     return {
       shouldRun: true,
@@ -253,7 +255,6 @@ export class SwarmMCPServer {
           "prompts/list": { ttlMs: 300_000, cacheScope: "private" },
           "server/discover": { ttlMs: 3_600_000, cacheScope: "public" },
         },
-        fallbackRequestHandler: this.buildTasksFallbackHandler(),
         instructions:
           "Only call tools with parameter values explicitly provided by the user. " +
           "Never invent, guess, or fill in values (postage batch IDs, references, addresses, " +
@@ -625,51 +626,14 @@ export class SwarmMCPServer {
     );
   }
 
-  private buildTasksFallbackHandler(): (request: {
-    method: string;
-    params?: unknown;
-  }) => Promise<unknown> {
-    // Fallback handler for tasks/* methods.
-    //
-    // The v2 SDK's modern wire codec doesn't route the tasks/* extension
-    // methods to setRequestHandler registrations (SEP-2663 tasks moved to
-    // an extension; the SDK will add first-class routing later). Under
-    // modern era those requests bypass the typed handler map and land
-    // here as "unknown method". Under legacy era our 3-arg
-    // setRequestHandler registrations catch them directly and this
-    // fallback is not invoked. Same handler logic either way — the
-    // dispatch path differs by era.
-    const taskManager = this.taskManager;
-    return async (request) => {
-      const { method, params } = request;
-      const p = params as { taskId?: string } | undefined;
-      if (method === "tasks/get") {
-        if (!p?.taskId) {
-          throw new ProtocolError(
-            ProtocolErrorCode.InvalidParams,
-            "taskId required"
-          );
-        }
-        return taskManager.getTaskWithResult(p.taskId);
-      }
-      if (method === "tasks/cancel") {
-        if (!p?.taskId) {
-          throw new ProtocolError(
-            ProtocolErrorCode.InvalidParams,
-            "taskId required"
-          );
-        }
-        const task = await taskManager.cancelTask(p.taskId);
-        return { task };
-      }
-      throw new ProtocolError(
-        ProtocolErrorCode.MethodNotFound,
-        `Method not found: ${method}`
-      );
-    };
-  }
-
   private registerTaskHandlers(mcpServer: McpServer) {
+    // These registrations are only reachable under the 2025-11-25 era codec,
+    // where tasks/* is a spec method and the SDK dispatches it to the typed
+    // handler map. Under 2026-07-28 the era-registry guard rejects tasks/*
+    // with -32601 before dispatch (registry membership = the deletion story),
+    // so the registration cannot be invoked for modern clients regardless of
+    // what shouldRunAsTask does. Kept alive to serve 2025-era clients that
+    // still opt into task-mode via the legacy _meta.task shim.
     const server = mcpServer.server;
 
     // tasks/get — canonical poll for task status; terminal responses embed result.
