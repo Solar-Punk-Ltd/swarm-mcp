@@ -20,7 +20,7 @@ import { UploadFileArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 import { updateUploadFileTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 
 export async function uploadFile(
   args: UploadFileArgs,
@@ -179,7 +179,7 @@ export async function uploadFile(
 
         taskManager.updateTaskStatus(
           task.taskId,
-          TaskState.FAILED,
+          TaskStatus.failed,
           errorMessage
         );
       });

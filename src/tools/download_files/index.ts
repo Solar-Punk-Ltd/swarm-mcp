@@ -16,7 +16,7 @@ import {
 } from "../../utils";
 import { DownloadFilesArgs } from "./models";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
 export async function downloadFiles(
@@ -70,7 +70,7 @@ export async function downloadFiles(
 
         taskManager.updateTaskStatus(
           task.taskId,
-          TaskState.FAILED,
+          TaskStatus.failed,
           errorMessage
         );
       });

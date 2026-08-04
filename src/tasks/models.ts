@@ -1,30 +1,25 @@
 import { Bee } from "@ethersphere/bee-js";
-import { RequestId, Result } from "@modelcontextprotocol/server";
+import { TaskStatusSchema } from "@modelcontextprotocol/core";
+import {
+  CancelTaskResult,
+  CreateTaskResult,
+  GetTaskResult,
+  RequestId,
+  Result,
+  Task,
+} from "@modelcontextprotocol/server";
 import { TaskManager } from "./task-manager";
+
+export type { CancelTaskResult, CreateTaskResult, GetTaskResult, Task };
+
+export const TaskStatus = TaskStatusSchema.enum;
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus];
 
 export type UpdateStatusFunction = (
   task: ExtendedTask,
   bee: Bee,
   taskManager: TaskManager
 ) => void;
-
-export enum TaskState {
-  WORKING = "working",
-  INPUT_REQUIRED = "input_required",
-  COMPLETED = "completed",
-  FAILED = "failed",
-  CANCELLED = "cancelled",
-}
-
-export interface Task {
-  taskId: string;
-  status: TaskState;
-  ttl: number | null;
-  createdAt: string;
-  lastUpdatedAt: string;
-  pollInterval?: number;
-  statusMessage?: string;
-}
 
 export interface CreateTaskOptions {
   ttl: number;
@@ -46,26 +41,10 @@ export interface CreateTaskModel {
   request: unknown;
 }
 
-export function isTaskTerminal(status: TaskState): boolean {
+export function isTaskTerminal(status: TaskStatus): boolean {
   return (
-    status === TaskState.COMPLETED ||
-    status === TaskState.FAILED ||
-    status === TaskState.CANCELLED
+    status === TaskStatus.completed ||
+    status === TaskStatus.failed ||
+    status === TaskStatus.cancelled
   );
-}
-
-export interface CreateTaskResult {
-  task: Task;
-  _meta?: Record<string, unknown>;
-}
-
-export interface GetTaskResult {
-  task: Task;
-  result?: Result;
-  _meta?: Record<string, unknown>;
-}
-
-export interface CancelTaskResult {
-  task: Task;
-  _meta?: Record<string, unknown>;
 }

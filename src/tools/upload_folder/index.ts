@@ -15,7 +15,7 @@ import { BAD_REQUEST_STATUS } from "../../constants";
 
 import { collectFilesRelative, updateUploadFolderTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 
 export async function uploadFolder(
   args: UploadFolderArgs,
@@ -136,7 +136,7 @@ export async function uploadFolder(
 
         taskManager.updateTaskStatus(
           task.taskId,
-          TaskState.FAILED,
+          TaskStatus.failed,
           errorMessage
         );
       });

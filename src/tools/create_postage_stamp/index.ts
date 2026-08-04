@@ -19,7 +19,7 @@ import {
   POSTAGE_CREATE_TIMEOUT_MESSAGE,
 } from "../../constants";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 
 export async function createPostageStamp(
   args: CreatePostageStampArgs,
@@ -78,7 +78,7 @@ export async function createPostageStamp(
 
         taskManager!.updateTaskStatus(
           task.taskId,
-          TaskState.FAILED,
+          TaskStatus.failed,
           errorMessage
         );
       });

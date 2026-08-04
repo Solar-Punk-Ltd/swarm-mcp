@@ -2,12 +2,16 @@ import { Bee } from "@ethersphere/bee-js";
 import {
   CreateTaskModel,
   ExtendedTask,
-  Task,
-  TaskState,
+  TaskStatus,
   UpdateStatusFunction,
   isTaskTerminal,
 } from "./models";
-import { ProtocolError, ProtocolErrorCode, Result } from "@modelcontextprotocol/server";
+import {
+  ProtocolError,
+  ProtocolErrorCode,
+  Result,
+  Task,
+} from "@modelcontextprotocol/server";
 import {
   TASK_CLEANUP_INTERVAL_MS,
   TASK_STATUS_UPDATE_INTERVAL_MS,
@@ -52,7 +56,7 @@ export class TaskManager {
     const now = new Date().toISOString();
     const task: Task = {
       taskId: randomUUID(),
-      status: TaskState.WORKING,
+      status: TaskStatus.working,
       ttl: createTaskModel.taskOptions.ttl,
       pollInterval: createTaskModel.taskOptions.pollInterval,
       createdAt: now,
@@ -109,14 +113,14 @@ export class TaskManager {
       );
     }
     if (!isTaskTerminal(extendedTask.task.status)) {
-      extendedTask.task.status = TaskState.CANCELLED;
+      extendedTask.task.status = TaskStatus.cancelled;
       extendedTask.task.statusMessage = "Cancelled by client.";
       extendedTask.task.lastUpdatedAt = new Date().toISOString();
     }
     return extendedTask.task;
   }
 
-  async updateTaskStatus(taskId: string, status: TaskState, message: string) {
+  async updateTaskStatus(taskId: string, status: TaskStatus, message: string) {
     const extendedTask = this.extendedTasks.get(taskId);
     if (!extendedTask) {
       return;
@@ -154,7 +158,7 @@ export class TaskManager {
     extendedTask.result = result;
     extendedTask.task.lastUpdatedAt = new Date().toISOString();
     if (!deferredCompletion) {
-      extendedTask.task.status = TaskState.COMPLETED;
+      extendedTask.task.status = TaskStatus.completed;
     }
   }
 
