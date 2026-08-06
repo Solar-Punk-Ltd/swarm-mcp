@@ -195,7 +195,10 @@ export const SwarmToolsSchema = [
     name: "upload_file",
     title: "Upload file",
     description:
-      "Upload a file to Swarm. Small files upload synchronously and return. Large files (over the server's deferred-upload threshold) upload in the background. " +
+      "Upload a file to Swarm. To upload a local file, pass its filesystem path as `data` — the server reads the file itself (stdio mode only). " +
+      "Alternatively, pass the raw text content directly as `data`. " +
+      "Never ask the user for the file content when a path is given, and never pass a Swarm reference — references are the OUTPUT of this tool, not an input. " +
+      "Small files upload synchronously and return a reference. Large files (over the server's deferred-upload threshold) upload in the background and return a tagId for query_upload_progress. " +
       "Optional options (ignore if they are not requested): " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
@@ -204,7 +207,8 @@ export const SwarmToolsSchema = [
       properties: {
         data: {
           type: "string",
-          description: "File content or file path.",
+          description:
+            "Absolute path to a local file (preferred; the server reads it, stdio mode only), or the raw content to upload.",
         },
         redundancyLevel: {
           type: "number",
