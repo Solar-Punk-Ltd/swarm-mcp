@@ -161,7 +161,7 @@ Read the Swarm feed of Topic1.
 
 ### `upload_file`
 
-Upload a file to Swarm.
+Upload a file to Swarm. Small files upload synchronously and return the reference. Large files (over the deferred-upload threshold) upload in the background: the response immediately includes the final reference (computed locally) and a tag ID for `query_upload_progress`; the content becomes retrievable at the reference once the upload completes. When `redundancyLevel` > 0, only the tag ID is returned immediately.
 
 **Parameters:**
 

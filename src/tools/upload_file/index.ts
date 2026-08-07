@@ -4,7 +4,7 @@
  */
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { CreateTaskResult } from "../../tasks/models";
-import { Bee, FileUploadOptions } from "@ethersphere/bee-js";
+import { Bee, BeeRequestOptions, FileUploadOptions } from "@ethersphere/bee-js";
 import { readFile, stat } from "fs/promises";
 import path from "path";
 import config from "../../config";
@@ -19,6 +19,11 @@ import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFileArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 import { updateUploadFileTaskStatus } from "./utils";
+import {
+  computeFileReference,
+  getContentType,
+  RAW_CONTENT_TYPE,
+} from "./reference";
 import { TaskManager } from "../../tasks/task-manager";
 import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 
@@ -89,6 +94,17 @@ export async function uploadFile(
     effectiveSize > config.bee.deferredUploadSizeThreshold * 1024 * 1024;
   options.deferred = deferred;
   options.redundancyLevel = redundancyLevel;
+  // The node stores the received Content-Type verbatim in the manifest; it
+  // must be deterministic on our side for computeFileReference to be exact.
+  const contentType = name ? getContentType(name) : RAW_CONTENT_TYPE;
+  options.contentType = contentType;
+
+  // Bee nodes may erasure-code uploads when the redundancy header is absent
+  // (observed default of level 1 on bee 2.8), while the tool documents 0 as
+  // the default. bee-js skips the header for level 0, so send it explicitly.
+  const requestOptions: BeeRequestOptions = {
+    headers: { "swarm-redundancy-level": String(redundancyLevel ?? 0) },
+  };
 
   let message = "File successfully uploaded to Swarm";
   let tagId: string | undefined = undefined;
@@ -110,16 +126,55 @@ export async function uploadFile(
   // reference are discoverable via query_upload_progress.
   const isRunningAsTask = taskManager && createTaskModel;
   if (!isRunningAsTask && deferred && tagId) {
+    // Compute the final reference locally (streaming, so large files are not
+    // held in memory) and return it right away. Only possible without
+    // redundancy: erasure coding adds parity chunks that change the root.
+    let reference: string | undefined;
+    if (!redundancyLevel) {
+      try {
+        reference = await computeFileReference(
+          args.data,
+          isPath,
+          name,
+          contentType
+        );
+      } catch {
+        /* best-effort; fall back to tagId-only response */
+      }
+    }
+
     (async () => {
       try {
         const bytes = isPath
           ? await readFile(args.data)
           : Buffer.from(args.data);
-        await bee.uploadFile(postageBatchId, bytes, name, options);
+        const result = await bee.uploadFile(
+          postageBatchId,
+          bytes,
+          name,
+          options,
+          requestOptions
+        );
+        if (reference && result.reference.toString() !== reference) {
+          console.error(
+            `upload_file: locally computed reference ${reference} does not match node reference ${result.reference.toString()} (tag ${tagId})`
+          );
+        }
       } catch {
         /* failure surfaces via query_upload_progress on the tag */
       }
     })();
+
+    if (reference) {
+      return getResponseWithStructuredContent({
+        tagId,
+        reference,
+        url: config.bee.endpoint + "/bzz/" + reference,
+        message:
+          "Upload started in the background. The reference was computed locally and is final; the content becomes retrievable at it once the upload completes. Poll query_upload_progress with this tagId to check completion.",
+      });
+    }
+
     return getResponseWithStructuredContent({
       tagId,
       message:
@@ -150,7 +205,7 @@ export async function uploadFile(
     );
 
     bee
-      .uploadFile(postageBatchId, binaryData, name, options)
+      .uploadFile(postageBatchId, binaryData, name, options, requestOptions)
       .then(async (result) => {
         const responseWithStructuredContent = getResponseWithStructuredContent({
           reference: result.reference.toString(),
@@ -192,7 +247,13 @@ export async function uploadFile(
   let result;
 
   try {
-    result = await bee.uploadFile(postageBatchId, binaryData, name, options);
+    result = await bee.uploadFile(
+      postageBatchId,
+      binaryData,
+      name,
+      options,
+      requestOptions
+    );
   } catch (error) {
     const detail =
       errorHasStatus(error, BAD_REQUEST_STATUS) && getErrorMessage(error)
