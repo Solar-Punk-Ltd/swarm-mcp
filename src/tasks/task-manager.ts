@@ -22,6 +22,11 @@ import { randomUUID } from "crypto";
 /**
  * In-process task store and update loop.
  *
+ * DORMANT: no code path mints tasks until the SDK ships dispatch for the
+ * io.modelcontextprotocol/tasks extension — see the revival checklist in
+ * mcp-service.ts. Timers are lazy-started on first createTask so the dormant
+ * manager costs nothing at runtime.
+ *
  * Task state lives in this.extendedTasks — invisible across processes.
  * tasks/get and tasks/cancel must route to the process that minted the handle.
  * See plan §"Sticky routing required for task polling".
@@ -29,11 +34,17 @@ import { randomUUID } from "crypto";
 export class TaskManager {
   private bee: Bee;
   private extendedTasks: Map<string, ExtendedTask> = new Map();
-  private cleanupInterval: NodeJS.Timeout;
-  private statusUpdateInterval: NodeJS.Timeout;
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private statusUpdateInterval: NodeJS.Timeout | null = null;
 
   constructor(bee: Bee) {
     this.bee = bee;
+  }
+
+  private ensureTimersStarted(): void {
+    if (this.cleanupInterval) {
+      return;
+    }
 
     this.cleanupInterval = setInterval(() => {
       this.cleanupOldTasks();
@@ -53,6 +64,8 @@ export class TaskManager {
     result: Result | null,
     _meta?: Record<string, string | null>
   ): Promise<Task> {
+    this.ensureTimersStarted();
+
     const now = new Date().toISOString();
     const task: Task = {
       taskId: randomUUID(),
@@ -104,6 +117,9 @@ export class TaskManager {
     return { task: extendedTask.task };
   }
 
+  // TODO(tasks revival): this only flips the status — it never aborts the
+  // underlying Bee operation. Acceptable-ish for tag-tracked uploads, wrong
+  // for downloads. Wire real abortion before re-enabling task-mode.
   async cancelTask(taskId: string): Promise<Task> {
     const extendedTask = this.extendedTasks.get(taskId);
     if (!extendedTask) {
