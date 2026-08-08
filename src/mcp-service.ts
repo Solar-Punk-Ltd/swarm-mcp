@@ -12,7 +12,6 @@ import config from "./config";
 import { SwarmToolsSchema } from "./schemas";
 import {
   determineIfGateway,
-  getToolsWithTaskSupport,
   getToolErrorResponse,
   ToolResponse,
 } from "./utils";
@@ -83,8 +82,13 @@ import {
   getUploadFolderPrompt,
 } from "./utils/prompts";
 
-// Tools whose task branches are kept dormant for the tasks-extension revival
-// (see the file header). Mirrors `execution.taskSupport` in the tool schemas.
+// Tools whose dormant task branches the tasks-extension revival will re-enable
+// (see shouldRunAsTask). Server-side only, by design: SEP-2663 task-mode is
+// server-directed — the client opts in once per request via its `_meta`
+// capabilities and must handle either result shape, so there is no per-tool
+// declaration on the wire. The 2025-era `execution.taskSupport` field that
+// used to mirror this list was deleted from the 2026 Tool schema and is not
+// re-introduced by the extension.
 const TASK_MODE_TOOLS: ReadonlySet<string> = new Set([
   "upload_file",
   "upload_folder",
@@ -237,7 +241,6 @@ export class SwarmMCPServer {
 
   private registerToolsCallHandler(mcpServer: McpServer) {
     const server = mcpServer.server;
-    const taskSupportTools = getToolsWithTaskSupport();
 
     server.setRequestHandler(
       "tools/call",
@@ -250,10 +253,12 @@ export class SwarmMCPServer {
 
         const isGateway = await determineIfGateway(this.bee);
 
-        const gate: TaskGateResult =
-          !isGateway && taskSupportTools.includes(name)
-            ? shouldRunAsTask(name)
-            : { shouldRun: false };
+        // Gateways cannot mint tasks (no postage/tag operations of their own),
+        // so they never enter task-mode. shouldRunAsTask owns the
+        // TASK_MODE_TOOLS membership check.
+        const gate: TaskGateResult = isGateway
+          ? { shouldRun: false }
+          : shouldRunAsTask(name);
 
         try {
           if (gate.shouldRun && gate.taskOptions) {

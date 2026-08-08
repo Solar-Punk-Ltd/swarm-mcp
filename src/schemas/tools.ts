@@ -59,9 +59,6 @@ export const SwarmToolsSchema = [
       },
       required: ["reference", "url"],
     },
-    execution: {
-      taskSupport: "forbidden",
-    },
   },
   {
     name: "update_feed",
@@ -78,7 +75,7 @@ export const SwarmToolsSchema = [
           type: "string",
           description:
             "The literal string content to write to the feed, taken verbatim from the user's message. " +
-            "Pass the exact text the user provided (typically the text after phrases like \"with:\", \"update with:\", \"set to:\", or similar), even if the value looks like a short identifier, a placeholder name (e.g. 'Message1', 'foo'), or otherwise seems like a variable — it is the content itself. " +
+            'Pass the exact text the user provided (typically the text after phrases like "with:", "update with:", "set to:", or similar), even if the value looks like a short identifier, a placeholder name (e.g. \'Message1\', \'foo\'), or otherwise seems like a variable — it is the content itself. ' +
             "Do not ask the user to clarify or expand the content; do not substitute your own text.",
         },
         memoryTopic: {
@@ -122,9 +119,6 @@ export const SwarmToolsSchema = [
       },
       required: ["reference", "topic", "feedUrl"],
     },
-    execution: {
-      taskSupport: "forbidden",
-    },
   },
   {
     name: "download_data",
@@ -132,7 +126,7 @@ export const SwarmToolsSchema = [
     description:
       "Download raw text data from a Swarm reference and return it as a string. " +
       "Use this tool ONLY when the user explicitly asks for the text content, string content, or raw data behind a reference, or when the reference is known to have been uploaded via `upload_data`. " +
-      "If the user mentions \"file\", \"files\", \"folder\", or asks to \"download\" without specifying that they want the raw text content, use `download_files` instead. " +
+      'If the user mentions "file", "files", "folder", or asks to "download" without specifying that they want the raw text content, use `download_files` instead. ' +
       "When in doubt about the reference type, prefer `download_files` — it handles both single files and folder manifests and can be saved to disk.",
     inputSchema: {
       type: "object",
@@ -153,9 +147,6 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["textData"],
-    },
-    execution: {
-      taskSupport: "forbidden",
     },
   },
   {
@@ -186,9 +177,6 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["textData"],
-    },
-    execution: {
-      taskSupport: "forbidden",
     },
   },
   {
@@ -227,9 +215,6 @@ export const SwarmToolsSchema = [
       },
       required: ["data"],
     },
-    execution: {
-      taskSupport: "optional",
-    },
   },
   {
     name: "upload_folder",
@@ -264,16 +249,13 @@ export const SwarmToolsSchema = [
       },
       required: ["folderPath"],
     },
-    execution: {
-      taskSupport: "optional",
-    },
   },
   {
     name: "download_files",
     title: "Download files",
     description:
       "Download a file or folder from a Swarm reference. Handles both single files and folder manifests, saves them to disk (in stdio mode) or returns the file list. " +
-      "Use this tool whenever the user asks to \"download\" from a reference and mentions \"file\", \"files\", \"folder\", or does not specify the data type. " +
+      'Use this tool whenever the user asks to "download" from a reference and mentions "file", "files", "folder", or does not specify the data type. ' +
       "Prefer this tool over `download_data` unless the user explicitly asks for the raw text/string content behind a reference. " +
       "This is the safe default for downloads when the reference type is unknown.",
     inputSchema: {
@@ -293,9 +275,6 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["reference"],
-    },
-    execution: {
-      taskSupport: "optional",
     },
   },
   {
@@ -343,9 +322,6 @@ export const SwarmToolsSchema = [
       },
       required: ["summary"],
     },
-    execution: {
-      taskSupport: "forbidden",
-    },
   },
   {
     name: "get_postage_stamp",
@@ -368,9 +344,6 @@ export const SwarmToolsSchema = [
         summary: PostageBatchSummarySchema,
       },
       required: ["summary"],
-    },
-    execution: {
-      taskSupport: "forbidden",
     },
   },
   {
@@ -405,9 +378,6 @@ export const SwarmToolsSchema = [
       },
       required: ["size", "duration"],
     },
-    execution: {
-      taskSupport: "optional",
-    },
   },
   {
     name: "extend_postage_stamp",
@@ -439,9 +409,6 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["postageBatchId"],
-    },
-    execution: {
-      taskSupport: "optional",
     },
   },
   {
@@ -481,9 +448,6 @@ export const SwarmToolsSchema = [
         },
       },
       required: ["processedPercentage", "tagAddress"],
-    },
-    execution: {
-      taskSupport: "forbidden",
     },
   },
 ];
