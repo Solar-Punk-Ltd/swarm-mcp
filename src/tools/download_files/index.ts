@@ -3,7 +3,7 @@
  * Download folder, files from a Swarm reference
  */
 import { Bee, MantarayNode } from "@ethersphere/bee-js";
-import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { isStdioMode } from "../../runtime";
 import fs from "fs";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
@@ -22,14 +22,13 @@ import { BAD_REQUEST_STATUS } from "../../constants";
 export async function downloadFiles(
   args: DownloadFilesArgs,
   bee: Bee,
-  transport: any,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse> {
   if (!args.reference) {
     return getToolErrorResponse("Missing required parameter: reference.");
   }
-  if (args.filePath && !(transport instanceof StdioServerTransport)) {
+  if (args.filePath && !isStdioMode()) {
     return getToolErrorResponse(
       "Saving to file path is only supported in stdio mode."
     );

@@ -100,15 +100,44 @@ interface TaskGateResult {
 
 /**
  * Per-request task-mode gate — DORMANT, the single reactivation point for
- * MCP tasks (see the revival checklist in the file header).
+ * MCP tasks (SEP-2663, io.modelcontextprotocol/tasks extension).
  *
- * Always declines today: the modern (SEP-2663) tasks extension cannot be
- * dispatched by the SDK yet, and returning a task handle would give the
- * client a taskId it cannot poll. When the SDK ships tasks-extension
- * support, this gate should read the client's advertised extension from
- * _meta[CLIENT_CAPABILITIES_META_KEY].extensions["io.modelcontextprotocol/tasks"]
- * (per-request — never cached on connection or server state) and return
- * `{ shouldRun: true, taskOptions }` for tools in TASK_MODE_TOOLS.
+ * Always declines today. The feasibility boundary, verified against
+ * @modelcontextprotocol/server 2.0.0:
+ *
+ * - tasks/get and tasks/cancel are genuinely blocked under the 2026 era:
+ *   they are 2025 spec methods absent from the 2026 registry, so the SDK's
+ *   era-registry guard answers -32601 before dispatch — no server-side
+ *   registration or fallback can intercept them. Returning a task handle
+ *   would give the client a taskId it cannot poll, hence the decline.
+ * - tools/call CAN carry a task handle: `resultType: "task"` passes the
+ *   encode seam verbatim (open union) and the 2026 CallToolResultSchema is
+ *   a loose object — but `_wrapHandler` validates every tools/call result
+ *   and `content` is required (`normalizeContentlessToolResult` refuses to
+ *   default it when a foreign-family key like `task` is present), so a
+ *   task-mode result must include a `content` block.
+ * - tasks/update is registrable (absent from every era registry).
+ * - Entry-level interception of tasks/get before the pinned instance is the
+ *   SDK's own pattern (serveStdio does it for subscriptions/listen), but for
+ *   us it would mean owning wire parsing outside the SDK — rejected;
+ *   waiting for SDK tasks-extension dispatch instead.
+ *
+ * Revival checklist:
+ * 1. Advertise the extension in capabilities.extensions (deliberately NOT
+ *    advertised while dormant — advertise it in the change that makes it
+ *    work).
+ * 2. Read the client's advertised extension here, per request, from
+ *    _meta[CLIENT_CAPABILITIES_META_KEY].extensions["io.modelcontextprotocol/tasks"]
+ *    (never cached on connection or server state) and return
+ *    `{ shouldRun: true, taskOptions }` for tools in TASK_MODE_TOOLS.
+ * 3. Register tasks/get (result embedded once terminal), tasks/cancel and
+ *    tasks/update via the SDK's extension API. SEP-2663 has no tasks/list
+ *    and no tasks/result. Check the extension's field names against our
+ *    SDK-typed Task (ttl/pollInterval vs possible ttlMs/pollIntervalMs).
+ * 4. Make TaskManager.cancelTask abort the underlying Bee operation (TODO
+ *    in task-manager.ts).
+ * 5. Consider task-mode for create_postage_stamp / extend_postage_stamp,
+ *    which are sync-only and can exceed client timeouts on slow purchases.
  */
 function shouldRunAsTask(toolName: string): TaskGateResult {
   if (!TASK_MODE_TOOLS.has(toolName)) {
@@ -125,16 +154,15 @@ const SERVER_VERSION = "0.1.0";
  * Swarm MCP Server class.
  *
  * Owns process-scoped shared state — Bee client and in-process TaskManager.
- * `.server` is an McpServer wired for direct-transport use (stdio).
  *
- * For HTTP via `createMcpHandler(factory)`, use `.buildFreshServer()` — the
- * SDK calls the factory once per HTTP request and requires a fresh McpServer
- * each time. Shared state (bee, taskManager) is closed over so all fresh
- * server instances observe the same tasks Map — sticky routing to this
- * process is still required for task polling (plan §"Sticky routing").
+ * Both entry points build their McpServer through `.buildFreshServer()`:
+ * `createMcpHandler(factory)` (HTTP) calls it once per request, `serveStdio`
+ * (stdio) calls it once per connection. Shared state (bee, taskManager) is
+ * closed over so all fresh server instances observe the same tasks Map —
+ * sticky routing to this process is still required for task polling
+ * (plan §"Sticky routing").
  */
 export class SwarmMCPServer {
-  public readonly server: McpServer;
   private readonly bee: Bee;
   private readonly taskManager: TaskManager;
 
@@ -142,21 +170,15 @@ export class SwarmMCPServer {
     this.bee = new Bee(config.bee.endpoint);
     this.taskManager = new TaskManager(this.bee);
 
-    this.server = this.buildServerInstance();
-
-    this.server.server.onerror = (error: Error) =>
-      console.error("[Error]", error);
-
-    process.on("SIGINT", async () => {
+    process.on("SIGINT", () => {
       this.taskManager.destroy();
-      await this.server.close();
-      process.exit(0);
     });
   }
 
   /**
-   * Factory for `createMcpHandler` — returns a fresh McpServer per call,
-   * closing over this instance's shared bee + taskManager.
+   * Factory for the serving entries (`createMcpHandler`, `serveStdio`) —
+   * returns a fresh McpServer per call, closing over this instance's shared
+   * bee + taskManager.
    */
   buildFreshServer(): McpServer {
     return this.buildServerInstance();
@@ -210,7 +232,6 @@ export class SwarmMCPServer {
 
   private registerToolsCallHandler(mcpServer: McpServer) {
     const server = mcpServer.server;
-    const mcpServerRef = mcpServer;
     const taskSupportTools = getToolsWithTaskSupport();
 
     server.setRequestHandler(
@@ -243,7 +264,6 @@ export class SwarmMCPServer {
                 return uploadFile(
                   validArgs as unknown as UploadFileArgs,
                   this.bee,
-                  mcpServerRef.server.transport,
                   this.taskManager,
                   createTaskModel
                 ) as unknown as Promise<CreateTaskResult>;
@@ -254,7 +274,6 @@ export class SwarmMCPServer {
                 return uploadFolder(
                   validArgs as unknown as UploadFolderArgs,
                   this.bee,
-                  mcpServerRef.server.transport,
                   this.taskManager,
                   createTaskModel
                 ) as unknown as Promise<CreateTaskResult>;
@@ -265,7 +284,6 @@ export class SwarmMCPServer {
                 return downloadFiles(
                   validArgs as DownloadFilesArgs,
                   this.bee,
-                  mcpServerRef.server.transport,
                   this.taskManager,
                   createTaskModel
                 );
@@ -334,8 +352,7 @@ export class SwarmMCPServer {
               const validArgs = uploadFileSchema.parse(args);
               return uploadFile(
                 validArgs as unknown as UploadFileArgs,
-                this.bee,
-                mcpServerRef.server.transport
+                this.bee
               );
             }
 
@@ -343,18 +360,13 @@ export class SwarmMCPServer {
               const validArgs = uploadFolderSchema.parse(args);
               return uploadFolder(
                 validArgs as unknown as UploadFolderArgs,
-                this.bee,
-                mcpServerRef.server.transport
+                this.bee
               );
             }
 
             case "download_files": {
               const validArgs = downloadFilesSchema.parse(args);
-              return downloadFiles(
-                validArgs as DownloadFilesArgs,
-                this.bee,
-                mcpServerRef.server.transport
-              );
+              return downloadFiles(validArgs as DownloadFilesArgs, this.bee);
             }
 
             case "list_postage_stamps": {

@@ -5,6 +5,11 @@ import cors from "cors";
 import { SwarmMCPServer } from "./mcp-service";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { toNodeHandler } from "@modelcontextprotocol/node";
+import { setTransportMode } from "./runtime";
+
+// Filesystem-touching tool paths (local file/folder upload, download to disk)
+// stay refused over HTTP.
+setTransportMode("http");
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const host = process.env.HOST || "0.0.0.0";

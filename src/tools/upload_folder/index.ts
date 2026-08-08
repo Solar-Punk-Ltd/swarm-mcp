@@ -1,4 +1,4 @@
-import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { isStdioMode } from "../../runtime";
 import { CreateTaskResult } from "../../tasks/models";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
 import { stat } from "fs/promises";
@@ -20,7 +20,6 @@ import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 export async function uploadFolder(
   args: UploadFolderArgs,
   bee: Bee,
-  transport: any,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
@@ -40,7 +39,7 @@ export async function uploadFolder(
   }
 
   // Check if in stdio mode for folder path uploads
-  if (!(transport instanceof StdioServerTransport)) {
+  if (!isStdioMode()) {
     return getToolErrorResponse(
       "Folder path uploads are only supported in stdio mode."
     );

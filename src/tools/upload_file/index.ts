@@ -2,7 +2,7 @@
  * MCP Tool: upload_file
  * Upload a file to Swarm
  */
-import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { isStdioMode } from "../../runtime";
 import { CreateTaskResult } from "../../tasks/models";
 import { Bee, BeeRequestOptions, FileUploadOptions } from "@ethersphere/bee-js";
 import { readFile, stat } from "fs/promises";
@@ -30,7 +30,6 @@ import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 export async function uploadFile(
   args: UploadFileArgs,
   bee: Bee,
-  transport: any,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
@@ -76,7 +75,7 @@ export async function uploadFile(
     isPath = false;
   }
 
-  if (isPath && !(transport instanceof StdioServerTransport)) {
+  if (isPath && !isStdioMode()) {
     return getToolErrorResponse(
       "File path uploads are only supported in stdio mode."
     );
