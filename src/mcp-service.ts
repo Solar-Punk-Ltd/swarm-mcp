@@ -137,12 +137,18 @@ interface TaskGateResult {
  *    _meta[CLIENT_CAPABILITIES_META_KEY].extensions["io.modelcontextprotocol/tasks"]
  *    (never cached on connection or server state) and return
  *    `{ shouldRun: true, taskOptions }` for tools in TASK_MODE_TOOLS.
- * 3. Register tasks/get (result on `completed` / error on `failed` embedded
- *    once terminal), tasks/cancel (empty ack; cancellation is cooperative)
- *    and tasks/update (inputResponses) via the SDK's extension API.
- *    SEP-2663 has no tasks/list and no tasks/result. Field names differ
- *    from our SDK-typed Task (verified, ext-tasks schema): `ttlMs: number |
- *    null` and `pollIntervalMs?: number` — not ttl/pollInterval.
+ * 3. Register tasks/get, tasks/cancel (empty ack — `CancelTaskResult =
+ *    Result`; cancellation is cooperative) and tasks/update (inputResponses)
+ *    via the SDK's extension API. SEP-2663 has no tasks/list and no
+ *    tasks/result. Two shape changes to make, both verified against the
+ *    ext-tasks schema:
+ *    a. tasks/get returns `Result & DetailedTask` — FLAT, with `result` on
+ *       CompletedTask and `error` on FailedTask. Project ExtendedTask to that
+ *       at the handler boundary; do NOT flatten the internal store, which
+ *       also holds unserializable bookkeeping (updateStatus).
+ *    b. Task field names differ from our SDK-typed Task: `ttlMs: number |
+ *       null` and `pollIntervalMs?: number` — not ttl/pollInterval
+ *       (CreateTaskOptions in tasks/models.ts).
  * 4. Make TaskManager.cancelTask abort the underlying Bee operation (TODO
  *    in task-manager.ts).
  * 5. Consider task-mode for create_postage_stamp / extend_postage_stamp,

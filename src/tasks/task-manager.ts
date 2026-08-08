@@ -97,9 +97,13 @@ export class TaskManager {
   }
 
   /**
-   * Returns the task plus its terminal result, when terminal. This is what
-   * SEP-2663's tasks/get returns: a task handle whose result is embedded
-   * once status is terminal.
+   * Returns the task plus its terminal result, when terminal. Currently
+   * uncalled — kept as the store-side half of a future tasks/get.
+   *
+   * The nesting here is internal only and is NOT the wire shape: SEP-2663's
+   * GetTaskResult is `Result & DetailedTask` — FLAT, with `result` present on
+   * CompletedTask and `error` on FailedTask. The revival must project to that
+   * shape at the handler boundary (see checklist item 3 in mcp-service.ts).
    */
   async getTaskWithResult(
     taskId: string
