@@ -29,21 +29,6 @@ export const readFeedSchema = z.object({
 
 export const uploadFileSchema = z.object({
   data: z.string().min(1, { message: "Missing required parameter: data." }),
-  isPath: z
-    .preprocess((value) => {
-      if (typeof value === "string") {
-        const normalized = value.trim().toLowerCase();
-        if (normalized === "true") {
-          return true;
-        } else {
-          return false;
-        }
-      }
-
-      return value;
-    }, z.boolean())
-    .optional()
-    .default(false),
   redundancyLevel: z.coerce.number().optional().default(0),
   postageBatchId: z.string().optional(),
 });

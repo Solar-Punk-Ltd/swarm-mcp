@@ -2,7 +2,7 @@
  * MCP Tool: create_postage_stamp
  * Buy postage stamp based on size and duration.
  */
-import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
+import { CreateTaskResult } from "../../tasks/models";
 import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
@@ -19,7 +19,7 @@ import {
   POSTAGE_CREATE_TIMEOUT_MESSAGE,
 } from "../../constants";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 
 export async function createPostageStamp(
   args: CreatePostageStampArgs,
@@ -73,12 +73,12 @@ export async function createPostageStamp(
       .catch((error) => {
         let errorMessage = "Unable to buy storage.";
         if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-          errorMessage = getErrorMessage(error);
+          errorMessage = `Unable to buy storage: ${getErrorMessage(error)}`;
         }
 
         taskManager!.updateTaskStatus(
           task.taskId,
-          TaskState.FAILED,
+          TaskStatus.failed,
           errorMessage
         );
       });
@@ -113,7 +113,7 @@ export async function createPostageStamp(
     buyStorageResponse = response as BatchId;
   } catch (error) {
     const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
-      ? getErrorMessage(error)
+      ? `Unable to buy storage: ${getErrorMessage(error)}`
       : "Unable to buy storage.";
 
     return getToolErrorResponse(errorMsg);

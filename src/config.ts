@@ -38,7 +38,8 @@ const config: Config = {
     endpoint: process.env.BEE_API_URL || DEFAULT_GATEWAY_URL,
     feedPrivateKey: process.env.BEE_FEED_PK,
     autoAssignStamp:
-      process.env.AUTO_ASSIGN_STAMP !== undefined
+      process.env.AUTO_ASSIGN_STAMP !== undefined &&
+      process.env.AUTO_ASSIGN_STAMP !== ""
         ? process.env.AUTO_ASSIGN_STAMP === "true"
         : true,
     deferredUploadSizeThreshold:

@@ -2,7 +2,7 @@
  * MCP Tool: extend_postage_stamp
  * Increase the duration and size of a postage stamp.
  */
-import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
+import { CreateTaskResult } from "../../tasks/models";
 import { BatchId, Bee, Duration, Size } from "@ethersphere/bee-js";
 import {
   errorHasStatus,
@@ -19,7 +19,7 @@ import {
   EXTEND_POSTAGE_TIMEOUT_MESSAGE,
 } from "../../constants";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 
 export async function extendPostageStamp(
   args: ExtendPostageStampArgs,
@@ -77,13 +77,16 @@ export async function extendPostageStamp(
       })
       .catch((error) => {
         let errorMessage = "Extend failed.";
-        if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-          errorMessage = getErrorMessage(error);
+        if (
+          errorHasStatus(error, BAD_REQUEST_STATUS) ||
+          errorHasStatus(error, 402)
+        ) {
+          errorMessage = `Extend failed: ${getErrorMessage(error)}`;
         }
 
         taskManager!.updateTaskStatus(
           task.taskId,
-          TaskState.FAILED,
+          TaskStatus.failed,
           errorMessage
         );
       });
@@ -117,8 +120,11 @@ export async function extendPostageStamp(
     extendStorageResponse = response as BatchId;
   } catch (error) {
     let errorMsg = "Extend failed.";
-    if (errorHasStatus(error, BAD_REQUEST_STATUS)) {
-      errorMsg = getErrorMessage(error);
+    if (
+      errorHasStatus(error, BAD_REQUEST_STATUS) ||
+      errorHasStatus(error, 402)
+    ) {
+      errorMsg = `Extend failed: ${getErrorMessage(error)}`;
     } else if (extendDuration === Duration.ZERO) {
       // A likely cause of the extension failing when extension duration is 0
       // is an extension size smaller than the current one.

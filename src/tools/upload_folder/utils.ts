@@ -3,7 +3,7 @@ import { readdir } from "fs/promises";
 import path from "path";
 import {
   ExtendedTask,
-  TaskState,
+  TaskStatus,
   UpdateStatusFunction,
 } from "../../tasks/models";
 import { getResponseWithStructuredContent } from "../../utils";
@@ -26,7 +26,7 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
     const reference = extendedTask?._meta?.reference;
     await taskManager.updateTaskStatus(
       extendedTask.task.taskId,
-      TaskState.WORKING,
+      TaskStatus.working,
       `Processing: ${progress.processedPercentage}% (${progress.processed}/${progress.total} chunks)${reference ? ` for reference ${reference}` : ""}. You can also use query_upload_progress for tag id ${tagUid} to track progress.`
     );
 
@@ -53,7 +53,7 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
   } catch (error) {
     await taskManager.updateTaskStatus(
       extendedTask.task.taskId,
-      TaskState.FAILED,
+      TaskStatus.failed,
       `Failed to update task ${extendedTask.task.taskId} status.`
     );
   }

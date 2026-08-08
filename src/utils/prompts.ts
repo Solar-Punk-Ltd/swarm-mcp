@@ -1,3 +1,4 @@
+import { existsSync, statSync } from "fs";
 import { SwarmToolsSchema } from "../schemas";
 import { CreatePostageStampArgs } from "../tools/create_postage_stamp/models";
 import { DownloadDataArgs } from "../tools/download_data/models";
@@ -88,7 +89,14 @@ export const getDownloadFilesPrompt = (args: DownloadFilesArgs) => {
 export const getUploadFilePrompt = (args: UploadFileArgs) => {
   let prompt = "";
 
-  if (args.isPath) {
+  let isPath = false;
+  try {
+    isPath = existsSync(args.data) && statSync(args.data).isFile();
+  } catch {
+    isPath = false;
+  }
+
+  if (isPath) {
     prompt = `Upload to Swarm the file at path: ${args.data}`;
   } else {
     prompt = `Upload to Swarm a file with the content (treat it as file content, not file path): ${args.data}`;

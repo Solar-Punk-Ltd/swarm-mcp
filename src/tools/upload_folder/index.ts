@@ -1,6 +1,6 @@
-import { CreateTaskResult } from "@modelcontextprotocol/sdk/types.js";
+import { isStdioMode } from "../../runtime";
+import { CreateTaskResult } from "../../tasks/models";
 import { Bee, CollectionUploadOptions } from "@ethersphere/bee-js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { stat } from "fs/promises";
 import {
   errorHasStatus,
@@ -15,12 +15,11 @@ import { BAD_REQUEST_STATUS } from "../../constants";
 
 import { collectFilesRelative, updateUploadFolderTaskStatus } from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
-import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskModel, TaskStatus } from "../../tasks/models";
 
 export async function uploadFolder(
   args: UploadFolderArgs,
   bee: Bee,
-  transport: any,
   taskManager?: TaskManager,
   createTaskModel?: CreateTaskModel
 ): Promise<ToolResponse | CreateTaskResult> {
@@ -28,8 +27,19 @@ export async function uploadFolder(
     return getToolErrorResponse("Missing required parameter: folderPath.");
   }
 
+  if (
+    args.redundancyLevel !== undefined &&
+    (!Number.isInteger(args.redundancyLevel) ||
+      args.redundancyLevel < 0 ||
+      args.redundancyLevel > 4)
+  ) {
+    return getToolErrorResponse(
+      "Invalid redundancyLevel. Must be an integer between 0 and 4 (0=OFF, 1=MEDIUM, 2=STRONG, 3=INSANE, 4=PARANOID)."
+    );
+  }
+
   // Check if in stdio mode for folder path uploads
-  if (!(transport instanceof StdioServerTransport)) {
+  if (!isStdioMode()) {
     return getToolErrorResponse(
       "Folder path uploads are only supported in stdio mode."
     );
@@ -125,7 +135,7 @@ export async function uploadFolder(
 
         taskManager.updateTaskStatus(
           task.taskId,
-          TaskState.FAILED,
+          TaskStatus.failed,
           errorMessage
         );
       });
@@ -135,21 +145,39 @@ export async function uploadFolder(
     };
   }
 
+  // Fire-and-forget path when a tag was created (folders always request
+  // deferred). Return immediately with the tagId so the MCP client doesn't
+  // time out; progress + final reference are discoverable via
+  // query_upload_progress.
+  if (deferred && tagId) {
+    bee
+      .uploadFilesFromDirectory(postageBatchId, args.folderPath, options)
+      .catch(() => {
+        /* failure surfaces via query_upload_progress on the tag */
+      });
+    return getResponseWithStructuredContent({
+      tagId,
+      message:
+        "Folder upload started in the background. Poll query_upload_progress with this tagId to check completion; the final reference is available on the tag once processed=true.",
+    });
+  }
+
   let result;
 
   try {
-    // Start the deferred upload
     result = await bee.uploadFilesFromDirectory(
       postageBatchId,
       args.folderPath,
       options
     );
   } catch (error) {
-    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
-      ? getErrorMessage(error)
-      : "Unable to upload folder.";
-
-    return getToolErrorResponse(errorMsg);
+    const detail =
+      errorHasStatus(error, BAD_REQUEST_STATUS) && getErrorMessage(error)
+        ? getErrorMessage(error)
+        : error instanceof Error
+          ? error.message
+          : String(error);
+    return getToolErrorResponse(`Unable to upload folder: ${detail}`);
   }
 
   return getResponseWithStructuredContent({
