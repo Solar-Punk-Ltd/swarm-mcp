@@ -110,12 +110,15 @@ interface TaskGateResult {
  *   era-registry guard answers -32601 before dispatch — no server-side
  *   registration or fallback can intercept them. Returning a task handle
  *   would give the client a taskId it cannot poll, hence the decline.
- * - tools/call CAN carry a task handle: `resultType: "task"` passes the
- *   encode seam verbatim (open union) and the 2026 CallToolResultSchema is
- *   a loose object — but `_wrapHandler` validates every tools/call result
- *   and `content` is required (`normalizeContentlessToolResult` refuses to
- *   default it when a foreign-family key like `task` is present), so a
- *   task-mode result must include a `content` block.
+ * - tools/call CAN carry a task handle: the extension's CreateTaskResult is
+ *   `Result & Task` — Task fields FLAT on the result, no `task` key
+ *   (ext-tasks schema/draft/schema.ts). `resultType: "task"` passes the
+ *   encode seam verbatim (open union), the 2026 CallToolResultSchema is a
+ *   loose object, and because the flat shape carries no foreign-family key
+ *   (`task`, `inputRequests`), `normalizeContentlessToolResult` auto-fills
+ *   `content: []` — the handler need not provide one. (Only the legacy
+ *   `{ task }`-keyed shape trips the foreign-family guard and requires an
+ *   explicit `content` block.)
  * - tasks/update is registrable (absent from every era registry).
  * - Entry-level interception of tasks/get before the pinned instance is the
  *   SDK's own pattern (serveStdio does it for subscriptions/listen), but for
@@ -130,10 +133,12 @@ interface TaskGateResult {
  *    _meta[CLIENT_CAPABILITIES_META_KEY].extensions["io.modelcontextprotocol/tasks"]
  *    (never cached on connection or server state) and return
  *    `{ shouldRun: true, taskOptions }` for tools in TASK_MODE_TOOLS.
- * 3. Register tasks/get (result embedded once terminal), tasks/cancel and
- *    tasks/update via the SDK's extension API. SEP-2663 has no tasks/list
- *    and no tasks/result. Check the extension's field names against our
- *    SDK-typed Task (ttl/pollInterval vs possible ttlMs/pollIntervalMs).
+ * 3. Register tasks/get (result on `completed` / error on `failed` embedded
+ *    once terminal), tasks/cancel (empty ack; cancellation is cooperative)
+ *    and tasks/update (inputResponses) via the SDK's extension API.
+ *    SEP-2663 has no tasks/list and no tasks/result. Field names differ
+ *    from our SDK-typed Task (verified, ext-tasks schema): `ttlMs: number |
+ *    null` and `pollIntervalMs?: number` — not ttl/pollInterval.
  * 4. Make TaskManager.cancelTask abort the underlying Bee operation (TODO
  *    in task-manager.ts).
  * 5. Consider task-mode for create_postage_stamp / extend_postage_stamp,
