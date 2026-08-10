@@ -2,8 +2,7 @@
  * MCP Tool: upload_file
  * Upload a file to Swarm
  */
-import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
-import { CreateTaskResult } from "../../tasks/models";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { Bee, BeeRequestOptions, FileUploadOptions } from "@ethersphere/bee-js";
 import { readFile, stat } from "fs/promises";
 import path from "path";
@@ -26,6 +25,7 @@ import {
 } from "./reference";
 import { TaskManager } from "../../tasks/task-manager";
 import { CreateTaskModel, TaskState } from "../../tasks/models";
+import { CreateTaskResult } from "@modelcontextprotocol/sdk/types";
 
 export async function uploadFile(
   args: UploadFileArgs,
