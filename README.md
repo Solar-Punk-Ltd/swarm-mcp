@@ -1,7 +1,5 @@
 # Swarm MCP Server
 
-**Disclaimer:** This implementation is a proof-of-concept only, should not be used in production.
-
 A Model Context Protocol (MCP) server implementation that uses Ethereum Swarm's Bee API for storing and retrieving data.
 
 ## Overview
