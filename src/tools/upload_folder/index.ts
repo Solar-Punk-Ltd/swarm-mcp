@@ -13,7 +13,12 @@ import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFolderArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
-import { collectFilesRelative, updateUploadFolderTaskStatus } from "./utils";
+import config from "../../config";
+import {
+  collectFilesRelative,
+  getTotalFilesSize,
+  updateUploadFolderTaskStatus,
+} from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
 import { CreateTaskModel, TaskState } from "../../tasks/models";
 
@@ -70,15 +75,21 @@ export async function uploadFolder(
     options.redundancyLevel = redundancyLevel;
   }
 
-  const deferred = true; // Folders are always deferred if possible/requested
-  options.deferred = deferred;
-
   // Single-file collections return raw manifest bytes from the Bee node unless an
   // index document is set, so auto-detect and set it to avoid garbled downloads.
   const allFiles = await collectFilesRelative(args.folderPath);
   if (allFiles.length === 1) {
     options.indexDocument = allFiles[0];
   }
+
+  // Defer by total size, matching upload_file. Small folders upload
+  // synchronously so the caller gets the manifest reference straight away;
+  // unlike a single file, a folder root cannot be computed locally, so
+  // deferring is the only case where the reference is unavailable up front.
+  const sizeBytes = await getTotalFilesSize(args.folderPath, allFiles);
+  let deferred =
+    sizeBytes > config.bee.deferredUploadSizeThreshold * 1024 * 1024;
+  options.deferred = deferred;
 
   let message = "Folder successfully uploaded to Swarm";
 
@@ -91,6 +102,9 @@ export async function uploadFolder(
       message =
         "Folder upload started in deferred mode. Use query_upload_progress to track progress.";
     } catch (error) {
+      // Without a tag there is nothing to poll, so fall back to a synchronous
+      // upload and keep `deferred` in step with the options we send.
+      deferred = false;
       options.deferred = false;
     }
   }

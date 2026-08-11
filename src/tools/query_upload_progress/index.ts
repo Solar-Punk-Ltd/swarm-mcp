@@ -33,13 +33,14 @@ export async function queryUploadProgress(
       }
     }
 
+
     return getResponseWithStructuredContent({
       processedPercentage: progress.processedPercentage,
       message: progress.isComplete
         ? "Upload completed successfully."
         : `Upload progress: ${progress.processedPercentage}% processed`,
       startedAt: progress.startedAt,
-      tagAddress: progress.tagAddress,
+      reference: progress.tagAddress,
     });
   } catch (error: any) {
     return getToolErrorResponse(

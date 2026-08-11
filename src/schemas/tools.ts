@@ -195,8 +195,9 @@ export const SwarmToolsSchema = [
     name: "upload_file",
     title: "Upload file",
     description:
-      "Upload a file to Swarm. To upload a local file, pass its filesystem path as `data` — the server reads the file itself (stdio mode only). " +
+      "Upload a SINGLE file to Swarm. To upload a local file, pass its filesystem path as `data` — the server reads the file itself (stdio mode only). " +
       "Alternatively, pass the raw text content directly as `data`. " +
+      'This tool handles one file only — if the path refers to a directory, or the user mentions "folder", "directory", "the contents of", or otherwise asks to upload more than one file, use `upload_folder` instead and pass the path as its `folderPath`. ' +
       "Never ask the user for the file content when a path is given, and never pass a Swarm reference — references are the OUTPUT of this tool, not an input. " +
       "Small files upload synchronously and return a reference. Large files (over the server's deferred-upload threshold) upload in the background and immediately return the final reference (computed locally) plus a tagId for query_upload_progress; the content becomes retrievable at the reference once the upload completes. With redundancyLevel > 0 only the tagId is returned immediately. " +
       "Optional options (ignore if they are not requested): " +
@@ -234,9 +235,12 @@ export const SwarmToolsSchema = [
     name: "upload_folder",
     title: "Upload folder",
     description:
-      "Upload a folder to Swarm. " +
+      "Upload a folder (directory). " +
+      'Use this tool whenever the user mentions "folder", "directory", "the contents of", or asks to upload a path that refers to a directory rather than one file — including phrasings like "upload to Swarm folder <path>", where <path> is the folder to upload, not a destination. ' +
+      "Prefer this tool over `upload_file` when it is unclear whether a given path is a file or a directory: `upload_file` cannot upload a directory. " +
+      "`folderPath` is REQUIRED — pass the folder path from the user's message verbatim. " +
+      "Small folders upload synchronously and return the manifest `reference`. Large folders (over the server's deferred-upload threshold) upload in the background and return only a `tagId`; unlike `upload_file`, a folder's reference cannot be computed up front, so retrieve it by polling `query_upload_progress` with that tagId until processedPercentage is 100. " +
       "Optional options (ignore if they are not requested): " +
-      "folderPath: path to the folder to upload. " +
       "redundancyLevel: redundancy level for fault tolerance. Optional, value is 0 if not requested. " +
       "postageBatchId: The postage stamp batch ID which will be used to perform the upload, if it is provided.",
     inputSchema: {
@@ -244,7 +248,9 @@ export const SwarmToolsSchema = [
       properties: {
         folderPath: {
           type: "string",
-          description: "path to the folder to upload",
+          description:
+            "Required. Path to the local folder to upload, taken verbatim from the user's message. " +
+            "Do not ask the user to confirm or re-enter the path when one was already given.",
         },
         redundancyLevel: {
           type: "number",
@@ -447,7 +453,8 @@ export const SwarmToolsSchema = [
     name: "query_upload_progress",
     title: "Query upload progress",
     description:
-      "Query upload progress for a specific upload session identified with the returned Tag ID",
+      "Query upload progress for a specific upload session identified with the returned Tag ID. " +
+      "Also returns the final Swarm `reference` of the upload — use this to obtain the reference for a deferred upload (notably `upload_folder`, whose reference cannot be computed up front) once processedPercentage reaches 100.",
     inputSchema: {
       type: "object",
       properties: {
@@ -474,12 +481,14 @@ export const SwarmToolsSchema = [
           type: "string",
           description: "When it started.",
         },
-        tagAddress: {
+        reference: {
           type: "string",
-          description: "The address of the tag.",
+          description:
+            "The Swarm reference hash of the uploaded content (the root manifest reference for folder uploads). " +
+            "Meaningful once processedPercentage is 100; may be absent or zero while the upload is still in progress.",
         },
       },
-      required: ["processedPercentage", "tagAddress"],
+      required: ["processedPercentage", "reference"],
     },
     execution: {
       taskSupport: "forbidden",
