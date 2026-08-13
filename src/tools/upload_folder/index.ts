@@ -13,7 +13,12 @@ import { getUploadPostageBatchId } from "../../utils/upload-stamp";
 import { UploadFolderArgs } from "./models";
 import { BAD_REQUEST_STATUS } from "../../constants";
 
-import { collectFilesRelative, updateUploadFolderTaskStatus } from "./utils";
+import config from "../../config";
+import {
+  collectFilesRelative,
+  getTotalFilesSize,
+  updateUploadFolderTaskStatus,
+} from "./utils";
 import { TaskManager } from "../../tasks/task-manager";
 import { CreateTaskModel, TaskState } from "../../tasks/models";
 
@@ -26,6 +31,17 @@ export async function uploadFolder(
 ): Promise<ToolResponse | CreateTaskResult> {
   if (!args.folderPath) {
     return getToolErrorResponse("Missing required parameter: folderPath.");
+  }
+
+  if (
+    args.redundancyLevel !== undefined &&
+    (!Number.isInteger(args.redundancyLevel) ||
+      args.redundancyLevel < 0 ||
+      args.redundancyLevel > 4)
+  ) {
+    return getToolErrorResponse(
+      "Invalid redundancyLevel. Must be an integer between 0 and 4 (0=OFF, 1=MEDIUM, 2=STRONG, 3=INSANE, 4=PARANOID)."
+    );
   }
 
   // Check if in stdio mode for folder path uploads
@@ -59,15 +75,21 @@ export async function uploadFolder(
     options.redundancyLevel = redundancyLevel;
   }
 
-  const deferred = true; // Folders are always deferred if possible/requested
-  options.deferred = deferred;
-
   // Single-file collections return raw manifest bytes from the Bee node unless an
   // index document is set, so auto-detect and set it to avoid garbled downloads.
   const allFiles = await collectFilesRelative(args.folderPath);
   if (allFiles.length === 1) {
     options.indexDocument = allFiles[0];
   }
+
+  // Defer by total size, matching upload_file. Small folders upload
+  // synchronously so the caller gets the manifest reference straight away;
+  // unlike a single file, a folder root cannot be computed locally, so
+  // deferring is the only case where the reference is unavailable up front.
+  const sizeBytes = await getTotalFilesSize(args.folderPath, allFiles);
+  let deferred =
+    sizeBytes > config.bee.deferredUploadSizeThreshold * 1024 * 1024;
+  options.deferred = deferred;
 
   let message = "Folder successfully uploaded to Swarm";
 
@@ -80,6 +102,9 @@ export async function uploadFolder(
       message =
         "Folder upload started in deferred mode. Use query_upload_progress to track progress.";
     } catch (error) {
+      // Without a tag there is nothing to poll, so fall back to a synchronous
+      // upload and keep `deferred` in step with the options we send.
+      deferred = false;
       options.deferred = false;
     }
   }
@@ -135,21 +160,39 @@ export async function uploadFolder(
     };
   }
 
+  // Fire-and-forget path when a tag was created (folders always request
+  // deferred). Return immediately with the tagId so the MCP client doesn't
+  // time out; progress + final reference are discoverable via
+  // query_upload_progress.
+  if (deferred && tagId) {
+    bee
+      .uploadFilesFromDirectory(postageBatchId, args.folderPath, options)
+      .catch(() => {
+        /* failure surfaces via query_upload_progress on the tag */
+      });
+    return getResponseWithStructuredContent({
+      tagId,
+      message:
+        "Folder upload started in the background. Poll query_upload_progress with this tagId to check completion; the final reference is available on the tag once processed=true.",
+    });
+  }
+
   let result;
 
   try {
-    // Start the deferred upload
     result = await bee.uploadFilesFromDirectory(
       postageBatchId,
       args.folderPath,
       options
     );
   } catch (error) {
-    const errorMsg = errorHasStatus(error, BAD_REQUEST_STATUS)
-      ? getErrorMessage(error)
-      : "Unable to upload folder.";
-
-    return getToolErrorResponse(errorMsg);
+    const detail =
+      errorHasStatus(error, BAD_REQUEST_STATUS) && getErrorMessage(error)
+        ? getErrorMessage(error)
+        : error instanceof Error
+          ? error.message
+          : String(error);
+    return getToolErrorResponse(`Unable to upload folder: ${detail}`);
   }
 
   return getResponseWithStructuredContent({

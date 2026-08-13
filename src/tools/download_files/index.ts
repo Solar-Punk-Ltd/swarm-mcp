@@ -88,63 +88,44 @@ const downloadFilesHelper = async (
   bee: Bee,
   node: MantarayNode
 ) => {
-  if (args.filePath) {
-    const destinationFolder = args.filePath;
+  const destinationFolder = path.resolve(args.filePath ?? process.cwd());
 
-    if (!fs.existsSync(destinationFolder)) {
-      await mkdir(destinationFolder, { recursive: true });
-    }
+  if (!fs.existsSync(destinationFolder)) {
+    await mkdir(destinationFolder, { recursive: true });
+  }
 
-    const nodes = node!.collect();
+  const nodes = node!.collect();
 
-    if (nodes.length === 1) {
-      const node = nodes[0];
-      const data = await bee.downloadData(node.targetAddress);
+  if (nodes.length === 1) {
+    const single = nodes[0];
+    const data = await bee.downloadData(single.targetAddress);
+    await writeFile(
+      path.join(destinationFolder, path.basename(single.fullPathString)),
+      data.toUint8Array()
+    );
+  } else {
+    for (const child of nodes) {
+      const parsedPath = path.parse(child.fullPathString);
+      const nodeDestFolder = path.join(destinationFolder, parsedPath.dir);
+      if (!fs.existsSync(nodeDestFolder)) {
+        await mkdir(nodeDestFolder, { recursive: true });
+      }
+
+      const data = await bee.downloadData(child.targetAddress);
       await writeFile(
-        path.join(destinationFolder, path.basename(node.fullPathString)),
+        path.join(destinationFolder, child.fullPathString),
         data.toUint8Array()
       );
-    } else {
-      // Download each node
-      for (const node of nodes) {
-        const parsedPath = path.parse(node.fullPathString);
-        const nodeDestFolder = path.join(destinationFolder, parsedPath.dir);
-        // Create subdirectories if necessary
-        if (!fs.existsSync(nodeDestFolder)) {
-          await mkdir(nodeDestFolder, { recursive: true });
-        }
-
-        const data = await bee.downloadData(node.targetAddress);
-        await writeFile(
-          path.join(destinationFolder, node.fullPathString),
-          data.toUint8Array()
-        );
-      }
     }
-
-    return getResponseWithStructuredContent({
-      reference: args.reference,
-      manifestNodeCount: nodes.length,
-      savedTo: destinationFolder,
-      message: `Manifest content (${nodes.length} files) successfully downloaded to ${destinationFolder}`,
-    });
-  } else {
-    // regular file
-    const nodes = node!.collect();
-    const filesList = nodes.map((node) => ({
-      path: node.fullPathString || "/",
-      targetAddress: Array.from(node.targetAddress)
-        .map((e) => e.toString(16).padStart(2, "0"))
-        .join(""),
-      metadata: node.metadata,
-    }));
-
-    return getResponseWithStructuredContent({
-      reference: args.reference,
-      type: "manifest",
-      files: filesList,
-      message:
-        "This is a manifest with multiple files. Provide a filePath to download all files or download individual files using their specific references.",
-    });
   }
+
+  return getResponseWithStructuredContent({
+    reference: args.reference,
+    manifestNodeCount: nodes.length,
+    savedTo: destinationFolder,
+    message:
+      nodes.length === 1
+        ? `File successfully downloaded to ${destinationFolder}`
+        : `Manifest content (${nodes.length} files) successfully downloaded to ${destinationFolder}`,
+  });
 };

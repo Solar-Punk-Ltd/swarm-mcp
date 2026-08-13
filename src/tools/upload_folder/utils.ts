@@ -1,5 +1,5 @@
 import { Bee } from "@ethersphere/bee-js";
-import { readdir } from "fs/promises";
+import { readdir, stat } from "fs/promises";
 import path from "path";
 import {
   ExtendedTask,
@@ -59,6 +59,30 @@ export const updateUploadFolderTaskStatus: UpdateStatusFunction = async (
   }
 };
 
+
+/**
+ * Sums the byte size of the given files (paths relative to `dir`). Used to
+ * decide whether a folder upload is small enough to run synchronously, so
+ * only sizes are read here -- never the file contents.
+ */
+export const getTotalFilesSize = async (
+  dir: string,
+  relativeFiles: string[]
+): Promise<number> => {
+  const sizes = await Promise.all(
+    relativeFiles.map(async (relative) => {
+      try {
+        const stats = await stat(path.join(dir, relative));
+        return stats.size;
+      } catch {
+        // Unreadable entry: treat as 0 here and let the upload itself report it.
+        return 0;
+      }
+    })
+  );
+
+  return sizes.reduce((total, size) => total + size, 0);
+};
 
 export const collectFilesRelative = async (
   dir: string,

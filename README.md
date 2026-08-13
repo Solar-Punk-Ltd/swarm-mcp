@@ -1,7 +1,5 @@
 # Swarm MCP Server
 
-**Disclaimer:** This implementation is a proof-of-concept only, should not be used in production.
-
 A Model Context Protocol (MCP) server implementation that uses Ethereum Swarm's Bee API for storing and retrieving data.
 
 ## Overview
@@ -161,12 +159,11 @@ Read the Swarm feed of Topic1.
 
 ### `upload_file`
 
-Upload a file to Swarm.
+Upload a file to Swarm. Small files upload synchronously and return the reference. Large files (over the deferred-upload threshold) upload in the background: the response immediately includes the final reference (computed locally) and a tag ID for `query_upload_progress`; the content becomes retrievable at the reference once the upload completes. When `redundancyLevel` > 0, only the tag ID is returned immediately.
 
 **Parameters:**
 
 - `data`: File content or file path.
-- `isPath`: Wether the data parameter is a path.
 - `redundancyLevel`: (Optional) Redundancy level for fault tolerance (higher values provide better fault tolerance but increase storage overhead). 0 - none, 1 - medium, 2 - strong, 3 - insane, 4 - paranoid.
 - `postageBatchId`: (Optional) The postage stamp batch ID which will be used to perform the upload, if it is provided.
 
