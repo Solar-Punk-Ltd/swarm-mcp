@@ -13,4 +13,3 @@ main().catch((error) => {
   console.error("Failed to start Swarm MCP Server:", error);
   process.exit(1);
 });
-
