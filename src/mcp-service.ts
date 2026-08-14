@@ -350,12 +350,18 @@ export class SwarmMCPServer {
 
     this.server.server.onerror = (error: Error) =>
       console.error("[Error]", error);
+  }
 
-    process.on("SIGINT", async () => {
-      // Clear all active polls
-      await this.server.close();
-      process.exit(0);
-    });
+  /**
+   * Releases everything this instance owns: the task manager's polling and
+   * cleanup timers, and the MCP server itself. Callers own process signal
+   * handling — web mode creates one instance per session, so a signal hook per
+   * instance would leak listeners.
+   */
+  public async close(): Promise<void> {
+    // Clear all active polls
+    this.taskManager.destroy();
+    await this.server.close();
   }
 
   private registerPrompts() {
