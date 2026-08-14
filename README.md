@@ -26,16 +26,6 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 
 ## Configuration Options
 
-<<<<<<< Updated upstream
-| Option                              | Type          | Required      | Description                                                                                                                                               |
-| ----------------------------------- | --------------| --------------| --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BEE_API_URL`                       | string        | **optional** (unless using your own node) | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`.|
-| `BEE_FEED_PK`                       | string        | **optional** (cannot update feed without it)  | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                     |
-| `AUTO_ASSIGN_STAMP`                 | boolean       | **optional**  | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.          |
-| `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number        | **optional**  | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                  |
-
-
-=======
 | Option                              | Type    | Required                                     | Description                                                                                                                                                |
 | ----------------------------------- | ------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BEE_API_URL`                       | string  | **optional** (unless using your own node)    | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`. |
@@ -57,7 +47,6 @@ what it exposes:
   `get_postage_stamp`, `list_postage_stamps`, `extend_postage_stamp`) and `query_upload_progress` are omitted from
   `tools/list`, because the gateway does not expose those endpoints. Task execution is also disabled, so every call runs
   synchronously.
->>>>>>> Stashed changes
 
 ## MCP Tools
 
