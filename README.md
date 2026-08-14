@@ -20,9 +20,13 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 - Get a postage stamp batch.
 - List postage stamp batches.
 - Extend storage and duration of a postage stamp batch.
+- Track the progress of deferred (background) uploads.
+- Run long-running operations as MCP tasks.
+- Expose every tool as an MCP prompt.
 
 ## Configuration Options
 
+<<<<<<< Updated upstream
 | Option                              | Type          | Required      | Description                                                                                                                                               |
 | ----------------------------------- | --------------| --------------| --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BEE_API_URL`                       | string        | **optional** (unless using your own node) | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`.|
@@ -31,6 +35,29 @@ This server implements the Model Context Protocol (MCP), a standard protocol for
 | `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number        | **optional**  | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                  |
 
 
+=======
+| Option                              | Type    | Required                                     | Description                                                                                                                                                |
+| ----------------------------------- | ------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BEE_API_URL`                       | string  | **optional** (unless using your own node)    | The URL of the Bee API endpoint. If omitted, the default Swarm Gateway will be used: `https://api.gateway.ethswarm.org`. Example: `http://localhost:1633`. |
+| `BEE_FEED_PK`                       | string  | **optional** (cannot update feed without it) | The private key of the Swarm Feed to use. If not provided, Swarm Feed functionality will be disabled.                                                      |
+| `AUTO_ASSIGN_STAMP`                 | boolean | **optional**                                 | Whether to automatically assign a postage stamp if none is provided. Default value is: true. Set to false to disable automatic stamp assignment.           |
+| `DEFERRED_UPLOAD_SIZE_THRESHOLD_MB` | number  | **optional**                                 | Size threshold in megabytes for deferred uploads. Files larger than this size will be uploaded asynchronously. Default value is: 5 (MB).                   |
+| `TASK_TTL_MS`                       | number  | **optional**                                 | Time to live of a task in milliseconds. Default value is: 1200000 (20 minutes). If the task TTL specified by the MCP client is larger than this value, that one will be used.                                                                          |
+| `PORT`                              | number  | **optional** (web mode only)                 | Port the HTTP server listens on. Default value is: 3000.                                                                                                                                                                                             |
+| `HOST`                              | string  | **optional** (web mode only)                 | Host interface the HTTP server binds to. Default value is: `0.0.0.0`.                                                                                                                                                                                |
+
+## Bee Node vs. Swarm Gateway
+
+The server detects at runtime whether `BEE_API_URL` points at the public Swarm Gateway or at a full Bee node, and adapts
+what it exposes:
+
+- **Own Bee node** (e.g. `http://localhost:1633`): all tools are available, and tools that support it can be executed as
+  MCP tasks.
+- **Swarm Gateway** (the default when `BEE_API_URL` is omitted): the postage-stamp tools (`create_postage_stamp`,
+  `get_postage_stamp`, `list_postage_stamps`, `extend_postage_stamp`) and `query_upload_progress` are omitted from
+  `tools/list`, because the gateway does not expose those endpoints. Task execution is also disabled, so every call runs
+  synchronously.
+>>>>>>> Stashed changes
 
 ## MCP Tools
 
@@ -205,13 +232,14 @@ Upload to Swarm folder: /home/conversational-agent-client/uploads.
 
 ### `download_files`
 
-Download folder, files from a Swarm reference and save to file path or return file list of the reference.
+Download a file or folder from a Swarm reference and save it to disk. Handles both single files and folder manifests. The
+reference must be a manifest — for raw text data uploaded with `upload_data`, use `download_data` instead.
 
 
 **Parameters:**
 
 - `reference`: Swarm reference hash.
-- `filePath`: (Optional) Optional file path to save the downloaded content. If not provided list of files in the manifest will be returned.
+- `filePath`: (Optional) Destination **folder** (not a filename) to save the downloaded content into. Files from the manifest are written inside this folder under their original names. Absolute paths are recommended; relative paths resolve against the server's working directory. If omitted, files are saved into the server's current working directory. Only available in `stdio` mode.
 
 **Sample prompt:**
 
@@ -222,17 +250,51 @@ Download from Swarm the file with reference ba35af06601ddf5ac3d71ee33da0db753721
 
 ### `query_upload_progress`
 
-Query upload progress for a specific upload session identified with the returned Tag ID.
+Query upload progress for a specific upload session identified with the returned Tag ID. Also returns the final Swarm
+`reference` of the upload, which is how you obtain the reference of a deferred `upload_folder` (a folder's reference
+cannot be computed up front) once `processedPercentage` reaches 100.
 
 **Parameters:**
 
-- `tagId`: Tag ID returned by swarm-upload-file and swarm-upload-folder tools to track upload progress.
+- `tagId`: Tag ID returned by the `upload_file` and `upload_folder` tools to track upload progress.
 
 **Sample prompt:**
 
 ```bash
 Query Swarm for upload tag with id: 1.
 ```
+
+## MCP Tasks (long-running operations)
+
+The server declares the `tasks` capability, so a client can ask for a slow operation to be executed as a task and poll
+for its result instead of holding the tool call open.
+
+Task execution is opt-in per call: the client includes task parameters (`ttl`, `pollInterval`) in the `tools/call`
+request. If it does not, the tool runs synchronously as usual.
+
+The following tools accept task execution (`taskSupport: "optional"`):
+
+- `upload_file`
+- `upload_folder`
+- `download_files`
+- `create_postage_stamp`
+- `extend_postage_stamp`
+
+All other tools are declared `taskSupport: "forbidden"` and always run synchronously. Task execution also requires a real
+Bee node — see [Bee Node vs. Swarm Gateway](#bee-node-vs-swarm-gateway).
+
+Supported task requests: `tasks/get`, `tasks/result`, and `tasks/list` (paginated with a cursor, 50 tasks per page).
+
+Task lifetime is governed by `TASK_TTL_MS` (default 20 minutes); the effective TTL is the larger of that value and the
+one the client requested. The default poll interval is 5 seconds. Tasks are held in an in-memory store, so they do not
+survive a server restart.
+
+## MCP Prompts
+
+The server also declares the `prompts` capability and exposes one prompt per tool, named `<tool_name>_prompt` (e.g.
+`upload_data_prompt`, `download_files_prompt`). Each prompt takes the same arguments as the corresponding tool and
+returns a natural-language instruction — useful for clients that surface prompts as slash commands or templates. The
+prompt list is generated from the tool schemas, so it always stays in sync with the tools above.
 
 ## Setup
 
@@ -262,6 +324,20 @@ You can customize:
 - **Postage Batch ID**: Required for uploading data to Swarm (the default ID is a placeholder for testing)
 
 Modify these values as needed for your environment.
+
+### Tests, Linting and Formatting
+
+```bash
+npm test          # run the Jest test suite
+npm run lint      # ESLint
+npm run format    # Prettier, writes in place
+```
+
+### Publishing
+
+This server is also published to the Model Context Protocol registry as `io.github.Solar-Punk-Ltd/swarm-mcp`, with the
+npm package `@solarpunkltd/swarm-mcp` (stdio transport). The registry metadata lives in `server.json`. For the release
+and publishing process, see the [MCP registry publishing guide](./docs/mcp-registry-publish.md).
 
 ## Running the Server Locally
 
@@ -419,7 +495,13 @@ When running the server in Docker, it operates as a web service with both HTTP a
 
 In your client's settings, add a new remote/custom connector and provide the appropriate URL.
 
-_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in web mode. This includes using local paths for uploads (e.g., `upload_folder` or `upload_file` with `isPath: true`) and downloading directly to a file (e.g., `download_folder` with `filePath`). These features are only supported when running the server in `stdio` mode.
+_**Note on supported features**_: Functionalities that require direct access to the local file system are not available in web mode, and are only supported when running the server in `stdio` mode:
+
+- `upload_folder` is rejected outright — it always reads from the local file system.
+- `upload_file` is rejected when the `data` value resolves to an existing local file. The server decides this itself by
+  checking the path; there is no flag to set. Passing raw file content as `data` works in both modes.
+- `download_files` is rejected when `filePath` is supplied. Without `filePath` the call succeeds, but the files are
+  written into the working directory of the server process, not the client machine.
 
 ### 2. Stdio Connection (Local)
 
