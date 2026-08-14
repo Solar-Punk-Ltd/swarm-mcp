@@ -356,26 +356,48 @@ docker run -p 3000:3000 \
 
 ### Testing with cURL
 
-You can test if the servers are running correctly by sending a `tools/list` request using `curl`.
+The HTTP transport is session-based, so `tools/list` cannot be sent on its own: every session starts with an
+`initialize` request, and the server returns the session id in the `Mcp-Session-Id` response header. Subsequent requests
+must echo that id back.
 
-#### HTTP Server
+First, initialize and read the session id from the response headers (`-i`):
 
-This command asks the server to list all available tools and expects a single JSON response.
+```bash
+curl -i -X POST http://localhost:3000/mcp \
+-H "Content-Type: application/json" \
+-H "Accept: application/json, text/event-stream" \
+-d '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-06-18",
+    "capabilities": {},
+    "clientInfo": { "name": "curl", "version": "1.0.0" }
+  }
+}'
+```
+
+Then list the tools, passing the id from the `Mcp-Session-Id` header above:
 
 ```bash
 curl -X POST http://localhost:3000/mcp \
 -H "Content-Type: application/json" \
 -H "Accept: application/json, text/event-stream" \
+-H "Mcp-Session-Id: <session-id-from-the-initialize-response>" \
 -d '{
   "jsonrpc": "2.0",
   "method": "tools/list",
-  "id": 1
+  "id": 2
 }'
 ```
 
-_Note:_ `text/event-stream` in the accept header is required for the HTTP server, even to return a JSON response.
+A successful response contains the list of the server's tools. Send `DELETE /mcp` with the same header to end the
+session.
 
-A successful response will be a JSON object containing a list of the server's tools.
+_Note:_ `text/event-stream` in the accept header is required, and responses arrive as a server-sent event frame
+(`event: message` followed by a `data:` line holding the JSON-RPC payload) rather than as a bare JSON body. Requests with
+no session id are rejected with `400`, and requests naming an unknown or ended session with `404`.
 
 #### SSE Server
 
