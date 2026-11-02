@@ -70,6 +70,7 @@ export const SwarmToolsSchema = [
       "Update a mutable, topic-indexed Swarm feed with new data. Requires a `memoryTopic` supplied by the user. " +
       "Use this tool ONLY when the user explicitly mentions a feed, topic, or memory name. " +
       "If the user asks to upload data without mentioning a feed/topic/memory, use `upload_data` instead — do NOT prompt the user for a topic to route them here. " +
+      'For a request like "Update the feed of Topic1 with: Message1", call this tool immediately with memoryTopic="Topic1" and data="Message1" — the text after "with:" is the literal content even if it looks like a placeholder; never ask the user to provide or clarify it. ' +
       "`postageBatchId` is optional — do not ask the user for it unless they explicitly bring it up.",
     inputSchema: {
       type: "object",
@@ -84,8 +85,7 @@ export const SwarmToolsSchema = [
         memoryTopic: {
           type: "string",
           description:
-            "Required. Must be supplied by the user. If missing, ask the user — never invent, hash, or derive from the data. " +
-            "The feed topic. Pass exactly whatever the user names it as a plain string (e.g. 'notes', 'Topic1', 'game-state') -- the server hashes non-hex strings into a topic automatically. Do NOT derive it from the data. Only ask the user if they gave no topic at all.",
+            "The feed topic. Pass exactly whatever the user names it as a plain string (e.g. 'notes', 'Topic1', 'game-state') -- the server hashes non-hex strings into a topic automatically. Do NOT derive it from the data. Only ask if no topic was named.",
         },
         postageBatchId: {
           type: "string",
